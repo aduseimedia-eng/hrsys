@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hiring & ATS - HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/suite.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <header class="topbar">
+    <div class="topbar-title">Hiring & ATS</div>
+    <div class="topbar-actions">
+      <a href="onboarding.html" class="btn btn-outline btn-sm">Onboarding</a>
+      <button class="btn btn-primary btn-sm" onclick="toast('Job post draft created', 'success')">New Job</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="suite-hero">
+      <div>
+        <span class="suite-eyebrow">Talent acquisition</span>
+        <h1>Find, evaluate, offer, and hand off new hires without losing the thread.</h1>
+        <p>Track open roles, candidate movement, interview commitments, scorecards, and offer readiness from one HR workspace.</p>
+        <div class="suite-hero-actions">
+          <a href="#pipeline" class="btn btn-primary">View Pipeline</a>
+          <a href="#interviews" class="btn btn-outline" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.18)">Interview Schedule</a>
+        </div>
+      </div>
+      <div class="suite-hero-card">
+        <div class="suite-hero-stat"><span>Open requisitions</span><strong id="hero-open">--</strong></div>
+        <div class="suite-hero-stat"><span>Active candidates</span><strong id="hero-candidates">--</strong></div>
+        <div class="suite-hero-stat"><span>Offer stage</span><strong id="hero-offers">--</strong></div>
+      </div>
+    </section>
+
+    <section class="suite-kpis" id="hiring-kpis"></section>
+
+    <section class="suite-grid">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Open Requisitions</h3>
+            <span>Hiring plans by owner and department</span>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="toast('Requisition board refreshed', 'success')">Refresh</button>
+        </div>
+        <div class="suite-panel-body" id="requisition-list"></div>
+      </article>
+
+      <article class="suite-panel" id="interviews">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Interview Schedule</h3>
+            <span>Upcoming candidate touchpoints</span>
+          </div>
+        </div>
+        <div class="suite-panel-body" id="interview-list"></div>
+      </article>
+    </section>
+
+    <section class="suite-panel" id="pipeline">
+      <div class="suite-panel-header">
+        <div>
+          <h3>Candidate Pipeline</h3>
+          <span>Applicant flow from job post to hire</span>
+        </div>
+        <a href="reports.html" class="btn btn-outline btn-sm">Hiring Reports</a>
+      </div>
+      <div class="suite-panel-body">
+        <div class="pipeline-grid" id="pipeline-board"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/hr-suite-data.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+buildSidebar('hiring');
+loadNotifCount();
+
+const data = window.hrSuiteData.hiring;
+
+function bootHiring() {
+  const totalCandidates = data.pipeline.reduce((sum, item) => sum + item.count, 0);
+  document.getElementById('hero-open').textContent = data.requisitions.length;
+  document.getElementById('hero-candidates').textContent = totalCandidates;
+  document.getElementById('hero-offers').textContent = data.pipeline.find((item) => item.stage === 'Offer')?.count || 0;
+  renderHiringKpis();
+  renderRequisitions();
+  renderInterviews();
+  renderPipeline();
+}
+
+function renderHiringKpis() {
+  document.getElementById('hiring-kpis').innerHTML = data.scorecards.map((item) => `
+    <article class="suite-kpi">
+      <span>${escapeHtml(item.label)}</span>
+      <div>
+        <strong>${escapeHtml(item.value)}</strong>
+        <small>${escapeHtml(item.trend)}</small>
+      </div>
+    </article>
+  `).join('');
+}
+
+function renderRequisitions() {
+  document.getElementById('requisition-list').innerHTML = data.requisitions.map((req) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(req.title)}</strong>
+        <span>${escapeHtml(req.department)} - ${escapeHtml(req.location)} - ${req.applicants} applicants</span>
+        <div class="suite-progress"><span style="width:${Math.min(100, req.applicants * 2)}%"></span></div>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill ${req.priority === 'High' ? 'warn' : ''}">${escapeHtml(req.priority)}</span>
+        <small>${escapeHtml(req.owner)} - ${req.daysOpen}d open</small>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderInterviews() {
+  document.getElementById('interview-list').innerHTML = data.interviews.map((item) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(item.candidate)}</strong>
+        <span>${escapeHtml(item.role)} - ${escapeHtml(item.panel)}</span>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill">${escapeHtml(item.mode)}</span>
+        <small>${fmt.date(item.date)} at ${escapeHtml(item.time)}</small>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderPipeline() {
+  document.getElementById('pipeline-board').innerHTML = data.pipeline.map((column) => `
+    <div class="pipeline-column">
+      <h4>${escapeHtml(column.stage)} <span class="suite-pill">${column.count}</span></h4>
+      ${column.candidates.map((candidate) => `
+        <div class="candidate-card">
+          <strong>${escapeHtml(candidate)}</strong>
+          <span>${escapeHtml(column.stage)} queue</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+bootHiring();
+</script>
+</body>
+</html>

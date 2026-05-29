@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HRConnect - Staff Sign In</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    body {
+      min-height: 100vh;
+      background:
+        linear-gradient(160deg, rgba(12,43,54,.92), rgba(25,74,89,.86) 46%, rgba(234,242,243,.96) 46%),
+        var(--bg-page);
+      display: flex;
+      align-items: stretch;
+    }
+
+    .staff-login-shell {
+      width: min(1120px, calc(100% - 40px));
+      min-height: min(760px, calc(100vh - 40px));
+      margin: 20px auto;
+      background: rgba(251,253,252,.88);
+      border: 1px solid rgba(255,255,255,.45);
+      border-radius: 8px;
+      box-shadow: 0 22px 64px rgba(12,43,54,.20);
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) 440px;
+      overflow: hidden;
+    }
+
+    .staff-login-story {
+      background:
+        linear-gradient(180deg, rgba(12,43,54,.76), rgba(12,43,54,.92)),
+        var(--navy-950);
+      color: #fff;
+      padding: 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .staff-login-story::before,
+    .staff-login-story::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .staff-login-story::before {
+      width: 380px;
+      height: 380px;
+      right: -150px;
+      top: -140px;
+      border: 1px solid rgba(221,245,230,.18);
+    }
+
+    .staff-login-story::after {
+      width: 230px;
+      height: 230px;
+      left: -90px;
+      bottom: -80px;
+      background: rgba(221,245,230,.08);
+    }
+
+    .staff-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .staff-brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--mint-100);
+      color: var(--navy-950);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .staff-brand-name {
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    .staff-brand-name span { color: var(--mint-200); }
+
+    .staff-story-copy {
+      max-width: 560px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .staff-story-copy .eyebrow {
+      display: inline-flex;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(221,245,230,.12);
+      color: var(--mint-200);
+      font-size: .74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .staff-story-copy h1 {
+      color: #fff;
+      font-size: 2.65rem;
+      line-height: 1.08;
+      margin: 18px 0 16px;
+      max-width: 540px;
+    }
+
+    .staff-story-copy p {
+      color: rgba(255,255,255,.68);
+      max-width: 510px;
+      font-size: .98rem;
+    }
+
+    .staff-feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .staff-feature {
+      border: 1px solid rgba(221,245,230,.16);
+      border-radius: 8px;
+      padding: 16px;
+      background: rgba(255,255,255,.06);
+      min-height: 118px;
+    }
+
+    .staff-feature svg {
+      width: 22px;
+      height: 22px;
+      color: var(--mint-200);
+      margin-bottom: 16px;
+    }
+
+    .staff-feature strong {
+      display: block;
+      color: #fff;
+      font-size: .88rem;
+      margin-bottom: 4px;
+    }
+
+    .staff-feature span {
+      color: rgba(255,255,255,.54);
+      font-size: .78rem;
+      line-height: 1.45;
+    }
+
+    .staff-login-panel {
+      background: rgba(251,253,252,.96);
+      padding: 46px 42px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .staff-login-panel h2 {
+      font-size: 1.7rem;
+      margin-bottom: 7px;
+    }
+
+    .staff-login-panel .subtitle {
+      color: var(--text-secondary);
+      font-size: .92rem;
+      margin-bottom: 28px;
+    }
+
+    .error-alert {
+      background: var(--danger-bg);
+      color: var(--danger-fg);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .875rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .portal-switch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: .84rem;
+    }
+
+    .portal-switch a {
+      color: var(--navy-700);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .demo-card {
+      margin-top: 24px;
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--navy-50);
+    }
+
+    .demo-card h3 {
+      font-size: .78rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .demo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      font-size: .8rem;
+      color: var(--text-secondary);
+    }
+
+    .demo-row + .demo-row { border-top: 1px solid rgba(12,43,54,.08); }
+
+    .demo-row button {
+      padding: 4px 9px;
+      border-radius: 6px;
+      background: var(--mint-100);
+      color: var(--navy-800);
+      font-size: .74rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 960px) {
+      .staff-login-shell {
+        grid-template-columns: 1fr;
+        width: min(680px, calc(100% - 28px));
+      }
+      .staff-login-story {
+        min-height: 360px;
+      }
+      .staff-feature-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body { background: var(--bg-page); }
+      .staff-login-shell {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+        border: 0;
+      }
+      .staff-login-story {
+        padding: 28px 22px;
+      }
+      .staff-story-copy h1 {
+        font-size: 2rem;
+      }
+      .staff-login-panel {
+        padding: 32px 22px;
+      }
+      .portal-switch {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="staff-login-shell">
+    <section class="staff-login-story" aria-label="Staff self-service overview">
+      <div class="staff-brand">
+        <div class="staff-brand-mark">HR</div>
+        <div class="staff-brand-name">HR<span>Connect</span></div>
+      </div>
+
+      <div class="staff-story-copy">
+        <span class="eyebrow">Staff self-service</span>
+        <h1>Your work details, requests, and records in one place.</h1>
+        <p>Employees can manage leave, view payslips, upload documents, track reviews, and stay current with company announcements.</p>
+      </div>
+
+      <div class="staff-feature-grid">
+        <div class="staff-feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <strong>Leave requests</strong>
+          <span>Submit time off and track approval status.</span>
+        </div>
+        <div class="staff-feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 13a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/></svg>
+          <strong>Payslips</strong>
+          <span>Review salary, allowances, deductions, and net pay.</span>
+        </div>
+        <div class="staff-feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          <strong>Documents</strong>
+          <span>Keep certificates and HR forms organized.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="staff-login-panel" aria-label="Staff login form">
+      <h2>Staff sign in</h2>
+      <p class="subtitle">Access your employee self-service portal.</p>
+
+      <div class="error-alert" id="login-error"></div>
+
+      <form id="staff-login-form">
+        <div class="form-group">
+          <label class="form-label required" for="email">Email address</label>
+          <input type="email" id="email" class="form-control" placeholder="name@company.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="password">Password</label>
+          <input type="password" id="password" class="form-control" placeholder="Password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-full" id="login-btn" style="justify-content:center;">
+          Staff Sign In
+        </button>
+      </form>
+
+      <div class="portal-switch">
+        <span>Signing in as HR/Admin?</span>
+        <a href="login.html">Use admin sign in</a>
+      </div>
+
+      <div class="demo-card">
+        <h3>Demo staff accounts</h3>
+        <div class="demo-row">
+          <span><strong>Employee</strong> - akosua.boateng@company.com</span>
+          <button type="button" onclick="fillStaffDemo('akosua.boateng@company.com')">Use</button>
+        </div>
+        <div class="demo-row">
+          <span><strong>Manager</strong> - kwame.mensah@company.com</span>
+          <button type="button" onclick="fillStaffDemo('kwame.mensah@company.com')">Use</button>
+        </div>
+        <div class="demo-row">
+          <span>Password</span>
+          <strong>Password123!</strong>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    const existingUser = api.getUser();
+    if (api.getToken() && existingUser && existingUser.role !== 'admin') {
+      window.location.href = appUrl('/pages/staff-portal.html#overview');
+    } else if (api.getToken()) {
+      api.clearAuth();
+    }
+
+    document.getElementById('staff-login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = document.getElementById('login-btn');
+      const error = document.getElementById('login-error');
+      error.style.display = 'none';
+      button.disabled = true;
+      button.textContent = 'Signing in...';
+
+      try {
+        const data = await api.post('/auth/staff-login', {
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value,
+        });
+
+        if (data.user?.role === 'admin') {
+          api.clearAuth();
+          throw new Error('Please use the HR/Admin sign in page for this account');
+        }
+
+        api.setToken(data.token);
+        api.setUser(data.user);
+        window.location.href = appUrl('/pages/staff-portal.html#overview');
+      } catch (err) {
+        error.textContent = err.message || 'Invalid credentials';
+        error.style.display = 'block';
+        button.disabled = false;
+        button.textContent = 'Staff Sign In';
+      }
+    });
+
+    function fillStaffDemo(email) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = 'Password123!';
+    }
+  </script>
+</body>
+</html>

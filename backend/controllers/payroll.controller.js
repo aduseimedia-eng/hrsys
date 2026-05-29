@@ -1,0 +1,180 @@
+// controllers/payroll.controller.js
+const db = require('../config/db');
+
+// ─── Get my payslips ──────────────────────────────────────────
+exports.getMine = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT * FROM payroll WHERE employee_id=$1 ORDER BY year DESC, month DESC`,
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not fetch payslips' });
+  }
+};
+
+// ─── Get single payslip ───────────────────────────────────────
+exports.getPayslip = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await db.query(
+      `SELECT p.*, e.first_name, e.last_name, e.email, e.job_title, e.photo_url, e.role, e.employment_type,
+              d.name AS department_name
+       FROM payroll p
+       JOIN employees e        ON e.id = p.employee_id
+       LEFT JOIN departments d ON d.id = e.department_id
+       WHERE p.id = $1`,
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Payslip not found' });
+
+    const slip = rows[0];
+    // Employees can only view their own
+    if (req.user.role === 'employee' && slip.employee_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    res.json(slip);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not fetch payslip' });
+  }
+};
+
+// ─── Admin: All payroll ───────────────────────────────────────
+exports.getAll = async (req, res) => {
+  try {
+    const { month, year, status, department_id } = req.query;
+    const params = [];
+    let where = 'WHERE 1=1';
+
+    if (month)         { params.push(month);         where += ` AND p.month = $${params.length}`; }
+    if (year)          { params.push(year);          where += ` AND p.year = $${params.length}`; }
+    if (status)        { params.push(status);        where += ` AND p.status = $${params.length}`; }
+    if (department_id) { params.push(department_id); where += ` AND e.department_id = $${params.length}`; }
+
+    const { rows } = await db.query(
+      `SELECT p.*, CONCAT(e.first_name,' ',e.last_name) AS employee_name,
+              e.job_title, e.photo_url, e.role, e.employment_type, d.name AS department_name
+       FROM payroll p
+       JOIN employees e        ON e.id = p.employee_id
+       LEFT JOIN departments d ON d.id = e.department_id
+       ${where}
+       ORDER BY p.year DESC, p.month DESC, e.first_name`,
+      params
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not fetch payroll' });
+  }
+};
+
+// ─── Process payroll for a month (generate from salaries) ────
+exports.processMonth = async (req, res) => {
+  try {
+    const { month, year } = req.body;
+    if (!month || !year) return res.status(400).json({ error: 'Month and year required' });
+
+    // Get all active employees not yet in payroll for this period
+    const { rows: emps } = await db.query(
+      `SELECT e.id, e.salary FROM employees e
+       WHERE e.is_active = true
+         AND NOT EXISTS (
+           SELECT 1 FROM payroll p WHERE p.employee_id = e.id AND p.month=$1 AND p.year=$2
+         )`,
+      [month, year]
+    );
+
+    if (!emps.length) return res.status(409).json({ error: 'Payroll already processed for this period' });
+
+    const deductionRate = parseFloat(process.env.DEDUCTION_RATE || 0.1);
+    const allowanceRate = parseFloat(process.env.ALLOWANCE_RATE || 0.05);
+
+    for (const emp of emps) {
+      const deductions = (emp.salary * deductionRate).toFixed(2);
+      const allowances = (emp.salary * allowanceRate).toFixed(2);
+      await db.query(
+        `INSERT INTO payroll (employee_id, month, year, base_salary, allowances, deductions, status)
+         VALUES ($1,$2,$3,$4,$5,$6,'processed')`,
+        [emp.id, month, year, emp.salary, allowances, deductions]
+      );
+      // Notify employee
+      await db.query(
+        "INSERT INTO notifications (employee_id,type,message) VALUES ($1,'payroll','Your payroll for this month has been processed. View your payslip.')",
+        [emp.id]
+      );
+    }
+
+    res.json({ message: `Payroll processed for ${emps.length} employees`, count: emps.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not process payroll' });
+  }
+};
+
+// ─── Mark as paid ─────────────────────────────────────────────
+exports.markPaid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await db.query(
+      "UPDATE payroll SET status='paid', paid_at=NOW() WHERE id=$1 RETURNING *",
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Payroll record not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not update payroll status' });
+  }
+};
+
+// Admin: set payroll amounts/status for a staff member
+exports.updatePayroll = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const baseSalary = Number(req.body.base_salary || 0);
+    const allowances = Number(req.body.allowances || 0);
+    const deductions = Number(req.body.deductions || 0);
+    const status = req.body.status || 'processed';
+
+    if (!['pending', 'processed', 'paid'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid payroll status' });
+    }
+
+    const { rows } = await db.query(
+      `UPDATE payroll
+       SET base_salary=$1,
+           allowances=$2,
+           deductions=$3,
+           status=$4,
+           paid_at=CASE WHEN $4='paid' THEN COALESCE(paid_at, NOW()) ELSE NULL END
+       WHERE id=$5
+       RETURNING *`,
+      [baseSalary, allowances, deductions, status, id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Payroll record not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not update payroll' });
+  }
+};
+
+// ─── Payroll summary ──────────────────────────────────────────
+exports.getSummary = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT year, month,
+              SUM(net_salary) AS total_net,
+              SUM(base_salary) AS total_base,
+              SUM(deductions) AS total_deductions,
+              COUNT(*) AS employee_count,
+              COUNT(*) FILTER (WHERE status='paid') AS paid_count
+       FROM payroll
+       GROUP BY year, month
+       ORDER BY year DESC, month DESC
+       LIMIT 12`
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not fetch summary' });
+  }
+};

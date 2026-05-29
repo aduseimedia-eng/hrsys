@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding - HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/suite.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <header class="topbar">
+    <div class="topbar-title">Onboarding</div>
+    <div class="topbar-actions">
+      <a href="hiring.html" class="btn btn-outline btn-sm">Hiring</a>
+      <button class="btn btn-primary btn-sm" onclick="toast('Onboarding packet queued', 'success')">New Packet</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="suite-hero">
+      <div>
+        <span class="suite-eyebrow">First 90 days</span>
+        <h1>Turn accepted offers into confident first days.</h1>
+        <p>Coordinate paperwork, system access, manager tasks, equipment, welcome plans, and 30/60/90-day follow-up in one place.</p>
+        <div class="suite-hero-actions">
+          <a href="#cohorts" class="btn btn-primary">New Hire Cohorts</a>
+          <a href="#templates" class="btn btn-outline" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.18)">Templates</a>
+        </div>
+      </div>
+      <div class="suite-hero-card">
+        <div class="suite-hero-stat"><span>New hires</span><strong id="hero-hires">--</strong></div>
+        <div class="suite-hero-stat"><span>Average readiness</span><strong id="hero-readiness">--</strong></div>
+        <div class="suite-hero-stat"><span>Open tasks</span><strong id="hero-open-tasks">--</strong></div>
+      </div>
+    </section>
+
+    <section class="suite-kpis" id="onboarding-kpis"></section>
+
+    <section class="suite-grid" id="cohorts">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>New Hire Cohorts</h3>
+            <span>Readiness by employee and start date</span>
+          </div>
+          <a href="employees.html" class="btn btn-outline btn-sm">Employee Records</a>
+        </div>
+        <div class="suite-panel-body" id="cohort-list"></div>
+      </article>
+
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Checklist Queue</h3>
+            <span>Tasks across HR, IT, manager, and new hire</span>
+          </div>
+        </div>
+        <div class="suite-panel-body" id="task-list"></div>
+      </article>
+    </section>
+
+    <section class="suite-grid three" id="templates">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Packet Templates</h3>
+            <span>Reusable role-based onboarding flows</span>
+          </div>
+        </div>
+        <div class="suite-panel-body" id="template-list"></div>
+      </article>
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Manager Touchpoints</h3>
+            <span>Guided moments for better first weeks</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="suite-list">
+            <div class="suite-row"><div><strong>Day 1 welcome</strong><span>Confirm agenda, tools, and team introductions.</span></div><span class="suite-pill good">Ready</span></div>
+            <div class="suite-row"><div><strong>Week 1 check-in</strong><span>Capture blockers and clarify role expectations.</span></div><span class="suite-pill">Scheduled</span></div>
+            <div class="suite-row"><div><strong>30-day pulse</strong><span>Measure confidence, belonging, and workload fit.</span></div><span class="suite-pill warn">Due soon</span></div>
+          </div>
+        </div>
+      </article>
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Automation</h3>
+            <span>Candidate-to-employee handoff</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="suite-list">
+            <div class="suite-row"><div><strong>Accepted offer</strong><span>Create employee profile and packet.</span></div><span class="suite-pill good">Active</span></div>
+            <div class="suite-row"><div><strong>Start date set</strong><span>Notify IT, manager, payroll, and benefits.</span></div><span class="suite-pill good">Active</span></div>
+            <div class="suite-row"><div><strong>Forms complete</strong><span>Move documents to employee file.</span></div><span class="suite-pill">Draft</span></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/hr-suite-data.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+buildSidebar('onboarding');
+loadNotifCount();
+
+const data = window.hrSuiteData.onboarding;
+
+function bootOnboarding() {
+  const readiness = Math.round(data.cohorts.reduce((sum, item) => sum + item.completion, 0) / data.cohorts.length);
+  const openTasks = data.checklist.filter((item) => !item.done).length;
+  document.getElementById('hero-hires').textContent = data.cohorts.length;
+  document.getElementById('hero-readiness').textContent = `${readiness}%`;
+  document.getElementById('hero-open-tasks').textContent = openTasks;
+  renderKpis(readiness, openTasks);
+  renderCohorts();
+  renderTasks();
+  renderTemplates();
+}
+
+function renderKpis(readiness, openTasks) {
+  const ready = data.cohorts.filter((item) => item.completion >= 80).length;
+  const needsEquipment = data.cohorts.filter((item) => item.status.includes('equipment')).length;
+  const completeTasks = data.checklist.filter((item) => item.done).length;
+  document.getElementById('onboarding-kpis').innerHTML = [
+    ['Average readiness', `${readiness}%`, 'across current cohorts'],
+    ['New hires ready', ready, '80% or higher completion'],
+    ['Open tasks', openTasks, `${completeTasks} already completed`],
+    ['Equipment blockers', needsEquipment, 'IT action needed']
+  ].map(([label, value, note]) => `
+    <article class="suite-kpi"><span>${escapeHtml(label)}</span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div></article>
+  `).join('');
+}
+
+function renderCohorts() {
+  document.getElementById('cohort-list').innerHTML = data.cohorts.map((hire) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(hire.name)}</strong>
+        <span>${escapeHtml(hire.role)} - ${escapeHtml(hire.department)} - starts ${fmt.date(hire.startDate)}</span>
+        <div class="suite-progress"><span style="width:${hire.completion}%"></span></div>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill ${hire.completion >= 80 ? 'good' : hire.completion < 65 ? 'warn' : ''}">${hire.completion}%</span>
+        <small>${escapeHtml(hire.owner)}</small>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTasks() {
+  document.getElementById('task-list').innerHTML = data.checklist.map((task) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(task.task)}</strong>
+        <span>${escapeHtml(task.owner)} - due ${fmt.date(task.due)}</span>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill ${task.done ? 'good' : 'warn'}">${task.done ? 'Done' : 'Open'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTemplates() {
+  document.getElementById('template-list').innerHTML = data.templates.map((item) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <span>${item.steps} steps - ${escapeHtml(item.lastUsed)}</span>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="toast('Template opened', 'info')">Open</button>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+bootOnboarding();
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benefits - HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/suite.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <header class="topbar">
+    <div class="topbar-title">Benefits</div>
+    <div class="topbar-actions">
+      <a href="payroll.html" class="btn btn-outline btn-sm">Payroll</a>
+      <button class="btn btn-primary btn-sm" onclick="toast('Open enrollment cycle drafted', 'success')">Open Enrollment</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="suite-hero">
+      <div>
+        <span class="suite-eyebrow">Benefits administration</span>
+        <h1>Manage plans, elections, dependents, and payroll-ready deductions.</h1>
+        <p>Keep employee benefits data organized, enrollment changes visible, and payroll deductions aligned without duplicate tracking.</p>
+        <div class="suite-hero-actions">
+          <a href="#plans" class="btn btn-primary">Plan Overview</a>
+          <a href="#events" class="btn btn-outline" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.18)">Change Events</a>
+        </div>
+      </div>
+      <div class="suite-hero-card">
+        <div class="suite-hero-stat"><span>Enrollment coverage</span><strong id="hero-coverage">--</strong></div>
+        <div class="suite-hero-stat"><span>Monthly deductions</span><strong id="hero-deductions">--</strong></div>
+        <div class="suite-hero-stat"><span>Pending changes</span><strong id="hero-pending">--</strong></div>
+      </div>
+    </section>
+
+    <section class="suite-kpis" id="benefits-kpis"></section>
+
+    <section class="suite-grid" id="plans">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Benefit Plans</h3>
+            <span>Enrollment and renewal readiness</span>
+          </div>
+          <a href="reports.html" class="btn btn-outline btn-sm">Benefits Report</a>
+        </div>
+        <div class="suite-panel-body" id="plan-list"></div>
+      </article>
+
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Deductions Mix</h3>
+            <span>Monthly employer and employee deductions</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="suite-chart" id="deduction-chart"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="suite-grid" id="events">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Enrollment Change Events</h3>
+            <span>Updates waiting for approval, documents, or payroll sync</span>
+          </div>
+        </div>
+        <div class="suite-panel-body" id="event-list"></div>
+      </article>
+
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Broker Export</h3>
+            <span>Clean plan data ready for external partners</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="suite-list">
+            <div class="suite-row"><div><strong>Enrollment census</strong><span>Employees, dependents, plan elections, and eligibility.</span></div><span class="suite-pill good">Ready</span></div>
+            <div class="suite-row"><div><strong>Deduction file</strong><span>Payroll-ready deductions by plan and employee.</span></div><span class="suite-pill warn">2 pending</span></div>
+            <div class="suite-row"><div><strong>Renewal packet</strong><span>Current coverage and renewal dates for plan review.</span></div><span class="suite-pill">Draft</span></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/hr-suite-data.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+buildSidebar('benefits');
+loadNotifCount();
+
+const data = window.hrSuiteData.benefits;
+
+function bootBenefits() {
+  const eligible = data.plans.reduce((max, plan) => Math.max(max, plan.eligible), 0);
+  const enrolledAverage = Math.round(data.plans.reduce((sum, plan) => sum + (plan.enrolled / plan.eligible), 0) / data.plans.length * 100);
+  const totalDeductions = data.deductions.reduce((sum, row) => sum + row.value, 0);
+  const pending = data.events.filter((event) => event.status !== 'Ready for payroll sync').length;
+  document.getElementById('hero-coverage').textContent = `${enrolledAverage}%`;
+  document.getElementById('hero-deductions').textContent = fmt.currency(totalDeductions);
+  document.getElementById('hero-pending').textContent = pending;
+  renderKpis(eligible, enrolledAverage, totalDeductions, pending);
+  renderPlans();
+  renderDeductions(totalDeductions);
+  renderEvents();
+}
+
+function renderKpis(eligible, enrolledAverage, totalDeductions, pending) {
+  document.getElementById('benefits-kpis').innerHTML = [
+    ['Eligible employees', eligible, 'across active plans'],
+    ['Enrollment coverage', `${enrolledAverage}%`, 'average plan participation'],
+    ['Monthly deductions', fmt.currency(totalDeductions), 'all active plans'],
+    ['Pending events', pending, 'needs HR review']
+  ].map(([label, value, note]) => `
+    <article class="suite-kpi"><span>${escapeHtml(label)}</span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div></article>
+  `).join('');
+}
+
+function renderPlans() {
+  document.getElementById('plan-list').innerHTML = data.plans.map((plan) => {
+    const percent = Math.round((plan.enrolled / plan.eligible) * 100);
+    return `
+      <div class="suite-row">
+        <div>
+          <strong>${escapeHtml(plan.type)} - ${escapeHtml(plan.provider)}</strong>
+          <span>${plan.enrolled}/${plan.eligible} enrolled - renews ${fmt.date(plan.renewal)}</span>
+          <div class="suite-progress"><span style="width:${percent}%"></span></div>
+        </div>
+        <div class="suite-meta">
+          <span class="suite-pill ${plan.status === 'Review' ? 'warn' : 'good'}">${escapeHtml(plan.status)}</span>
+          <small>${fmt.currency(plan.monthlyCost)}/mo</small>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDeductions(total) {
+  document.getElementById('deduction-chart').innerHTML = data.deductions.map((row) => `
+    <div class="suite-chart-row">
+      <span>${escapeHtml(row.label)}</span>
+      <div class="suite-bar"><span style="width:${Math.round((row.value / total) * 100)}%"></span></div>
+      <strong>${fmt.currency(row.value)}</strong>
+    </div>
+  `).join('');
+}
+
+function renderEvents() {
+  document.getElementById('event-list').innerHTML = data.events.map((event) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(event.employee)}</strong>
+        <span>${escapeHtml(event.event)} - ${escapeHtml(event.plan)} - due ${fmt.date(event.due)}</span>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill ${event.status.includes('Pending') || event.status.includes('Needs') ? 'warn' : 'good'}">${escapeHtml(event.status)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+bootBenefits();
+</script>
+</body>
+</html>

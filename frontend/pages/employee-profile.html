@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Profile — HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+  <style>
+    .profile-hero {
+      background: linear-gradient(135deg, var(--navy-800), var(--navy-950));
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .profile-hero::after {
+      content: '';
+      position: absolute;
+      right: -60px; bottom: -60px;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: rgba(245,158,11,.08);
+    }
+    .profile-hero .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .profile-hero .avatar-wrap .edit-photo-btn {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 28px; height: 28px;
+      background: var(--amber-500);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      border: 2px solid var(--navy-950);
+      transition: background var(--duration);
+    }
+    .profile-hero .avatar-wrap .edit-photo-btn:hover { background: var(--amber-400); }
+    .profile-hero h2 { font-size: 1.6rem; color: #fff; margin-bottom: 4px; }
+    .profile-hero .role-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(255,255,255,.1); font-size: .8rem; margin-top: 6px; }
+    .profile-meta { display: flex; gap: 20px; margin-top: 14px; flex-wrap: wrap; }
+    .profile-meta-item { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: rgba(255,255,255,.6); }
+    .profile-meta-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .profile-actions { margin-left: auto; display: flex; gap: 10px; flex-shrink: 0; align-self: flex-start; }
+    .profile-actions .btn { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.15); }
+    .profile-actions .btn:hover { background: rgba(255,255,255,.18); }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .875rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label { color: var(--text-muted); }
+    .info-row .value { font-weight: 500; text-align: right; }
+
+    @media (max-width: 768px) {
+      .profile-hero { flex-direction: column; text-align: center; }
+      .profile-meta { justify-content: center; }
+      .profile-actions { margin-left: 0; }
+      .profile-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar">
+    <div class="topbar-title" id="page-title">Employee Profile</div>
+    <div class="topbar-actions">
+      <a href="javascript:history.back()" class="btn btn-outline btn-sm">← Back</a>
+    </div>
+  </header>
+  <main class="main-content" id="profile-content">
+    <div class="loading-state" style="height:60vh"><div class="spinner"></div></div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const currentUser = requireAuth();
+if (!currentUser) throw new Error('redirect');
+buildSidebar('employees');
+
+const params = new URLSearchParams(window.location.search);
+const empId  = parseInt(params.get('id')) || currentUser.id;
+const isOwn  = empId === currentUser.id;
+const isAdmin= currentUser.role === 'admin';
+let departments = [];
+const JOB_TITLES = [
+  'HR Director',
+  'HR Officer',
+  'Admin Officer',
+  'Operations Manager',
+  'Operations Officer',
+  'Public Relations Lead',
+  'Public Relations Officer',
+  'IT Manager',
+  'IT Support Officer',
+  'Senior Developer',
+  'Frontend Developer',
+  'Account Manager',
+  'Account Analyst',
+  'Member Management Lead',
+  'Member Officer'
+];
+
+function safe(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+function valueOrDash(value) {
+  return value == null || value === '' ? '--' : safe(value);
+}
+
+function infoRow(label, value) {
+  return `<div class="info-row"><span class="label">${safe(label)}</span><span class="value">${valueOrDash(value)}</span></div>`;
+}
+
+function optionList(options, selectedValue, placeholder = '— Select —') {
+  return `<option value="">${placeholder}</option>${options.map((option) => {
+    const value = typeof option === 'object' ? option.value : option;
+    const label = typeof option === 'object' ? option.label : option;
+    return `<option value="${safe(value)}" ${String(value) === String(selectedValue || '') ? 'selected' : ''}>${safe(label)}</option>`;
+  }).join('')}`;
+}
+
+async function loadProfile() {
+  try {
+    const [emp, deptRows] = await Promise.all([
+      api.get(`/employees/${empId}`),
+      api.get('/employees/departments')
+    ]);
+    departments = deptRows || [];
+    document.getElementById('page-title').textContent = `${emp.first_name} ${emp.last_name}`;
+
+    const canEdit = isOwn || isAdmin;
+
+    document.getElementById('profile-content').innerHTML = `
+      <!-- Hero -->
+      <div class="profile-hero">
+        <div class="avatar-wrap">
+          ${emp.photo_url
+            ? `<img src="${assetUrl(emp.photo_url)}" class="avatar" style="width:96px;height:96px;object-fit:cover" alt="">`
+            : `<div class="avatar" style="width:96px;height:96px;font-size:2rem">${fmt.initials(emp.first_name,emp.last_name)}</div>`}
+          ${isOwn ? `<label class="edit-photo-btn" title="Change photo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this.files[0])">
+          </label>` : ''}
+        </div>
+        <div style="flex:1">
+          <h2>${emp.first_name} ${emp.last_name}</h2>
+          <p style="color:rgba(255,255,255,.6);font-size:.9rem">${emp.job_title || '—'}</p>
+          <div style="margin-top:8px">${fmt.statusBadge(emp.role)} ${emp.department_name ? `<span class="badge badge-info" style="margin-left:6px">${emp.department_name}</span>` : ''}</div>
+          <div class="profile-meta">
+            ${emp.email ? `<div class="profile-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${emp.email}</div>` : ''}
+            ${emp.phone ? `<div class="profile-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.66A2 2 0 012 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>${emp.phone}</div>` : ''}
+            ${emp.hire_date ? `<div class="profile-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Joined ${fmt.date(emp.hire_date)}</div>` : ''}
+          </div>
+        </div>
+        ${canEdit ? `<div class="profile-actions">
+          <button class="btn btn-sm" onclick="showEditModal()">Edit Profile</button>
+          ${isAdmin && !isOwn ? `<button class="btn btn-sm" onclick="showAccountModal(${emp.id})">Account Settings</button>
+          <button class="btn btn-sm" style="background:rgba(225,29,72,.2);border-color:rgba(225,29,72,.3)" onclick="deactivateEmployee(${emp.id})">Delete Staff</button>` : ''}
+        </div>` : ''}
+      </div>
+
+      <!-- Details grid -->
+      <div class="profile-grid">
+        <!-- Personal info -->
+        <div class="card">
+          <div class="card-header"><h3>Personal Information</h3></div>
+          <div class="card-body">
+            <div class="info-row"><span class="label">Full Name</span><span class="value">${emp.first_name} ${emp.last_name}</span></div>
+            <div class="info-row"><span class="label">Date of Birth</span><span class="value">${emp.date_of_birth ? fmt.date(emp.date_of_birth) : '—'}</span></div>
+            <div class="info-row"><span class="label">Phone</span><span class="value">${emp.phone || '—'}</span></div>
+            <div class="info-row"><span class="label">Email</span><span class="value">${emp.email}</span></div>
+            <div class="info-row"><span class="label">Address</span><span class="value" style="max-width:200px;text-align:right">${emp.address || '—'}</span></div>
+          </div>
+        </div>
+
+        <!-- Work info -->
+        <div class="card">
+          <div class="card-header"><h3>Work Information</h3></div>
+          <div class="card-body">
+            <div class="info-row"><span class="label">Department</span><span class="value">${emp.department_name || '—'}</span></div>
+            <div class="info-row"><span class="label">Employment Type</span><span class="value">${emp.employment_type === 'contractual' ? 'Contractual' : 'Staff'}</span></div>
+            <div class="info-row"><span class="label">Job Title</span><span class="value">${emp.job_title || '—'}</span></div>
+            <div class="info-row"><span class="label">Manager</span><span class="value">${emp.manager_name || '—'}</span></div>
+            <div class="info-row"><span class="label">Role</span><span class="value">${fmt.statusBadge(emp.role)}</span></div>
+            <div class="info-row"><span class="label">Hire Date</span><span class="value">${emp.hire_date ? fmt.date(emp.hire_date) : '—'}</span></div>
+            ${emp.salary != null ? `<div class="info-row"><span class="label">Salary</span><span class="value">${fmt.currency(emp.salary)}</span></div>` : ''}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Education Information</h3></div>
+          <div class="card-body">
+            ${infoRow('Qualification', emp.education_level || emp.education_information)}
+            ${infoRow('Institution', emp.education_institution)}
+            ${infoRow('Field of Study', emp.education_field)}
+            ${infoRow('Graduation Year', emp.graduation_year)}
+            ${infoRow('Department', emp.department_name)}
+            ${infoRow('Staff ID', emp.id ? `EMP-${String(emp.id).padStart(4, '0')}` : '')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Experience</h3></div>
+          <div class="card-body">
+            ${infoRow('Previous Company', emp.previous_company)}
+            ${infoRow('Previous Role', emp.previous_job_title)}
+            ${infoRow('Years of Experience', emp.experience_years)}
+            ${infoRow('Experience Summary', emp.experience_summary || emp.experience)}
+            ${infoRow('Current Role', emp.job_title)}
+            ${infoRow('Employment Type', emp.employment_type === 'contractual' ? 'Contractual' : 'Staff')}
+            ${infoRow('Line Manager', emp.manager_name)}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Emergency Contact</h3></div>
+          <div class="card-body">
+            ${infoRow('Name', emp.emergency_contact_name)}
+            ${infoRow('Relationship', emp.emergency_contact_relationship)}
+            ${infoRow('Phone', emp.emergency_contact_phone)}
+            ${infoRow('Address', emp.emergency_contact_address)}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Bank Information</h3></div>
+          <div class="card-body">
+            ${infoRow('Bank Name', emp.bank_name)}
+            ${infoRow('Account Name', emp.bank_account_name)}
+            ${infoRow('Account Number', emp.bank_account_number)}
+            ${infoRow('Branch', emp.bank_branch)}
+          </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="card" style="grid-column:1/-1">
+          <div class="card-header"><h3>Quick Access</h3></div>
+          <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+            <a href="leave.html" class="btn btn-outline">Leave History</a>
+            <a href="payroll.html" class="btn btn-outline">Payslips</a>
+            <a href="documents.html" class="btn btn-outline">Documents</a>
+            <a href="performance.html" class="btn btn-outline">Performance</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Store emp for edit modal
+    window._emp = emp;
+  } catch(e) {
+    document.getElementById('profile-content').innerHTML =
+      `<div class="empty-state"><h4>Profile not found</h4><p>${e.message}</p></div>`;
+  }
+}
+
+async function uploadPhoto(file) {
+  if (!file) return;
+  try {
+    const form = new FormData();
+    form.append('photo', file);
+    await api.upload('/employees/me/photo', form);
+    toast('Photo updated!', 'success');
+    loadProfile();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function showEditModal() {
+  const emp = window._emp;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>Edit Profile</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">First Name</label><input type="text" id="e-first" class="form-control" value="${emp.first_name || ''}"></div>
+          <div class="form-group"><label class="form-label">Last Name</label><input type="text" id="e-last" class="form-control" value="${emp.last_name || ''}"></div>
+          <div class="form-group"><label class="form-label">Phone</label><input type="text" id="e-phone" class="form-control" value="${emp.phone || ''}"></div>
+          <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="e-dob" class="form-control" value="${emp.date_of_birth ? emp.date_of_birth.split('T')[0] : ''}"></div>
+          <div class="form-group span-2"><label class="form-label">Address</label><textarea id="e-address" class="form-control" rows="2">${emp.address || ''}</textarea></div>
+          <div class="form-group"><label class="form-label">Qualification</label><input type="text" id="e-education-level" class="form-control" value="${emp.education_level || emp.education_information || ''}"></div>
+          <div class="form-group"><label class="form-label">Institution</label><input type="text" id="e-education-institution" class="form-control" value="${emp.education_institution || ''}"></div>
+          <div class="form-group"><label class="form-label">Field of Study</label><input type="text" id="e-education-field" class="form-control" value="${emp.education_field || ''}"></div>
+          <div class="form-group"><label class="form-label">Graduation Year</label><input type="text" id="e-graduation-year" class="form-control" value="${emp.graduation_year || ''}"></div>
+          <div class="form-group"><label class="form-label">Previous Company</label><input type="text" id="e-previous-company" class="form-control" value="${emp.previous_company || ''}"></div>
+          <div class="form-group"><label class="form-label">Previous Role</label><input type="text" id="e-previous-job-title" class="form-control" value="${emp.previous_job_title || ''}"></div>
+          <div class="form-group"><label class="form-label">Years of Experience</label><input type="text" id="e-experience-years" class="form-control" value="${emp.experience_years || ''}"></div>
+          <div class="form-group span-2"><label class="form-label">Experience Summary</label><textarea id="e-experience-summary" class="form-control" rows="2">${emp.experience_summary || emp.experience || ''}</textarea></div>
+          <div class="form-group"><label class="form-label">Emergency Contact Name</label><input type="text" id="e-emergency-name" class="form-control" value="${emp.emergency_contact_name || ''}"></div>
+          <div class="form-group"><label class="form-label">Relationship</label><input type="text" id="e-emergency-relationship" class="form-control" value="${emp.emergency_contact_relationship || ''}"></div>
+          <div class="form-group"><label class="form-label">Emergency Phone</label><input type="text" id="e-emergency-phone" class="form-control" value="${emp.emergency_contact_phone || ''}"></div>
+          <div class="form-group"><label class="form-label">Emergency Address</label><input type="text" id="e-emergency-address" class="form-control" value="${emp.emergency_contact_address || ''}"></div>
+          <div class="form-group"><label class="form-label">Bank Name</label><input type="text" id="e-bank-name" class="form-control" value="${emp.bank_name || ''}"></div>
+          <div class="form-group"><label class="form-label">Account Name</label><input type="text" id="e-bank-account-name" class="form-control" value="${emp.bank_account_name || ''}"></div>
+          <div class="form-group"><label class="form-label">Account Number</label><input type="text" id="e-bank-account-number" class="form-control" value="${emp.bank_account_number || ''}"></div>
+          <div class="form-group"><label class="form-label">Bank Branch</label><input type="text" id="e-bank-branch" class="form-control" value="${emp.bank_branch || ''}"></div>
+          ${isAdmin ? `
+          <div class="form-group"><label class="form-label">Department</label><select id="e-department" class="form-control form-select">${optionList(departments.map((department) => ({ value: department.id, label: department.name })), emp.department_id)}</select></div>
+          <div class="form-group"><label class="form-label">Job Title</label><select id="e-title" class="form-control form-select">${optionList(JOB_TITLES, emp.job_title)}</select></div>
+          <div class="form-group"><label class="form-label">Employment Type</label><select id="e-employment-type" class="form-control form-select">
+            <option value="staff" ${emp.employment_type !== 'contractual' ? 'selected' : ''}>Staff</option>
+            <option value="contractual" ${emp.employment_type === 'contractual' ? 'selected' : ''}>Contractual</option>
+          </select></div>
+          <div class="form-group"><label class="form-label">Salary</label><input type="number" id="e-salary" class="form-control" value="${emp.salary || ''}"></div>
+          ` : ''}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEdit(${emp.id})">Save Changes</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function saveEdit(id) {
+  try {
+    const body = {
+      first_name:    document.getElementById('e-first').value,
+      last_name:     document.getElementById('e-last').value,
+      phone:         document.getElementById('e-phone').value,
+      address:       document.getElementById('e-address').value,
+      date_of_birth: document.getElementById('e-dob').value,
+      education_level: document.getElementById('e-education-level').value,
+      education_institution: document.getElementById('e-education-institution').value,
+      education_field: document.getElementById('e-education-field').value,
+      graduation_year: document.getElementById('e-graduation-year').value,
+      previous_company: document.getElementById('e-previous-company').value,
+      previous_job_title: document.getElementById('e-previous-job-title').value,
+      experience_years: document.getElementById('e-experience-years').value,
+      experience_summary: document.getElementById('e-experience-summary').value,
+      emergency_contact_name: document.getElementById('e-emergency-name').value,
+      emergency_contact_relationship: document.getElementById('e-emergency-relationship').value,
+      emergency_contact_phone: document.getElementById('e-emergency-phone').value,
+      emergency_contact_address: document.getElementById('e-emergency-address').value,
+      bank_name: document.getElementById('e-bank-name').value,
+      bank_account_name: document.getElementById('e-bank-account-name').value,
+      bank_account_number: document.getElementById('e-bank-account-number').value,
+      bank_branch: document.getElementById('e-bank-branch').value
+    };
+    if (isAdmin) {
+      body.department_id = document.getElementById('e-department')?.value || null;
+      body.job_title = document.getElementById('e-title')?.value;
+      body.employment_type = document.getElementById('e-employment-type')?.value;
+      body.salary    = document.getElementById('e-salary')?.value;
+    }
+    await api.put(`/employees/${id}`, body);
+    document.querySelector('.modal-overlay')?.remove();
+    toast('Profile updated!', 'success');
+    loadProfile();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deactivateEmployee(id) {
+  if (!confirm('Delete this staff member from the active app? Their historical records stay archived.')) return;
+  try {
+    await api.patch(`/employees/${id}/deactivate`);
+    toast('Staff member removed from active app', 'success');
+    history.back();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function showAccountModal(id) {
+  const emp = window._emp;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Staff Email & Password</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Email</label><input type="email" id="acct-email" class="form-control" value="${emp.email || ''}"></div>
+        <div class="form-group"><label class="form-label">New Password</label><input type="password" id="acct-password" class="form-control" placeholder="Leave blank to keep current password"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAccountReset(${id})">Save Account</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function saveAccountReset(id) {
+  try {
+    const body = { email: document.getElementById('acct-email').value };
+    const password = document.getElementById('acct-password').value;
+    if (password) body.password = password;
+    await api.patch(`/employees/${id}/account`, body);
+    document.querySelector('.modal-overlay')?.remove();
+    toast('Staff account updated', 'success');
+    loadProfile();
+  } catch (e) {
+    toast(e.message || 'Could not reset account', 'error');
+  }
+}
+
+loadProfile();
+</script>
+</body>
+</html>

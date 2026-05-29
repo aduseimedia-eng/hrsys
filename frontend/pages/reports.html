@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports & Workflows - HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/suite.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <header class="topbar">
+    <div class="topbar-title">Reports & Workflows</div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="toast('CSV export prepared', 'success')">Export</button>
+      <button class="btn btn-primary btn-sm" onclick="toast('Saved report created', 'success')">New Report</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="suite-hero">
+      <div>
+        <span class="suite-eyebrow">People intelligence</span>
+        <h1>Answer HR questions with trusted data, saved reports, and workflow actions.</h1>
+        <p>Bring headcount, hiring, payroll, benefits, leave, and performance into a leadership-ready reporting center.</p>
+        <div class="suite-hero-actions">
+          <a href="#reports" class="btn btn-primary">Saved Reports</a>
+          <a href="#workflows" class="btn btn-outline" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.18)">Workflow Automation</a>
+        </div>
+      </div>
+      <div class="suite-hero-card">
+        <div class="suite-hero-stat"><span>Saved reports</span><strong id="hero-reports">--</strong></div>
+        <div class="suite-hero-stat"><span>Active workflows</span><strong id="hero-workflows">--</strong></div>
+        <div class="suite-hero-stat"><span>Leadership dashboards</span><strong>4</strong></div>
+      </div>
+    </section>
+
+    <section class="suite-kpis" id="report-kpis"></section>
+
+    <section class="suite-grid">
+      <article class="suite-panel" id="reports">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Saved Reports</h3>
+            <span>Recurring views for HR/ Admin, Account Department, and leadership</span>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="toast('Report builder opened', 'info')">Builder</button>
+        </div>
+        <div class="suite-panel-body" id="saved-report-list"></div>
+      </article>
+
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Ask HR Data</h3>
+            <span>Suggested questions for a future AI assistant</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="question-grid" id="question-list"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="suite-grid" id="workflows">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Workflow Automations</h3>
+            <span>Rules that reduce manual HR follow-up</span>
+          </div>
+        </div>
+        <div class="suite-panel-body" id="automation-list"></div>
+      </article>
+
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Executive Snapshot</h3>
+            <span>Cross-module readiness signals</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="suite-chart" id="executive-chart"></div>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/hr-suite-data.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+buildSidebar('reports');
+loadNotifCount();
+
+const data = window.hrSuiteData.reports;
+const modules = window.hrSuiteData.modules;
+
+function bootReports() {
+  const active = data.automations.filter((item) => item.status === 'Active').length;
+  document.getElementById('hero-reports').textContent = data.savedReports.length;
+  document.getElementById('hero-workflows').textContent = active;
+  renderKpis();
+  renderSavedReports();
+  renderQuestions();
+  renderAutomations();
+  renderExecutiveChart();
+}
+
+function renderKpis() {
+  document.getElementById('report-kpis').innerHTML = data.metrics.map((metric) => `
+    <article class="suite-kpi">
+      <span>${escapeHtml(metric.label)}</span>
+      <div><strong>${escapeHtml(metric.value)}</strong><small>${escapeHtml(metric.note)}</small></div>
+    </article>
+  `).join('');
+}
+
+function renderSavedReports() {
+  document.getElementById('saved-report-list').innerHTML = data.savedReports.map((report) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(report.title)}</strong>
+        <span>${escapeHtml(report.owner)} - ${escapeHtml(report.cadence)} - ${escapeHtml(report.audience)}</span>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill">Run</span>
+        <small>${fmt.date(report.lastRun)}</small>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderQuestions() {
+  document.getElementById('question-list').innerHTML = data.questions.map((question) => `
+    <button class="question-card" onclick="toast('Question queued for HR assistant', 'info')">${escapeHtml(question)}</button>
+  `).join('');
+}
+
+function renderAutomations() {
+  document.getElementById('automation-list').innerHTML = data.automations.map((automation) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(automation.title)}</strong>
+        <span>Trigger: ${escapeHtml(automation.trigger)} - ${automation.runs} runs</span>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill ${automation.status === 'Active' ? 'good' : 'warn'}">${escapeHtml(automation.status)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderExecutiveChart() {
+  document.getElementById('executive-chart').innerHTML = modules.map((module) => `
+    <div class="suite-chart-row">
+      <span>${escapeHtml(module.title.split(' ')[0])}</span>
+      <div class="suite-bar"><span style="width:${module.health}%"></span></div>
+      <strong>${module.health}%</strong>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+bootReports();
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees — HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+  <style>
+    .emp-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: all var(--duration);
+      cursor: pointer;
+    }
+    .emp-card:hover { box-shadow: var(--shadow-md); border-color: var(--navy-200); transform: translateY(-2px); }
+    .emp-card .emp-name { font-weight: 600; font-size: .95rem; margin-top: 12px; }
+    .emp-card .emp-title { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+    .emp-card .emp-dept  { font-size: .78rem; margin-top: 6px; }
+    .emp-card .emp-meta  { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+    .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .filters-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    .filters-bar .form-control { max-width: 200px; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar">
+    <div class="topbar-title">Employees</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="notif-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="dot hidden" id="notif-badge"></span>
+      </button>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="page-header">
+      <div><h1>Employees</h1><p>Manage your team members</p></div>
+      <div style="display:flex;gap:10px" id="admin-actions"></div>
+    </div>
+
+    <div class="filters-bar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="search-input" class="form-control" placeholder="Search employees…">
+      </div>
+      <select id="dept-filter" class="form-control form-select"><option value="">All Departments</option></select>
+      <select id="role-filter" class="form-control form-select">
+        <option value="">All Roles</option>
+        <option value="admin">Admin</option>
+        <option value="manager">Manager</option>
+        <option value="employee">Employee</option>
+      </select>
+      <div style="margin-left:auto;color:var(--text-muted);font-size:.875rem" id="emp-count"></div>
+    </div>
+
+    <div id="emp-grid" class="emp-grid">
+      <div class="emp-card"><div class="skeleton" style="width:60px;height:60px;border-radius:50%"></div><div class="skeleton mt-8" style="width:120px;height:16px"></div><div class="skeleton mt-4" style="width:90px;height:12px"></div></div>
+      <div class="emp-card"><div class="skeleton" style="width:60px;height:60px;border-radius:50%"></div><div class="skeleton mt-8" style="width:120px;height:16px"></div><div class="skeleton mt-4" style="width:90px;height:12px"></div></div>
+      <div class="emp-card"><div class="skeleton" style="width:60px;height:60px;border-radius:50%"></div><div class="skeleton mt-8" style="width:120px;height:16px"></div><div class="skeleton mt-4" style="width:90px;height:12px"></div></div>
+      <div class="emp-card"><div class="skeleton" style="width:60px;height:60px;border-radius:50%"></div><div class="skeleton mt-8" style="width:120px;height:16px"></div><div class="skeleton mt-4" style="width:90px;height:12px"></div></div>
+    </div>
+
+    <div id="pagination" style="display:flex;justify-content:center;gap:8px;margin-top:24px"></div>
+  </main>
+</div>
+
+<!-- Add Employee Modal -->
+<div id="add-modal" class="modal-overlay" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3>Add New Employee</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label required">First Name</label><input type="text" id="f-first" class="form-control"></div>
+        <div class="form-group"><label class="form-label required">Last Name</label><input type="text" id="f-last" class="form-control"></div>
+        <div class="form-group"><label class="form-label required">Email</label><input type="email" id="f-email" class="form-control"></div>
+        <div class="form-group"><label class="form-label required">Password</label><input type="password" id="f-pass" class="form-control" placeholder="Temporary password"></div>
+        <div class="form-group"><label class="form-label">Role</label>
+          <select id="f-role" class="form-control form-select">
+            <option value="employee">Employee</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Employment Type</label>
+          <select id="f-employment-type" class="form-control form-select">
+            <option value="staff">Staff</option>
+            <option value="contractual">Contractual</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Department</label><select id="f-dept" class="form-control form-select"><option value="">— Select —</option></select></div>
+        <div class="form-group"><label class="form-label">Reports To</label><select id="f-manager" class="form-control form-select"><option value="">Top level</option></select></div>
+        <div class="form-group"><label class="form-label">Job Title</label><select id="f-title" class="form-control form-select"><option value="">— Select —</option></select></div>
+        <div class="form-group"><label class="form-label">Salary (GHS)</label><input type="number" id="f-salary" class="form-control" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Hire Date</label><input type="date" id="f-hire" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="f-dob" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Phone</label><input type="text" id="f-phone" class="form-control"></div>
+        <div class="form-group span-2"><label class="form-label">Address</label><textarea id="f-address" class="form-control" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createEmployee()">Add Employee</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const user = requireRole('admin', 'manager');
+if (!user) throw new Error('redirect');
+buildSidebar('employees');
+loadNotifCount();
+
+let departments = [];
+let directory = [];
+let currentPage = 1;
+const limit = 20;
+const JOB_TITLES = [
+  'HR Director',
+  'HR Officer',
+  'Admin Officer',
+  'Operations Manager',
+  'Operations Officer',
+  'Public Relations Lead',
+  'Public Relations Officer',
+  'IT Manager',
+  'IT Support Officer',
+  'Senior Developer',
+  'Frontend Developer',
+  'Account Manager',
+  'Account Analyst',
+  'Member Management Lead',
+  'Member Officer'
+];
+
+async function init() {
+  try {
+    departments = await api.get('/employees/departments');
+    directory = await api.get('/employees/directory');
+    const deptFilter = document.getElementById('dept-filter');
+    const deptSelect = document.getElementById('f-dept');
+    const managerSelect = document.getElementById('f-manager');
+    const titleSelect = document.getElementById('f-title');
+    departments.forEach(d => {
+      deptFilter.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+      if (deptSelect) deptSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+    });
+    JOB_TITLES.forEach(title => {
+      if (titleSelect) titleSelect.innerHTML += `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`;
+    });
+    directory.forEach(e => {
+      if (managerSelect) managerSelect.innerHTML += `<option value="${e.id}">${e.first_name} ${e.last_name} - ${e.job_title || e.role}</option>`;
+    });
+    if (user.role === 'admin') {
+      document.getElementById('admin-actions').innerHTML =
+        `<button class="btn btn-primary" onclick="document.getElementById('add-modal').style.display='flex'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Employee
+        </button>`;
+    }
+    await loadEmployees();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadEmployees() {
+  const search = document.getElementById('search-input').value;
+  const dept   = document.getElementById('dept-filter').value;
+  const role   = document.getElementById('role-filter').value;
+
+  let qs = `?page=${currentPage}&limit=${limit}`;
+  if (search) qs += `&search=${encodeURIComponent(search)}`;
+  if (dept)   qs += `&department_id=${dept}`;
+  if (role)   qs += `&role=${role}`;
+
+  const data = await api.get(`/employees${qs}`);
+  document.getElementById('emp-count').textContent = `${data.total} employees`;
+
+  const grid = document.getElementById('emp-grid');
+  if (!data.employees.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>No employees found</p></div>`;
+    return;
+  }
+  grid.innerHTML = data.employees.map(e => `
+    <div class="emp-card" onclick="window.location.href='employee-profile.html?id=${e.id}'">
+      ${avatarEl(e, 'lg')}
+      <div class="emp-name">${e.first_name} ${e.last_name}</div>
+      <div class="emp-title">${e.job_title || '—'}</div>
+      <div class="emp-dept">${e.department_name ? `<span class="badge badge-info">${e.department_name}</span>` : ''}</div>
+      <div class="emp-meta">
+        ${fmt.statusBadge(e.role)}
+        ${e.hire_date ? `<span class="text-xs text-muted">Since ${fmt.date(e.hire_date)}</span>` : ''}
+      </div>
+    </div>`).join('');
+
+  // Pagination
+  const total = Math.ceil(data.total / limit);
+  const pag = document.getElementById('pagination');
+  pag.innerHTML = total > 1 ? Array.from({length:total},(_,i) =>
+    `<button class="btn ${i+1===currentPage?'btn-primary':'btn-outline'} btn-sm" onclick="gotoPage(${i+1})">${i+1}</button>`
+  ).join('') : '';
+}
+
+function gotoPage(p) { currentPage = p; loadEmployees(); }
+
+let searchTimeout;
+document.getElementById('search-input').addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => { currentPage=1; loadEmployees(); }, 350);
+});
+document.getElementById('dept-filter').addEventListener('change', () => { currentPage=1; loadEmployees(); });
+document.getElementById('role-filter').addEventListener('change', () => { currentPage=1; loadEmployees(); });
+
+async function createEmployee() {
+  try {
+    await api.post('/employees', {
+      first_name:    document.getElementById('f-first').value,
+      last_name:     document.getElementById('f-last').value,
+      email:         document.getElementById('f-email').value,
+      password:      document.getElementById('f-pass').value,
+      role:          document.getElementById('f-role').value,
+      employment_type: document.getElementById('f-employment-type').value,
+      department_id: document.getElementById('f-dept').value || null,
+      manager_id:    document.getElementById('f-manager').value || null,
+      job_title:     document.getElementById('f-title').value,
+      salary:        document.getElementById('f-salary').value,
+      hire_date:     document.getElementById('f-hire').value,
+      date_of_birth: document.getElementById('f-dob').value,
+      phone:         document.getElementById('f-phone').value,
+      address:       document.getElementById('f-address').value,
+    });
+    closeModal();
+    toast('Employee added successfully!', 'success');
+    await loadEmployees();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function closeModal() { document.getElementById('add-modal').style.display='none'; }
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+
+init();
+</script>
+</body>
+</html>

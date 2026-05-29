@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Org Chart — HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+  <style>
+    .org-container {
+      overflow: auto;
+      padding: 32px;
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xl);
+      min-height: 400px;
+    }
+    .org-tree-root { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+    .org-node { display: flex; flex-direction: column; align-items: center; }
+    .org-node-card {
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+      text-align: center;
+      width: 160px;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--duration);
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+    }
+    .org-node-card:hover { box-shadow: var(--shadow-md); border-color: var(--navy-300); transform: translateY(-2px); }
+    .org-node-card.role-admin   { border-color: var(--amber-400); background: var(--amber-50); }
+    .org-node-card.role-manager { border-color: var(--navy-400); background: var(--navy-50); }
+    .org-node-card .node-name   { font-weight: 600; font-size: .82rem; margin-top: 8px; }
+    .org-node-card .node-title  { font-size: .72rem; color: var(--text-muted); margin-top: 2px; line-height: 1.3; }
+    .org-node-card .node-dept   { font-size: .7rem; margin-top: 5px; }
+
+    /* Connector lines */
+    .v-line  { width: 2px; height: 24px; background: var(--border-dark); margin: 0 auto; }
+    .h-group { display: flex; align-items: flex-start; gap: 0; position: relative; }
+    .h-group::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; right: 50%;
+      height: 2px;
+      background: var(--border-dark);
+    }
+    .child-col { display: flex; flex-direction: column; align-items: center; }
+    .child-col::before {
+      content: '';
+      display: block;
+      width: 2px;
+      height: 24px;
+      background: var(--border-dark);
+    }
+    .children-row {
+      display: flex;
+      gap: 24px;
+      position: relative;
+    }
+    .children-row::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      height: 2px;
+      background: var(--border-dark);
+      left: 80px;
+      right: 80px;
+    }
+
+    /* Dept view */
+    .dept-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .dept-header {
+      background: var(--navy-800);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .dept-header h3 { color: #fff; font-size: 1rem; }
+    .dept-header .emp-count { color: rgba(255,255,255,.5); font-size: .82rem; }
+    .dept-members { padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 12px; }
+    .member-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-page);
+      border-radius: var(--radius-md);
+      font-size: .82rem;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar">
+    <div class="topbar-title">Organization Chart</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="dot hidden" id="notif-badge"></span>
+      </button>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="page-header">
+      <div><h1>Organization Chart</h1><p>Company hierarchy and reporting structure</p></div>
+      <div id="org-admin-hint"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tree')">Hierarchy Tree</button>
+      <button class="tab-btn" onclick="switchTab('depts')">By Department</button>
+    </div>
+
+    <!-- Tree view -->
+    <div id="tab-tree">
+      <div class="org-container">
+        <div id="org-tree" class="org-tree-root">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Department view -->
+    <div id="tab-depts" style="display:none">
+      <div id="dept-list">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Employee Quick View Modal -->
+<div id="emp-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Employee Profile</h3>
+      <button class="modal-close" onclick="document.getElementById('emp-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body" id="emp-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('emp-modal').style.display='none'">Close</button>
+      <button class="btn btn-primary" id="emp-modal-profile-btn">View Full Profile</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+buildSidebar('orgchart');
+loadNotifCount();
+let orgDirectory = [];
+let orgDepartments = [];
+if (user.role === 'admin') {
+  document.getElementById('org-admin-hint').innerHTML = '<span class="badge badge-info">HR arrangement enabled</span>';
+}
+
+function switchTab(tab) {
+  ['tree','depts'].forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'':'none');
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['tree','depts'][i]===tab));
+  if (tab === 'depts') loadDepts();
+}
+
+// Build recursive tree HTML
+function buildNodeHtml(node) {
+  const roleClass = node.role === 'admin' ? 'role-admin' : node.role === 'manager' ? 'role-manager' : '';
+
+  let childrenHtml = '';
+  if (node.children && node.children.length > 0) {
+    const childNodes = node.children.map(child => buildNodeHtml(child)).join('');
+    childrenHtml = `
+      <div class="v-line"></div>
+      <div class="children-row">${childNodes}</div>`;
+  }
+
+  return `
+    <div class="org-node">
+      <div class="org-node-card ${roleClass}" onclick="showEmpModal(${JSON.stringify(node).replace(/"/g,'&quot;')})">
+        ${node.photo_url
+          ? `<img src="${assetUrl(node.photo_url)}" class="avatar avatar-md" alt="" style="margin:0 auto">`
+          : `<div class="avatar avatar-md" style="margin:0 auto">${fmt.initials(node.first_name, node.last_name)}</div>`}
+        <div class="node-name">${node.first_name} ${node.last_name}</div>
+        <div class="node-title">${node.job_title || node.role}</div>
+        ${node.department_name ? `<div class="node-dept"><span class="badge badge-info" style="font-size:.65rem">${node.department_name}</span></div>` : ''}
+      </div>
+      ${childrenHtml}
+    </div>`;
+}
+
+async function loadTree() {
+  const tree = await api.get('/orgchart/tree');
+  const container = document.getElementById('org-tree');
+  if (!tree.length) {
+    container.innerHTML = `<div class="empty-state"><p>No org chart data available</p></div>`;
+    return;
+  }
+  // Render all root nodes in a row
+  if (tree.length === 1) {
+    container.innerHTML = buildNodeHtml(tree[0]);
+  } else {
+    container.innerHTML = `<div class="children-row">${tree.map(n => buildNodeHtml(n)).join('')}</div>`;
+  }
+}
+
+async function loadDepts() {
+  const depts = await api.get('/orgchart/departments');
+  const list  = document.getElementById('dept-list');
+  if (!depts.length) { list.innerHTML = `<div class="empty-state"><p>No departments</p></div>`; return; }
+  list.innerHTML = depts.map(d => `
+    <div class="dept-card">
+      <div class="dept-header">
+        <div>
+          <h3>${d.name}</h3>
+          <div class="emp-count">${d.employee_count} members</div>
+        </div>
+        ${d.manager_name ? `
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+            ${initialsAvatar(d.manager_name?.split(' ')[0]||'?', d.manager_name?.split(' ')[1]||'', 'sm')}
+            <div>
+              <div style="color:#fff;font-size:.82rem;font-weight:500">${d.manager_name}</div>
+              <div style="color:rgba(255,255,255,.4);font-size:.75rem">${d.manager_title || 'Manager'}</div>
+            </div>
+          </div>` : ''}
+      </div>
+      <div class="dept-members">
+        ${(d.members || []).map(m => `
+          <div class="member-chip">
+            ${initialsAvatar(m.name?.split(' ')[0]||'?', m.name?.split(' ')[1]||'', 'sm')}
+            <div>
+              <div style="font-weight:500">${m.name}</div>
+              <div style="font-size:.72rem;color:var(--text-muted)">${m.job_title || '—'}</div>
+            </div>
+          </div>`).join('')}
+        ${!d.members?.length ? `<div style="color:var(--text-muted);font-size:.875rem">No additional members</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function showEmpModal(node) {
+  const managerOptions = orgDirectory
+    .filter((employee) => employee.id !== node.id)
+    .map((employee) => `<option value="${employee.id}" ${Number(node.manager_id) === Number(employee.id) ? 'selected' : ''}>${employee.first_name} ${employee.last_name}</option>`)
+    .join('');
+  const departmentOptions = orgDepartments
+    .map((department) => `<option value="${department.id}" ${Number(node.department_id) === Number(department.id) ? 'selected' : ''}>${department.name}</option>`)
+    .join('');
+  document.getElementById('emp-modal-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      ${node.photo_url
+        ? `<img src="${assetUrl(node.photo_url)}" class="avatar avatar-xl" alt="">`
+        : `<div class="avatar avatar-xl">${fmt.initials(node.first_name, node.last_name)}</div>`}
+      <div>
+        <h3>${node.first_name} ${node.last_name}</h3>
+        <p>${node.job_title || node.role}</p>
+        ${fmt.statusBadge(node.role)}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${node.department_name ? `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span class="text-muted">Department</span><span>${node.department_name}</span></div>` : ''}
+    </div>
+    ${user.role === 'admin' ? `
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
+        <h4 style="font-size:.82rem;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px">Arrange hierarchy</h4>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Reports To</label>
+            <select id="org-manager" class="form-control form-select">
+              <option value="">Top level</option>
+              ${managerOptions}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <select id="org-department" class="form-control form-select">
+              <option value="">Unassigned</option>
+              ${departmentOptions}
+            </select>
+          </div>
+        </div>
+      </div>` : ''}`;
+  document.getElementById('emp-modal-profile-btn').onclick = () => {
+    window.location.href = appUrl(`/pages/employee-profile.html?id=${node.id}`);
+  };
+  const footer = document.querySelector('#emp-modal .modal-footer');
+  let saveBtn = document.getElementById('org-save-btn');
+  if (saveBtn) saveBtn.remove();
+  if (user.role === 'admin') {
+    saveBtn = document.createElement('button');
+    saveBtn.id = 'org-save-btn';
+    saveBtn.className = 'btn btn-primary';
+    saveBtn.textContent = 'Save Hierarchy';
+    saveBtn.onclick = () => saveHierarchy(node.id);
+    footer.insertBefore(saveBtn, document.getElementById('emp-modal-profile-btn'));
+  }
+  document.getElementById('emp-modal').style.display = 'flex';
+}
+
+async function saveHierarchy(id) {
+  try {
+    await api.put(`/employees/${id}`, {
+      manager_id: document.getElementById('org-manager').value || null,
+      department_id: document.getElementById('org-department').value || null
+    });
+    toast('Hierarchy updated', 'success');
+    document.getElementById('emp-modal').style.display = 'none';
+    await loadTree();
+    await loadDepts();
+  } catch (e) {
+    toast(e.message || 'Could not update hierarchy', 'error');
+  }
+}
+
+async function initOrgChart() {
+  [orgDirectory, orgDepartments] = await Promise.all([
+    api.get('/employees/directory'),
+    api.get('/employees/departments')
+  ]);
+  await loadTree();
+}
+
+initOrgChart();
+</script>
+</body>
+</html>

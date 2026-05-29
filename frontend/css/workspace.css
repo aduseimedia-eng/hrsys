@@ -1,0 +1,235 @@
+/* Minimal workspace polish for core HR pages */
+
+.main-content {
+  width: 100%;
+  max-width: 1280px;
+}
+
+.page-header {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.page-header h1 {
+  font-size: 1.45rem;
+  margin: 0;
+}
+
+.page-header p {
+  color: var(--text-secondary);
+  font-size: .88rem;
+  margin-top: 3px;
+}
+
+.card,
+.stat-card,
+.emp-card,
+.doc-card,
+.review-card,
+.team-card,
+.payslip-card,
+.org-container,
+.dept-card,
+.messages-layout {
+  border-radius: 8px !important;
+  border-width: 1px !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.emp-card:hover,
+.doc-card:hover,
+.review-card:hover,
+.team-card:hover,
+.payslip-card:hover,
+.org-node-card:hover,
+.quick-action:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.card-header {
+  min-height: 58px;
+  padding: 15px 17px;
+}
+
+.card-body {
+  padding: 17px;
+}
+
+.tabs {
+  margin-bottom: 18px;
+  border-bottom-width: 1px;
+}
+
+.tab-btn {
+  padding: 9px 14px;
+  font-size: .84rem;
+}
+
+.filters-bar,
+.toolbar-row {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.table-container {
+  border-radius: 8px;
+  border-width: 1px;
+}
+
+thead th {
+  background: var(--navy-50);
+  letter-spacing: .04em;
+}
+
+.modal {
+  border-radius: 8px;
+}
+
+.modal-header,
+.modal-body,
+.modal-footer {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.empty-state {
+  padding: 36px 20px;
+}
+
+.btn {
+  border-radius: 8px;
+}
+
+.icon-btn {
+  border-radius: 8px;
+}
+
+.profile-hero {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border);
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-sm);
+  padding: 24px !important;
+}
+
+.profile-hero::after {
+  display: none !important;
+}
+
+.profile-hero h2 {
+  color: var(--text-primary) !important;
+}
+
+.profile-hero p,
+.profile-meta-item {
+  color: var(--text-secondary) !important;
+}
+
+.profile-actions .btn {
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-dark) !important;
+}
+
+.payslip-header {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.payslip-detail,
+.net-salary-box {
+  border-radius: 8px !important;
+}
+
+.upload-zone {
+  border-width: 1px !important;
+  border-radius: 8px !important;
+  padding: 28px !important;
+  background: var(--bg-surface) !important;
+}
+
+.doc-icon {
+  border-radius: 8px !important;
+  font-size: .72rem !important;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.org-node-card,
+.member-chip {
+  border-radius: 8px !important;
+}
+
+.dept-header {
+  background: var(--bg-surface) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.dept-header h3 {
+  color: var(--text-primary) !important;
+}
+
+.dept-header .emp-count,
+.dept-header [style*="color:#fff"] {
+  color: var(--text-secondary) !important;
+}
+
+.leave-type-card {
+  border-radius: 8px !important;
+  border-width: 1px !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.leave-type-card .days {
+  font-size: 1.55rem !important;
+  color: var(--text-primary) !important;
+}
+
+.calendar-grid {
+  gap: 6px !important;
+}
+
+.cal-day {
+  border-radius: 8px !important;
+}
+
+.cal-day.today {
+  background: var(--navy-700) !important;
+}
+
+.chat-input-area textarea,
+.inbox-search .form-control {
+  border-radius: 8px !important;
+}
+
+.msg-text {
+  border-radius: 8px !important;
+}
+
+@media (max-width: 720px) {
+  .main-content {
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header > div:last-child,
+  .page-header > button,
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filters-bar .form-control {
+    max-width: none !important;
+  }
+}

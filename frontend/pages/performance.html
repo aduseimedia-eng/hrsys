@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance — HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+  <style>
+    .review-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: all var(--duration);
+    }
+    .review-card:hover { box-shadow: var(--shadow-md); }
+    .review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .review-period { font-size: .78rem; font-weight: 600; color: var(--navy-600); letter-spacing: .04em; text-transform: uppercase; }
+    .review-date   { font-size: .78rem; color: var(--text-muted); }
+    .review-comment { font-size: .875rem; color: var(--text-secondary); line-height: 1.6; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .review-by { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--text-muted); margin-top: 10px; }
+
+    .stars-input { display: flex; gap: 6px; cursor: pointer; }
+    .star-btn { font-size: 1.6rem; color: var(--border-dark); transition: color .1s; line-height: 1; background: none; border: none; cursor: pointer; }
+    .star-btn.on { color: var(--amber-500); }
+
+    .team-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all var(--duration);
+      cursor: pointer;
+    }
+    .team-card:hover { box-shadow: var(--shadow-md); border-color: var(--navy-200); transform: translateY(-1px); }
+    .avg-rating-badge {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      background: var(--amber-100);
+      color: var(--amber-600);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar">
+    <div class="topbar-title">Performance Reviews</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="dot hidden" id="notif-badge"></span>
+      </button>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="page-header">
+      <div><h1>Performance</h1><p>Reviews, ratings, and team performance</p></div>
+      <div id="review-action"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('mine')">My Reviews</button>
+      <button class="tab-btn" id="team-tab" style="display:none" onclick="switchTab('team')">Team Summary</button>
+    </div>
+
+    <!-- My reviews -->
+    <div id="tab-mine">
+      <div id="my-reviews" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Team summary (manager/admin) -->
+    <div id="tab-team" style="display:none">
+      <div id="team-grid" style="display:flex;flex-direction:column;gap:12px">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Write Review Modal -->
+<div id="review-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Write Performance Review</h3>
+      <button class="modal-close" onclick="document.getElementById('review-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label required">Employee</label>
+        <select id="rev-employee" class="form-control form-select"><option value="">— Select employee —</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Review Period</label>
+        <input type="text" id="rev-period" class="form-control" placeholder="e.g. Q2 2025">
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Rating</label>
+        <div class="stars-input" id="stars-input">
+          <button class="star-btn" data-val="1" onclick="setRating(1)">★</button>
+          <button class="star-btn" data-val="2" onclick="setRating(2)">★</button>
+          <button class="star-btn" data-val="3" onclick="setRating(3)">★</button>
+          <button class="star-btn" data-val="4" onclick="setRating(4)">★</button>
+          <button class="star-btn" data-val="5" onclick="setRating(5)">★</button>
+        </div>
+        <div id="rating-label" style="font-size:.8rem;color:var(--text-muted);margin-top:6px">Click to rate</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Comments</label>
+        <textarea id="rev-comments" class="form-control" rows="4" placeholder="Describe the employee's performance, achievements, and areas for improvement…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('review-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary" onclick="submitReview()">Submit Review</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+buildSidebar('performance');
+loadNotifCount();
+
+let selectedRating = 0;
+const ratingLabels = ['', 'Poor', 'Needs Improvement', 'Meets Expectations', 'Exceeds Expectations', 'Outstanding'];
+
+if (['admin','manager'].includes(user.role)) {
+  document.getElementById('team-tab').style.display = '';
+  document.getElementById('review-action').innerHTML =
+    `<button class="btn btn-primary" onclick="showReviewModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Write Review
+    </button>`;
+}
+
+function switchTab(tab) {
+  ['mine','team'].forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'':'none');
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['mine','team'][i]===tab));
+  if (tab === 'team') loadTeam();
+}
+
+function renderStars(rating, size='sm') {
+  return `<div class="stars">${[1,2,3,4,5].map(i =>
+    `<svg class="star ${i<=rating?'filled':''}" viewBox="0 0 24 24" fill="${i<=rating?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>`).join('')}</div>`;
+}
+
+async function loadMyReviews() {
+  const reviews = await api.get('/performance/mine');
+  const grid = document.getElementById('my-reviews');
+  if (!reviews.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px;opacity:.25"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <h4>No reviews yet</h4>
+      <p>Your performance reviews will appear here</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = reviews.map(r => `
+    <div class="review-card">
+      <div class="review-header">
+        <div>
+          ${r.period ? `<div class="review-period">${r.period}</div>` : ''}
+          ${renderStars(r.rating)}
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px">${ratingLabels[r.rating]}</div>
+        </div>
+        <div class="review-date">${fmt.date(r.review_date)}</div>
+      </div>
+      ${r.comments ? `<div class="review-comment">${r.comments}</div>` : ''}
+      <div class="review-by">
+        ${r.reviewer_photo
+          ? `<img src="${assetUrl(r.reviewer_photo)}" class="avatar avatar-sm" alt="">`
+          : initialsAvatar(r.reviewer_name?.split(' ')[0]||'?', r.reviewer_name?.split(' ')[1]||'', 'sm')}
+        Reviewed by <strong>${r.reviewer_name}</strong>
+      </div>
+    </div>`).join('');
+}
+
+async function loadTeam() {
+  const team = await api.get('/performance/team-summary');
+  const grid = document.getElementById('team-grid');
+  if (!team.length) { grid.innerHTML = `<div class="empty-state"><p>No data available</p></div>`; return; }
+  grid.innerHTML = team.map(e => `
+    <div class="team-card" onclick="viewEmployeeReviews(${e.id}, '${e.name}')">
+      ${initialsAvatar(e.name?.split(' ')[0]||'?', e.name?.split(' ')[1]||'', 'md')}
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:.9rem">${e.name}</div>
+        <div style="font-size:.8rem;color:var(--text-muted)">${e.job_title || '—'} · ${e.department_name || '—'}</div>
+        <div style="margin-top:4px">${e.avg_rating ? renderStars(Math.round(e.avg_rating)) : '<span style="color:var(--text-muted);font-size:.8rem">No reviews yet</span>'}</div>
+      </div>
+      <div style="text-align:right">
+        ${e.avg_rating ? `<div class="avg-rating-badge">${e.avg_rating}</div>` : ''}
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:6px">${e.review_count} review${e.review_count!==1?'s':''}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function viewEmployeeReviews(id, name) {
+  const reviews = await api.get(`/performance/employee/${id}`);
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>Reviews for ${name}</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        ${reviews.length
+          ? `<div style="display:flex;flex-direction:column;gap:14px">${reviews.map(r => `
+              <div class="review-card">
+                <div class="review-header">
+                  <div>
+                    ${r.period ? `<div class="review-period">${r.period}</div>` : ''}
+                    ${renderStars(r.rating)}
+                    <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px">${ratingLabels[r.rating]}</div>
+                  </div>
+                  <div class="review-date">${fmt.date(r.review_date)}</div>
+                </div>
+                ${r.comments ? `<div class="review-comment">${r.comments}</div>` : ''}
+                <div class="review-by">By <strong>${r.reviewer_name}</strong></div>
+              </div>`).join('')}</div>`
+          : `<div class="empty-state"><p>No reviews yet for this employee</p></div>`}
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function showReviewModal() {
+  const data = await api.get('/employees?limit=200');
+  const sel = document.getElementById('rev-employee');
+  sel.innerHTML = '<option value="">— Select employee —</option>';
+  data.employees.forEach(e => {
+    if (e.id !== user.id) sel.innerHTML += `<option value="${e.id}">${e.first_name} ${e.last_name}</option>`;
+  });
+  selectedRating = 0;
+  updateStars(0);
+  document.getElementById('review-modal').style.display = 'flex';
+}
+
+function setRating(val) {
+  selectedRating = val;
+  updateStars(val);
+  document.getElementById('rating-label').textContent = ratingLabels[val];
+}
+
+function updateStars(val) {
+  document.querySelectorAll('.star-btn').forEach(btn => {
+    btn.classList.toggle('on', parseInt(btn.dataset.val) <= val);
+  });
+}
+
+async function submitReview() {
+  if (!selectedRating) { toast('Please select a rating', 'warning'); return; }
+  try {
+    await api.post('/performance', {
+      employee_id: parseInt(document.getElementById('rev-employee').value),
+      rating:      selectedRating,
+      comments:    document.getElementById('rev-comments').value,
+      period:      document.getElementById('rev-period').value,
+    });
+    document.getElementById('review-modal').style.display = 'none';
+    toast('Review submitted!', 'success');
+    loadTeam();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+loadMyReviews();
+</script>
+</body>
+</html>

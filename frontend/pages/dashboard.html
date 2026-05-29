@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    body {
+      overflow: hidden;
+    }
+
+    .app-shell {
+      height: 100vh;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .dashboard-page {
+      max-width: none;
+      width: 100%;
+      min-height: calc(100vh - var(--topbar-h));
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .topbar .icon-btn .dot {
+      min-width: 16px;
+      width: auto;
+      height: 16px;
+      padding: 0 4px;
+      top: 3px;
+      right: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: .62rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .dashboard-eyebrow {
+      color: var(--text-muted);
+      font-size: .74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 5px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 1.55rem;
+      margin: 0;
+    }
+
+    .dashboard-header p {
+      max-width: 640px;
+      color: var(--text-secondary);
+      font-size: .9rem;
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .date-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-size: .84rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .metric-card,
+    .dash-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .metric-card {
+      min-height: 108px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: .73rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .metric-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--mint-500);
+      flex-shrink: 0;
+    }
+
+    .metric-dot.warn { background: var(--amber-500); }
+    .metric-dot.danger { background: var(--rose-600); }
+    .metric-dot.info { background: var(--navy-400); }
+
+    .metric-value {
+      color: var(--text-primary);
+      font-size: 1.62rem;
+      line-height: 1;
+      font-weight: 800;
+      margin-top: 12px;
+    }
+
+    .metric-note {
+      color: var(--text-secondary);
+      font-size: .78rem;
+      margin-top: 7px;
+    }
+
+    .dashboard-workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+      gap: 16px;
+      min-height: 0;
+    }
+
+    .workspace-primary,
+    .workspace-rail {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+      min-width: 0;
+    }
+
+    .workspace-rail {
+      grid-template-rows: auto auto auto;
+    }
+
+    .dash-panel-header {
+      min-height: 56px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .dash-panel-header h2 {
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .dash-panel-header span {
+      display: block;
+      color: var(--text-muted);
+      font-size: .78rem;
+      margin-top: 2px;
+    }
+
+    .dash-panel-body {
+      padding: 16px;
+    }
+
+    .queue-list,
+    .todo-list,
+    .birthday-list,
+    .event-list,
+    .announcement-list,
+    .today-list {
+      display: grid;
+      gap: 0;
+    }
+
+    .queue-item,
+    .todo-item,
+    .birthday-item,
+    .event-item,
+    .announcement-item,
+    .today-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .queue-item:first-child,
+    .todo-item:first-child,
+    .birthday-item:first-child,
+    .event-item:first-child,
+    .announcement-item:first-child,
+    .today-item:first-child {
+      padding-top: 0;
+    }
+
+    .queue-item:last-child,
+    .todo-item:last-child,
+    .birthday-item:last-child,
+    .event-item:last-child,
+    .announcement-item:last-child,
+    .today-item:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .queue-item strong,
+    .todo-item strong,
+    .birthday-item strong,
+    .event-item strong,
+    .announcement-item strong,
+    .today-item strong {
+      display: block;
+      color: var(--text-primary);
+      font-size: .9rem;
+    }
+
+    .queue-item span,
+    .todo-item span,
+    .birthday-item span,
+    .event-item span,
+    .announcement-item span,
+    .today-item span {
+      display: block;
+      color: var(--text-secondary);
+      font-size: .8rem;
+      margin-top: 3px;
+      line-height: 1.45;
+    }
+
+    .item-meta {
+      display: flex;
+      align-items: flex-end;
+      flex-direction: column;
+      gap: 7px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .mini-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: .72rem;
+      font-weight: 800;
+      background: var(--navy-50);
+      color: var(--navy-700);
+      white-space: nowrap;
+    }
+
+    .mini-badge.good { background: var(--success-bg); color: var(--success-fg); }
+    .mini-badge.warn { background: var(--warning-bg); color: var(--warning-fg); }
+    .mini-badge.danger { background: var(--danger-bg); color: var(--danger-fg); }
+
+    .avatar-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .empty-minimal {
+      padding: 22px;
+      border: 1px dashed var(--border-dark);
+      border-radius: 8px;
+      background: var(--navy-50);
+      color: var(--text-muted);
+      text-align: center;
+      font-size: .86rem;
+    }
+
+    .loading-minimal {
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: .86rem;
+      text-align: center;
+    }
+
+    @media (max-width: 1120px) {
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .dashboard-workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .workspace-rail {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-rows: none;
+        align-items: start;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        overflow: auto;
+      }
+
+      .app-shell {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+      }
+
+      .dashboard-page {
+        padding: 16px;
+        min-height: auto;
+        overflow: visible;
+      }
+
+      .dashboard-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .header-actions .btn,
+      .date-chip {
+        flex: 1;
+        justify-content: center;
+      }
+
+      .metric-grid,
+      .workspace-rail {
+        grid-template-columns: 1fr;
+      }
+
+      .queue-item,
+      .todo-item,
+      .birthday-item,
+      .event-item,
+      .announcement-item,
+      .today-item {
+        grid-template-columns: 1fr;
+      }
+
+      .item-meta {
+        align-items: flex-start;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <header class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="topbar-actions">
+      <a href="reports.html" class="btn btn-outline btn-sm">Reports</a>
+      <button class="icon-btn" id="notif-btn" title="Notifications">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="dot hidden" id="notif-badge"></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="main-content dashboard-page">
+    <section class="dashboard-header">
+      <div>
+        <div class="dashboard-eyebrow">HR overview</div>
+        <h1 id="dashboard-title">Good day, HR.</h1>
+        <p>Key workforce signals, open work, and core people operations in one quiet view.</p>
+      </div>
+      <div class="header-actions">
+        <span class="date-chip" id="date-chip">Today</span>
+        <a href="employees.html" class="btn btn-primary">Employees</a>
+        <a href="leave.html" class="btn btn-outline">Approvals</a>
+      </div>
+    </section>
+
+    <section class="metric-grid" id="metric-grid">
+      <div class="loading-minimal">Loading dashboard...</div>
+    </section>
+
+    <section class="dashboard-workspace">
+      <div class="workspace-primary">
+        <article class="dash-panel">
+          <div class="dash-panel-header">
+            <div>
+              <h2>Needs Attention</h2>
+              <span>Open work for HR/Admin</span>
+            </div>
+            <a href="reports.html" class="btn btn-outline btn-sm">View all</a>
+          </div>
+          <div class="dash-panel-body">
+            <div class="queue-list" id="attention-list">
+              <div class="loading-minimal">Loading work queue...</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="dash-panel">
+          <div class="dash-panel-header">
+            <div>
+              <h2>Announcements</h2>
+              <span>Latest company updates</span>
+            </div>
+            <a href="announcements.html" class="btn btn-outline btn-sm">Manage</a>
+          </div>
+          <div class="dash-panel-body">
+            <div class="announcement-list" id="announcement-list">
+              <div class="loading-minimal">Loading announcements...</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="dash-panel">
+          <div class="dash-panel-header">
+            <div>
+              <h2>To Do List</h2>
+              <span>Priority tasks for HR and staff</span>
+            </div>
+            <a href="todos.html" class="btn btn-outline btn-sm">Open page</a>
+          </div>
+          <div class="dash-panel-body">
+            <div class="todo-list" id="todo-list">
+              <div class="loading-minimal">Loading to do list...</div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <aside class="workspace-rail" aria-label="Dashboard context">
+        <article class="dash-panel">
+          <div class="dash-panel-header">
+            <div>
+              <h2>Today</h2>
+              <span>Operational snapshot</span>
+            </div>
+          </div>
+          <div class="dash-panel-body">
+            <div class="today-list" id="today-list">
+              <div class="loading-minimal">Loading snapshot...</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="dash-panel">
+          <div class="dash-panel-header">
+            <div>
+              <h2>Upcoming Birthdays</h2>
+              <span>People moments in the next 30 days</span>
+            </div>
+          </div>
+          <div class="dash-panel-body">
+            <div class="birthday-list" id="birthday-list">
+              <div class="loading-minimal">Loading birthdays...</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="dash-panel">
+          <div class="dash-panel-header">
+            <div>
+              <h2>Upcoming Events</h2>
+              <span>Interviews, onboarding, and benefits dates</span>
+            </div>
+          </div>
+          <div class="dash-panel-body">
+            <div class="event-list" id="event-list">
+              <div class="loading-minimal">Loading events...</div>
+            </div>
+          </div>
+        </article>
+      </aside>
+    </section>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/hr-suite-data.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+
+buildSidebar('dashboard');
+loadDashboard();
+
+async function loadDashboard() {
+  try {
+    updateHeader();
+
+    const [stats, leaveQueue, teamSummary, announcements, todos] = await Promise.all([
+      api.get('/employees/dashboard'),
+      api.get('/leave'),
+      api.get('/performance/team-summary'),
+      api.get('/notifications/announcements'),
+      api.get('/todos?status=open')
+    ]);
+
+    let payrollRows = [];
+    if (user.role === 'admin') {
+      const now = new Date();
+      payrollRows = await api.get(`/payroll?month=${now.getMonth() + 1}&year=${now.getFullYear()}`);
+    }
+
+    const data = { stats, leaveQueue, teamSummary, payrollRows, announcements, todos };
+    renderMetrics(data);
+    renderAttention(data);
+    renderToday(data);
+    renderAnnouncements(announcements);
+    renderTodos(data);
+    renderBirthdays(stats);
+    renderEvents();
+    loadNotifCount();
+  } catch (err) {
+    toast(err.message || 'Could not load dashboard', 'error');
+  }
+}
+
+function updateHeader() {
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('dashboard-title').textContent = `${greeting}, ${user.first_name}.`;
+  document.getElementById('date-chip').textContent = now.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short'
+  });
+}
+
+function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows }) {
+  const total = Number(stats.total_employees || 0);
+  const pendingLeave = countByStatus(leaveQueue, 'pending');
+  const pendingPayroll = countByStatus(payrollRows, 'pending');
+  const reviewed = (teamSummary || []).filter((person) => Number(person.review_count || 0) > 0).length;
+  const reviewCoverage = total ? Math.round((reviewed / total) * 100) : 0;
+
+  const metrics = [
+    {
+      label: 'Employees',
+      value: total,
+      note: 'active records',
+      tone: 'info'
+    },
+    {
+      label: 'Approvals',
+      value: pendingLeave,
+      note: 'leave requests open',
+      tone: pendingLeave ? 'warn' : ''
+    },
+    {
+      label: 'Payroll',
+      value: shortMoney(stats.payroll_this_month),
+      note: `${pendingPayroll} pending records`,
+      tone: pendingPayroll ? 'warn' : ''
+    },
+    {
+      label: 'Reviews',
+      value: `${reviewCoverage}%`,
+      note: `${reviewed}/${total} employees covered`,
+      tone: reviewCoverage >= 80 ? '' : 'danger'
+    }
+  ];
+
+  document.getElementById('metric-grid').innerHTML = metrics.map((metric) => `
+    <article class="metric-card">
+      <div class="metric-label">
+        <span>${escapeHtml(metric.label)}</span>
+        <span class="metric-dot ${metric.tone}"></span>
+      </div>
+      <div>
+        <div class="metric-value">${escapeHtml(metric.value)}</div>
+        <div class="metric-note">${escapeHtml(metric.note)}</div>
+      </div>
+    </article>
+  `).join('');
+}
+
+function renderAttention({ stats, leaveQueue, teamSummary, payrollRows }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const total = Math.max(Number(stats.total_employees || 0), 1);
+  const pendingLeave = countByStatus(leaveQueue, 'pending');
+  const pendingPayroll = countByStatus(payrollRows, 'pending');
+  const reviewed = (teamSummary || []).filter((person) => Number(person.review_count || 0) > 0).length;
+  const reviewsDue = Math.max(total - reviewed, 0);
+  const onboardingOpen = (window.hrSuiteData?.onboarding?.checklist || []).filter((task) => !task.done).length;
+  const benefitsOpen = (window.hrSuiteData?.benefits?.events || []).filter((event) => !event.status.includes('Ready')).length;
+
+  const items = [
+    {
+      title: pendingLeave ? `${plural(pendingLeave, 'leave request')} needs review` : 'Leave queue is clear',
+      detail: pendingLeave ? 'Approve or decline pending requests.' : 'No pending time off approvals.',
+      badge: pendingLeave ? 'Review' : 'Clear',
+      tone: pendingLeave ? 'warn' : 'good',
+      href: 'leave.html'
+    },
+    {
+      title: pendingPayroll ? `${plural(pendingPayroll, 'payroll record')} pending` : 'Payroll is ready',
+      detail: `${countByStatus(payrollRows, 'processed') + countByStatus(payrollRows, 'paid')} records processed this month.`,
+      badge: pendingPayroll ? 'Action' : 'Ready',
+      tone: pendingPayroll ? 'warn' : 'good',
+      href: 'payroll.html'
+    },
+    {
+      title: reviewsDue ? `${plural(reviewsDue, 'review')} not on file` : 'Reviews are covered',
+      detail: `${reviewed}/${total} employee records have performance feedback.`,
+      badge: reviewsDue ? 'Due' : 'Done',
+      tone: reviewsDue ? 'danger' : 'good',
+      href: 'performance.html'
+    },
+    {
+      title: `${plural(onboardingOpen, 'onboarding task')} open`,
+      detail: 'Track first-week setup, access, and manager handoffs.',
+      badge: 'Onboarding',
+      tone: onboardingOpen ? 'warn' : 'good',
+      href: 'onboarding.html'
+    },
+    {
+      title: `${plural(benefitsOpen, 'benefits change')} pending`,
+      detail: 'Review plan updates before payroll sync.',
+      badge: 'Benefits',
+      tone: benefitsOpen ? 'warn' : 'good',
+      href: 'benefits.html'
+    }
+  ];
+
+  document.getElementById('attention-list').innerHTML = items.map((item) => `
+    <a class="queue-item" href="${item.href}">
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <span>${escapeHtml(item.detail)}</span>
+      </div>
+      <div class="item-meta">
+        <span class="mini-badge ${item.tone}">${escapeHtml(item.badge)}</span>
+      </div>
+    </a>
+  `).join('');
+}
+
+function renderToday({ stats, leaveQueue, payrollRows }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const onLeave = Number(stats.on_leave_today || 0);
+  const upcomingLeave = (leaveQueue || []).filter((row) => row.status === 'approved' && row.start_date >= today).length;
+  const recentHires = (stats.recent_hires || []).length;
+  const birthdays = (stats.upcoming_birthdays || []).length;
+  const nextInterview = window.hrSuiteData?.hiring?.interviews?.[0];
+  const processedPayroll = countByStatus(payrollRows, 'processed') + countByStatus(payrollRows, 'paid');
+
+  const rows = [
+    ['On leave today', onLeave, `${upcomingLeave} upcoming approved periods`, 'leave.html'],
+    ['People moments', birthdays, `${recentHires} recent hires to follow up`, 'employees.html'],
+    ['Payroll processed', processedPayroll, 'current month records', 'payroll.html'],
+    ['Next interview', nextInterview ? nextInterview.time : 'None', nextInterview ? `${nextInterview.candidate} - ${fmt.date(nextInterview.date)}` : 'No interviews scheduled', 'hiring.html']
+  ];
+
+  document.getElementById('today-list').innerHTML = rows.map(([title, value, detail, href]) => `
+    <a class="today-item" href="${href}">
+      <div>
+        <strong>${escapeHtml(title)}</strong>
+        <span>${escapeHtml(detail)}</span>
+      </div>
+      <div class="item-meta">
+        <span class="mini-badge">${escapeHtml(value)}</span>
+      </div>
+    </a>
+  `).join('');
+}
+
+function renderAnnouncements(announcements) {
+  const target = document.getElementById('announcement-list');
+  const rows = (announcements || []).slice(0, 3);
+  if (!rows.length) {
+    target.innerHTML = '<div class="empty-minimal">No announcements yet.</div>';
+    return;
+  }
+
+  target.innerHTML = rows.map((item) => `
+    <div class="announcement-item">
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <span>${escapeHtml(item.body)}</span>
+      </div>
+      <div class="item-meta">
+        <span class="mini-badge ${item.is_pinned ? 'good' : ''}">${item.is_pinned ? 'Pinned' : fmt.relativeTime(item.created_at)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTodos({ todos }) {
+  const items = (todos || []).slice(0, 4).map((todo) => ({
+    title: todo.title,
+    detail: todo.detail,
+    badge: todo.owner || 'Everyone',
+    tone: todo.priority === 'High' ? 'danger' : todo.priority === 'Medium' ? 'warn' : '',
+    href: 'todos.html'
+  }));
+
+  if (!items.length) {
+    document.getElementById('todo-list').innerHTML = '<div class="empty-minimal">All shared to do items are completed.</div>';
+    return;
+  }
+
+  document.getElementById('todo-list').innerHTML = items.map((item) => `
+    <a class="todo-item" href="${item.href}">
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <span>${escapeHtml(item.detail)}</span>
+      </div>
+      <div class="item-meta"><span class="mini-badge ${item.tone}">${escapeHtml(item.badge)}</span></div>
+    </a>
+  `).join('');
+}
+
+function renderBirthdays(stats) {
+  const rows = (stats.upcoming_birthdays || []).slice(0, 5);
+  const target = document.getElementById('birthday-list');
+  if (!rows.length) {
+    target.innerHTML = '<div class="empty-minimal">No upcoming birthdays.</div>';
+    return;
+  }
+
+  target.innerHTML = rows.map((employee) => `
+    <div class="birthday-item">
+      <div class="avatar-line">
+        ${avatarEl(employee, 'sm')}
+        <div>
+          <strong>${escapeHtml(`${employee.first_name} ${employee.last_name}`)}</strong>
+          <span>${escapeHtml(employee.job_title || 'Team member')}</span>
+        </div>
+      </div>
+      <div class="item-meta"><span class="mini-badge">${escapeHtml(birthdayLabel(employee.date_of_birth))}</span></div>
+    </div>
+  `).join('');
+}
+
+function renderEvents() {
+  const interviews = (window.hrSuiteData?.hiring?.interviews || []).slice(0, 2).map((event) => ({
+    title: `${event.candidate} interview`,
+    detail: `${event.role} - ${event.mode}`,
+    date: event.date,
+    badge: event.time
+  }));
+  const benefits = (window.hrSuiteData?.benefits?.events || []).slice(0, 2).map((event) => ({
+    title: event.event,
+    detail: `${event.employee} - ${event.plan}`,
+    date: event.due,
+    badge: event.status
+  }));
+  const onboarding = (window.hrSuiteData?.onboarding?.cohorts || []).slice(0, 1).map((event) => ({
+    title: `${event.name} starts`,
+    detail: `${event.role} - ${event.department}`,
+    date: event.startDate,
+    badge: event.status
+  }));
+  const rows = [...interviews, ...benefits, ...onboarding]
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(0, 5);
+  const target = document.getElementById('event-list');
+  if (!rows.length) {
+    target.innerHTML = '<div class="empty-minimal">No upcoming events.</div>';
+    return;
+  }
+
+  target.innerHTML = rows.map((event) => `
+    <div class="event-item">
+      <div>
+        <strong>${escapeHtml(event.title)}</strong>
+        <span>${escapeHtml(event.detail)} - ${fmt.date(event.date)}</span>
+      </div>
+      <div class="item-meta"><span class="mini-badge">${escapeHtml(event.badge)}</span></div>
+    </div>
+  `).join('');
+}
+
+function countByStatus(rows, status) {
+  return (rows || []).filter((row) => row.status === status).length;
+}
+
+function plural(count, singular) {
+  return `${count} ${singular}${count === 1 ? '' : 's'}`;
+}
+
+function shortMoney(value) {
+  const amount = Number(value || 0);
+  if (amount >= 1000000) return `GHS${(amount / 1000000).toFixed(1)}m`;
+  if (amount >= 1000) return `GHS${(amount / 1000).toFixed(1)}k`;
+  return `GHS${amount.toLocaleString('en-US')}`;
+}
+
+function birthdayLabel(dateOfBirth) {
+  if (!dateOfBirth) return 'not set';
+  return new Date(dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+</script>
+</body>
+</html>

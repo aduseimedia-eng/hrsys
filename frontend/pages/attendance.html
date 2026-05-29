@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance — HRConnect</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .clock-section {
+      background: linear-gradient(135deg, var(--navy-800), var(--navy-950));
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .clock-section::before {
+      content:''; position:absolute; top:-60px;right:-60px;
+      width:200px;height:200px;border-radius:50%;
+      background:rgba(245,158,11,.08);
+    }
+    .clock-main-time {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: -.04em;
+      line-height: 1;
+    }
+    .clock-main-date { color:rgba(255,255,255,.5); margin-top:6px; font-size:.95rem; }
+    .clock-actions { display:flex; flex-direction:column; gap:12px; min-width:200px; }
+    .clock-status-info { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+    .clock-info-row { display:flex; justify-content:space-between; font-size:.875rem; }
+    .clock-info-label { color:rgba(255,255,255,.5); }
+    .clock-info-val   { color:#fff; font-weight:500; }
+    .clock-in-btn  { background:var(--amber-500);color:var(--navy-950);font-weight:600; }
+    .clock-in-btn:hover  { background:var(--amber-400); }
+    .clock-out-btn { background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.2); }
+    .clock-out-btn:hover { background:rgba(255,255,255,.15); }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar">
+    <div class="topbar-title">Attendance</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="notif-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="dot hidden" id="notif-badge"></span>
+      </button>
+    </div>
+  </header>
+  <main class="main-content">
+    <!-- Clock widget -->
+    <div class="clock-section">
+      <div>
+        <div class="clock-main-time" id="clock-time">--:--:--</div>
+        <div class="clock-main-date" id="clock-date"></div>
+      </div>
+      <div class="clock-actions">
+        <div style="font-size:.8rem;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Today's Attendance</div>
+        <button id="clock-in-btn"  class="btn clock-in-btn"  style="justify-content:center" onclick="clockAction('in')">Clock In</button>
+        <button id="clock-out-btn" class="btn clock-out-btn" style="justify-content:center" onclick="clockAction('out')" disabled>Clock Out</button>
+        <div class="clock-status-info" id="clock-status-info"></div>
+      </div>
+    </div>
+
+    <!-- Tabs: My History / HR Report (admin/manager) -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('my')">My History</button>
+      <button class="tab-btn" id="hr-tab" style="display:none" onclick="switchTab('hr')">HR Report</button>
+    </div>
+
+    <!-- My history tab -->
+    <div id="tab-my">
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <input type="date" id="my-from" class="form-control" style="max-width:160px">
+        <input type="date" id="my-to"   class="form-control" style="max-width:160px">
+        <button class="btn btn-outline" onclick="loadMyHistory()">Filter</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Duration</th><th>Status</th></tr></thead>
+          <tbody id="my-tbody"><tr><td colspan="5"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HR report tab -->
+    <div id="tab-hr" style="display:none">
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <input type="date" id="hr-date" class="form-control" style="max-width:160px">
+        <select id="hr-status" class="form-control form-select" style="max-width:160px">
+          <option value="">All Status</option>
+          <option value="present">Present</option>
+          <option value="late">Late</option>
+          <option value="absent">Absent</option>
+          <option value="on-leave">On Leave</option>
+        </select>
+        <button class="btn btn-outline" onclick="loadHrReport()">Filter</button>
+      </div>
+      <!-- Summary cards -->
+      <div class="stat-grid" id="att-summary" style="margin-bottom:20px"></div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Employee</th><th>Department</th><th>Clock In</th><th>Clock Out</th><th>Duration</th><th>Status</th></tr></thead>
+          <tbody id="hr-tbody"><tr><td colspan="6"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw new Error('redirect');
+buildSidebar('attendance');
+loadNotifCount();
+
+if (['admin','manager'].includes(user.role)) {
+  document.getElementById('hr-tab').style.display = '';
+  document.getElementById('hr-date').value = new Date().toISOString().split('T')[0];
+}
+
+// Live clock
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock-time').textContent =
+    now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  document.getElementById('clock-date').textContent =
+    now.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// Load today's attendance status
+async function loadTodayStatus() {
+  const att = await api.get('/attendance/today');
+  const inBtn  = document.getElementById('clock-in-btn');
+  const outBtn = document.getElementById('clock-out-btn');
+  const info   = document.getElementById('clock-status-info');
+
+  if (!att || !att.clock_in) {
+    inBtn.disabled  = false;
+    outBtn.disabled = true;
+    info.innerHTML  = '';
+    return;
+  }
+  inBtn.disabled  = true;
+  outBtn.disabled = !!att.clock_out;
+  info.innerHTML  = `
+    <div class="clock-info-row"><span class="clock-info-label">Status</span><span>${fmt.statusBadge(att.status)}</span></div>
+    <div class="clock-info-row"><span class="clock-info-label">In</span><span class="clock-info-val">${fmt.time(att.clock_in)}</span></div>
+    <div class="clock-info-row"><span class="clock-info-label">Out</span><span class="clock-info-val">${att.clock_out ? fmt.time(att.clock_out) : '—'}</span></div>
+    ${att.clock_out ? `<div class="clock-info-row"><span class="clock-info-label">Hours</span><span class="clock-info-val">${fmt.duration(att.clock_in, att.clock_out)}</span></div>` : ''}
+  `;
+}
+
+async function clockAction(type) {
+  try {
+    await api.post(`/attendance/clock-${type}`);
+    toast(`Clocked ${type} at ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`, 'success');
+    await loadTodayStatus();
+    await loadMyHistory();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadMyHistory() {
+  const from = document.getElementById('my-from').value;
+  const to   = document.getElementById('my-to').value;
+  let qs = '?limit=60';
+  if (from) qs += `&from=${from}`;
+  if (to)   qs += `&to=${to}`;
+  const rows = await api.get(`/attendance/my-history${qs}`);
+  const tbody = document.getElementById('my-tbody');
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>No records found</p></div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${fmt.date(r.work_date)}</td>
+      <td>${r.clock_in ? fmt.time(r.clock_in) : '—'}</td>
+      <td>${r.clock_out ? fmt.time(r.clock_out) : '—'}</td>
+      <td>${fmt.duration(r.clock_in, r.clock_out)}</td>
+      <td>${fmt.statusBadge(r.status)}</td>
+    </tr>`).join('');
+}
+
+async function loadHrReport() {
+  const date   = document.getElementById('hr-date').value;
+  const status = document.getElementById('hr-status').value;
+  let qs = '?limit=100';
+  if (date)   qs += `&date=${date}`;
+  if (status) qs += `&status=${status}`;
+
+  const [rows, summary] = await Promise.all([
+    api.get(`/attendance/report${qs}`),
+    api.get('/attendance/summary')
+  ]);
+
+  // Summary cards
+  const s = summary.summary;
+  document.getElementById('att-summary').innerHTML = `
+    <div class="stat-card"><div class="stat-icon green"></div><div><div class="stat-value">${s.present||0}</div><div class="stat-label">Present</div></div></div>
+    <div class="stat-card"><div class="stat-icon amber"></div><div><div class="stat-value">${s.late||0}</div><div class="stat-label">Late</div></div></div>
+    <div class="stat-card"><div class="stat-icon rose"></div><div><div class="stat-value">${s.absent||0}</div><div class="stat-label">Absent</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue"></div><div><div class="stat-value">${s['on-leave']||0}</div><div class="stat-label">On Leave</div></div></div>
+  `;
+
+  const tbody = document.getElementById('hr-tbody');
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>No records</p></div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">${initialsAvatar(r.employee_name?.split(' ')[0]||'?', r.employee_name?.split(' ')[1]||'', 'sm')}<div><div style="font-weight:500">${r.employee_name}</div><div style="font-size:.78rem;color:var(--text-muted)">${r.job_title||''}</div></div></div></td>
+      <td>${r.department_name||'—'}</td>
+      <td>${r.clock_in ? fmt.time(r.clock_in) : '—'}</td>
+      <td>${r.clock_out ? fmt.time(r.clock_out) : '—'}</td>
+      <td>${fmt.duration(r.clock_in, r.clock_out)}</td>
+      <td>${fmt.statusBadge(r.status)}</td>
+    </tr>`).join('');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='my')||(i===1&&tab==='hr')));
+  document.getElementById('tab-my').style.display = tab === 'my' ? '' : 'none';
+  document.getElementById('tab-hr').style.display = tab === 'hr' ? '' : 'none';
+  if (tab === 'hr') loadHrReport();
+}
+
+loadTodayStatus();
+loadMyHistory();
+</script>
+</body>
+</html>

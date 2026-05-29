@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HRConnect Workspace</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    body {
+      overflow: hidden;
+    }
+
+    .workspace-shell {
+      height: 100vh;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .workspace-content {
+      padding: 0;
+      min-height: calc(100vh - var(--topbar-h));
+      overflow: hidden;
+      background: var(--bg-page);
+    }
+
+    .workspace-frame {
+      width: 100%;
+      height: calc(100vh - var(--topbar-h));
+      border: 0;
+      display: block;
+      background: var(--bg-page);
+    }
+
+    .workspace-loading {
+      min-height: calc(100vh - var(--topbar-h));
+      display: grid;
+      place-items: center;
+      color: var(--text-muted);
+      font-size: .9rem;
+    }
+
+    .topbar .icon-btn .dot {
+      min-width: 16px;
+      width: auto;
+      height: 16px;
+      padding: 0 4px;
+      top: 3px;
+      right: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: .62rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell workspace-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <header class="topbar">
+    <div class="topbar-title" id="workspace-title">Dashboard</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="notif-btn" title="Notifications">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="dot hidden" id="notif-badge"></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="main-content workspace-content">
+    <div class="workspace-loading" id="workspace-loading">Loading workspace...</div>
+    <iframe class="workspace-frame hidden" id="workspace-frame" title="HRConnect page"></iframe>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const workspaceUser = requireAuth();
+if (!workspaceUser) throw new Error('redirect');
+
+const WORKSPACE_DEFAULT = 'dashboard';
+const WORKSPACE_PAGES = {
+  dashboard: { title: 'Dashboard', nav: 'dashboard' },
+  announcements: { title: 'Announcements', nav: 'announcements' },
+  attendance: { title: 'Attendance', nav: 'attendance' },
+  leave: { title: 'Leave Management', nav: 'leave' },
+  payroll: { title: 'Payroll', nav: 'payroll' },
+  benefits: { title: 'Benefits', nav: 'benefits' },
+  todos: { title: 'To Do List', nav: 'todos' },
+  tickets: { title: 'Tickets', nav: 'tickets' },
+  messages: { title: 'Messages', nav: 'messages' },
+  documents: { title: 'Documents', nav: 'documents' },
+  performance: { title: 'Performance Reviews', nav: 'performance' },
+  hiring: { title: 'Hiring & ATS', nav: 'hiring' },
+  onboarding: { title: 'Onboarding', nav: 'onboarding' },
+  reports: { title: 'Reports & Workflows', nav: 'reports' },
+  employees: { title: 'Employees', nav: 'employees' },
+  orgchart: { title: 'Organization Chart', nav: 'orgchart' },
+  settings: { title: 'Settings', nav: 'settings' },
+  'employee-profile': { title: 'Employee Profile', nav: 'employees' }
+};
+
+const workspaceFrame = document.getElementById('workspace-frame');
+const workspaceLoading = document.getElementById('workspace-loading');
+let syncingFromFrame = false;
+
+buildSidebar(WORKSPACE_DEFAULT);
+loadNotifCount();
+loadWorkspaceRoute();
+window.addEventListener('hashchange', () => {
+  if (!syncingFromFrame) loadWorkspaceRoute();
+});
+
+workspaceFrame.addEventListener('load', () => {
+  workspaceLoading.classList.add('hidden');
+  workspaceFrame.classList.remove('hidden');
+  syncRouteFromFrame();
+});
+
+function parseWorkspaceRoute() {
+  const raw = decodeURIComponent((window.location.hash || '').slice(1)).trim();
+  const route = raw || WORKSPACE_DEFAULT;
+  const questionIndex = route.indexOf('?');
+  const page = (questionIndex >= 0 ? route.slice(0, questionIndex) : route)
+    .replace(/^\/?pages\//, '')
+    .replace(/\.html$/i, '') || WORKSPACE_DEFAULT;
+  const query = questionIndex >= 0 ? route.slice(questionIndex) : '';
+
+  if (!Object.prototype.hasOwnProperty.call(WORKSPACE_PAGES, page)) {
+    return { page: WORKSPACE_DEFAULT, query: '' };
+  }
+
+  return { page, query };
+}
+
+function loadWorkspaceRoute() {
+  const route = parseWorkspaceRoute();
+  const pageMeta = WORKSPACE_PAGES[route.page];
+  const src = appUrl(`/pages/${route.page}.html${route.query}`);
+
+  document.getElementById('workspace-title').textContent = pageMeta.title;
+  document.title = `${pageMeta.title} - HRConnect`;
+  buildSidebar(pageMeta.nav);
+  loadNotifCount();
+
+  if (workspaceFrame.dataset.src !== src) {
+    workspaceLoading.classList.remove('hidden');
+    workspaceFrame.classList.add('hidden');
+    workspaceFrame.dataset.src = src;
+    workspaceFrame.src = src;
+  }
+}
+
+function syncRouteFromFrame() {
+  try {
+    const frameUrl = new URL(workspaceFrame.contentWindow.location.href);
+    const page = frameUrl.pathname.split('/').pop().replace(/\.html$/i, '');
+    if (!Object.prototype.hasOwnProperty.call(WORKSPACE_PAGES, page)) return;
+
+    const route = `${page}${frameUrl.search}`;
+    if (window.location.hash.slice(1) === route) return;
+
+    syncingFromFrame = true;
+    window.history.replaceState(null, '', `#${route}`);
+    const pageMeta = WORKSPACE_PAGES[page];
+    document.getElementById('workspace-title').textContent = pageMeta.title;
+    document.title = `${pageMeta.title} - HRConnect`;
+    buildSidebar(pageMeta.nav);
+    loadNotifCount();
+    syncingFromFrame = false;
+  } catch (err) {
+    syncingFromFrame = false;
+  }
+}
+</script>
+</body>
+</html>
