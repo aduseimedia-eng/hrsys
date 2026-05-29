@@ -4,8 +4,8 @@ const db = require('../config/db');
 exports.getMine = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT * FROM notifications WHERE employee_id=$1 ORDER BY created_at DESC LIMIT 50`,
-      [req.user.id]
+      `SELECT * FROM notifications WHERE company_id=$1 AND employee_id=$2 ORDER BY created_at DESC LIMIT 50`,
+      [req.user.company_id, req.user.id]
     );
     res.json(rows);
   } catch (err) {
@@ -16,8 +16,8 @@ exports.getMine = async (req, res) => {
 exports.getUnreadCount = async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT COUNT(*) FROM notifications WHERE employee_id=$1 AND is_read=false',
-      [req.user.id]
+      'SELECT COUNT(*) FROM notifications WHERE company_id=$1 AND employee_id=$2 AND is_read=false',
+      [req.user.company_id, req.user.id]
     );
     res.json({ count: parseInt(rows[0].count) });
   } catch (err) {
@@ -29,8 +29,8 @@ exports.markRead = async (req, res) => {
   try {
     const { id } = req.params;
     await db.query(
-      'UPDATE notifications SET is_read=true WHERE id=$1 AND employee_id=$2',
-      [id, req.user.id]
+      'UPDATE notifications SET is_read=true WHERE id=$1 AND company_id=$2 AND employee_id=$3',
+      [id, req.user.company_id, req.user.id]
     );
     res.json({ message: 'Marked as read' });
   } catch (err) {
@@ -40,7 +40,10 @@ exports.markRead = async (req, res) => {
 
 exports.markAllRead = async (req, res) => {
   try {
-    await db.query('UPDATE notifications SET is_read=true WHERE employee_id=$1', [req.user.id]);
+    await db.query(
+      'UPDATE notifications SET is_read=true WHERE company_id=$1 AND employee_id=$2',
+      [req.user.company_id, req.user.id]
+    );
     res.json({ message: 'All notifications marked as read' });
   } catch (err) {
     res.status(500).json({ error: 'Could not update notifications' });
@@ -53,18 +56,19 @@ exports.announce = async (req, res) => {
     const { title, body, is_pinned } = req.body;
     if (!title || !body) return res.status(400).json({ error: 'Title and body required' });
 
-    // Save announcement
     const { rows } = await db.query(
-      'INSERT INTO announcements (created_by,title,body,is_pinned) VALUES ($1,$2,$3,$4) RETURNING *',
-      [req.user.id, title, body, is_pinned || false]
+      'INSERT INTO announcements (company_id,created_by,title,body,is_pinned) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      [req.user.company_id, req.user.id, title, body, is_pinned || false]
     );
 
-    // Notify all active employees
-    const { rows: emps } = await db.query('SELECT id FROM employees WHERE is_active=true');
+    const { rows: emps } = await db.query(
+      'SELECT id FROM employees WHERE company_id=$1 AND is_active=true',
+      [req.user.company_id]
+    );
     for (const emp of emps) {
       await db.query(
-        "INSERT INTO notifications (employee_id,type,message) VALUES ($1,'announcement',$2)",
-        [emp.id, `📢 ${title}`]
+        "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,'announcement',$3)",
+        [req.user.company_id, emp.id, `Announcement: ${title}`]
       );
     }
     res.status(201).json(rows[0]);
@@ -79,8 +83,10 @@ exports.getAnnouncements = async (req, res) => {
       `SELECT a.*, CONCAT(e.first_name,' ',e.last_name) AS author_name, e.photo_url
        FROM announcements a
        JOIN employees e ON e.id = a.created_by
+       WHERE a.company_id=$1
        ORDER BY a.is_pinned DESC, a.created_at DESC
-       LIMIT 20`
+       LIMIT 20`,
+      [req.user.company_id]
     );
     res.json(rows);
   } catch (err) {
@@ -95,9 +101,9 @@ exports.updateAnnouncement = async (req, res) => {
     const { rows } = await db.query(
       `UPDATE announcements
        SET title=$1, body=$2, is_pinned=$3
-       WHERE id=$4
+       WHERE id=$4 AND company_id=$5
        RETURNING *`,
-      [title, body, !!is_pinned, req.params.id]
+      [title, body, !!is_pinned, req.params.id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Announcement not found' });
     res.json(rows[0]);
@@ -108,7 +114,10 @@ exports.updateAnnouncement = async (req, res) => {
 
 exports.deleteAnnouncement = async (req, res) => {
   try {
-    const { rowCount } = await db.query('DELETE FROM announcements WHERE id=$1', [req.params.id]);
+    const { rowCount } = await db.query(
+      'DELETE FROM announcements WHERE id=$1 AND company_id=$2',
+      [req.params.id, req.user.company_id]
+    );
     if (!rowCount) return res.status(404).json({ error: 'Announcement not found' });
     res.json({ message: 'Announcement deleted' });
   } catch (err) {

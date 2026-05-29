@@ -12,19 +12,22 @@ exports.send = async (req, res) => {
       return res.status(400).json({ error: 'Cannot message yourself' });
     }
 
-    const receiverCheck = await db.query('SELECT id FROM employees WHERE id=$1 AND is_active=true', [receiver_id]);
+    const receiverCheck = await db.query(
+      'SELECT id FROM employees WHERE id=$1 AND company_id=$2 AND is_active=true',
+      [receiver_id, req.user.company_id]
+    );
     if (!receiverCheck.rows.length) return res.status(404).json({ error: 'Recipient not found' });
 
     const { rows } = await db.query(
-      'INSERT INTO messages (sender_id,receiver_id,body) VALUES ($1,$2,$3) RETURNING *',
-      [req.user.id, receiver_id, body.trim()]
+      'INSERT INTO messages (company_id,sender_id,receiver_id,body) VALUES ($1,$2,$3,$4) RETURNING *',
+      [req.user.company_id, req.user.id, receiver_id, body.trim()]
     );
 
     // Notify receiver
     const senderName = `${req.user.first_name} ${req.user.last_name}`;
     await db.query(
-      "INSERT INTO notifications (employee_id,type,message,link) VALUES ($1,'message',$2,'/messages')",
-      [receiver_id, `New message from ${senderName}`]
+      "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'message',$3,'/messages')",
+      [req.user.company_id, receiver_id, `New message from ${senderName}`]
     );
 
     res.status(201).json(rows[0]);
@@ -42,16 +45,17 @@ exports.getConversation = async (req, res) => {
               CONCAT(s.first_name,' ',s.last_name) AS sender_name, s.photo_url AS sender_photo
        FROM messages m
        JOIN employees s ON s.id = m.sender_id
-       WHERE (m.sender_id=$1 AND m.receiver_id=$2)
-          OR (m.sender_id=$2 AND m.receiver_id=$1)
+       WHERE m.company_id=$3
+         AND ((m.sender_id=$1 AND m.receiver_id=$2)
+          OR (m.sender_id=$2 AND m.receiver_id=$1))
        ORDER BY m.sent_at ASC`,
-      [req.user.id, id]
+      [req.user.id, id, req.user.company_id]
     );
 
     // Mark messages from other person as read
     await db.query(
-      'UPDATE messages SET is_read=true WHERE sender_id=$1 AND receiver_id=$2 AND is_read=false',
-      [id, req.user.id]
+      'UPDATE messages SET is_read=true WHERE company_id=$1 AND sender_id=$2 AND receiver_id=$3 AND is_read=false',
+      [req.user.company_id, id, req.user.id]
     );
 
     res.json(rows);
@@ -69,20 +73,20 @@ exports.getInbox = async (req, res) => {
          SELECT CASE WHEN sender_id=$1 THEN receiver_id ELSE sender_id END AS partner_id,
                 MAX(sent_at) AS last_msg_time
          FROM messages
-         WHERE sender_id=$1 OR receiver_id=$1
+         WHERE company_id=$2 AND (sender_id=$1 OR receiver_id=$1)
          GROUP BY partner_id
        )
        SELECT e.id, e.first_name, e.last_name, e.photo_url, e.job_title,
               p.last_msg_time,
               (SELECT body FROM messages
-               WHERE (sender_id=$1 AND receiver_id=e.id) OR (sender_id=e.id AND receiver_id=$1)
+               WHERE company_id=$2 AND ((sender_id=$1 AND receiver_id=e.id) OR (sender_id=e.id AND receiver_id=$1))
                ORDER BY sent_at DESC LIMIT 1) AS last_message,
               (SELECT COUNT(*) FROM messages
-               WHERE sender_id=e.id AND receiver_id=$1 AND is_read=false) AS unread_count
+               WHERE company_id=$2 AND sender_id=e.id AND receiver_id=$1 AND is_read=false) AS unread_count
        FROM partners p
        JOIN employees e ON e.id = p.partner_id
        ORDER BY p.last_msg_time DESC`,
-      [req.user.id]
+      [req.user.id, req.user.company_id]
     );
     res.json(rows);
   } catch (err) {
@@ -94,8 +98,8 @@ exports.getInbox = async (req, res) => {
 exports.getUnreadCount = async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT COUNT(*) FROM messages WHERE receiver_id=$1 AND is_read=false',
-      [req.user.id]
+      'SELECT COUNT(*) FROM messages WHERE company_id=$1 AND receiver_id=$2 AND is_read=false',
+      [req.user.company_id, req.user.id]
     );
     res.json({ count: parseInt(rows[0].count) });
   } catch (err) {

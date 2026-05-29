@@ -15,25 +15,25 @@ exports.request = async (req, res) => {
     // Check for overlapping approved leave
     const overlap = await db.query(
       `SELECT id FROM leave_requests
-       WHERE employee_id=$1 AND status IN ('pending','approved')
-         AND NOT (end_date < $2 OR start_date > $3)`,
-      [req.user.id, start_date, end_date]
+       WHERE company_id=$1 AND employee_id=$2 AND status IN ('pending','approved')
+         AND NOT (end_date < $3 OR start_date > $4)`,
+      [req.user.company_id, req.user.id, start_date, end_date]
     );
     if (overlap.rows.length) return res.status(409).json({ error: 'Overlapping leave request exists' });
 
     const { rows } = await db.query(
-      `INSERT INTO leave_requests (employee_id, leave_type, start_date, end_date, reason)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [req.user.id, leave_type, start_date, end_date, reason]
+      `INSERT INTO leave_requests (company_id, employee_id, leave_type, start_date, end_date, reason)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [req.user.company_id, req.user.id, leave_type, start_date, end_date, reason]
     );
 
     // Notify admin/managers
-    const admins = await db.query("SELECT id FROM employees WHERE role IN ('admin','manager') AND is_active=true");
+    const admins = await db.query("SELECT id FROM employees WHERE company_id=$1 AND role IN ('admin','manager') AND is_active=true", [req.user.company_id]);
     const empName = `${req.user.first_name} ${req.user.last_name}`;
     for (const admin of admins.rows) {
       await db.query(
-        "INSERT INTO notifications (employee_id,type,message,link) VALUES ($1,'leave_request',$2,'/leave')",
-        [admin.id, `${empName} has requested ${leave_type} leave from ${start_date} to ${end_date}.`]
+        "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'leave_request',$3,'/leave')",
+        [req.user.company_id, admin.id, `${empName} has requested ${leave_type} leave from ${start_date} to ${end_date}.`]
       );
     }
 
@@ -48,8 +48,8 @@ exports.request = async (req, res) => {
 exports.getMyLeaves = async (req, res) => {
   try {
     const { status, year } = req.query;
-    const params = [req.user.id];
-    let where = 'WHERE employee_id = $1';
+    const params = [req.user.company_id, req.user.id];
+    let where = 'WHERE lr.company_id = $1 AND employee_id = $2';
 
     if (status) { params.push(status); where += ` AND status = $${params.length}`; }
     if (year)   { params.push(year);   where += ` AND EXTRACT(YEAR FROM start_date) = $${params.length}`; }
@@ -71,8 +71,8 @@ exports.getMyLeaves = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const { status, department_id, from, to } = req.query;
-    const params = [];
-    let where = 'WHERE 1=1';
+    const params = [req.user.company_id];
+    let where = 'WHERE lr.company_id = $1';
 
     if (status)        { params.push(status);        where += ` AND lr.status = $${params.length}`; }
     if (department_id) { params.push(department_id); where += ` AND e.department_id = $${params.length}`; }
@@ -107,7 +107,7 @@ exports.updateStatus = async (req, res) => {
       return res.status(400).json({ error: 'Status must be approved or rejected' });
     }
 
-    const leaveRes = await db.query('SELECT * FROM leave_requests WHERE id=$1', [id]);
+    const leaveRes = await db.query('SELECT * FROM leave_requests WHERE id=$1 AND company_id=$2', [id, req.user.company_id]);
     if (!leaveRes.rows.length) return res.status(404).json({ error: 'Leave request not found' });
     const leave = leaveRes.rows[0];
 
@@ -117,27 +117,27 @@ exports.updateStatus = async (req, res) => {
 
     const { rows } = await db.query(
       `UPDATE leave_requests SET status=$1, approved_by=$2, approved_at=NOW()
-       WHERE id=$3 RETURNING *`,
-      [status, req.user.id, id]
+       WHERE id=$3 AND company_id=$4 RETURNING *`,
+      [status, req.user.id, id, req.user.company_id]
     );
 
     // If approved, mark attendance as on-leave for those days
     if (status === 'approved') {
       await db.query(
-        `INSERT INTO attendance (employee_id, work_date, status)
-         SELECT $1, d::date, 'on-leave'
-         FROM generate_series($2::date, $3::date, '1 day'::interval) d
+        `INSERT INTO attendance (company_id, employee_id, work_date, status)
+         SELECT $1, $2, d::date, 'on-leave'
+         FROM generate_series($3::date, $4::date, '1 day'::interval) d
          WHERE EXTRACT(DOW FROM d) NOT IN (0,6)
          ON CONFLICT (employee_id, work_date) DO UPDATE SET status='on-leave'`,
-        [leave.employee_id, leave.start_date, leave.end_date]
+        [req.user.company_id, leave.employee_id, leave.start_date, leave.end_date]
       );
 
     }
 
     // Notify employee of the decision.
     await db.query(
-      "INSERT INTO notifications (employee_id,type,message) VALUES ($1,$2,$3)",
-      [leave.employee_id, `leave_${status}`, `Your ${leave.leave_type} leave request has been ${status}.`]
+      "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,$3,$4)",
+      [req.user.company_id, leave.employee_id, `leave_${status}`, `Your ${leave.leave_type} leave request has been ${status}.`]
     );
 
     res.json(rows[0]);
@@ -151,8 +151,8 @@ exports.updateStatus = async (req, res) => {
 exports.getCalendar = async (req, res) => {
   try {
     const { year = new Date().getFullYear(), month } = req.query;
-    const params = [year];
-    let where = 'WHERE status = \'approved\' AND EXTRACT(YEAR FROM start_date) = $1';
+    const params = [req.user.company_id, year];
+    let where = 'WHERE lr.company_id = $1 AND status = \'approved\' AND EXTRACT(YEAR FROM start_date) = $2';
     if (month) { params.push(month); where += ` AND EXTRACT(MONTH FROM start_date) = $${params.length}`; }
 
     const { rows } = await db.query(

@@ -10,20 +10,23 @@ exports.getDashboard = async (req, res) => {
     const year  = new Date().getFullYear();
 
     const [total, present, onLeave, payroll, birthdays, recent] = await Promise.all([
-      db.query("SELECT COUNT(*) FROM employees WHERE is_active = true"),
-      db.query("SELECT COUNT(*) FROM attendance WHERE work_date = $1 AND status IN ('present','late')", [today]),
-      db.query("SELECT COUNT(*) FROM leave_requests WHERE status='approved' AND $1 BETWEEN start_date AND end_date", [today]),
-      db.query("SELECT SUM(net_salary) as total FROM payroll WHERE month=$1 AND year=$2 AND status IN ('processed','paid')", [month, year]),
+      db.query("SELECT COUNT(*) FROM employees WHERE company_id=$1 AND is_active = true", [req.user.company_id]),
+      db.query("SELECT COUNT(*) FROM attendance WHERE company_id=$1 AND work_date = $2 AND status IN ('present','late')", [req.user.company_id, today]),
+      db.query("SELECT COUNT(*) FROM leave_requests WHERE company_id=$1 AND status='approved' AND $2 BETWEEN start_date AND end_date", [req.user.company_id, today]),
+      db.query("SELECT SUM(net_salary) as total FROM payroll WHERE company_id=$1 AND month=$2 AND year=$3 AND status IN ('processed','paid')", [req.user.company_id, month, year]),
       db.query(
         `SELECT id, first_name, last_name, photo_url, date_of_birth, job_title
          FROM employees
-         WHERE is_active = true
+         WHERE company_id = $1
+           AND is_active = true
            AND TO_CHAR(date_of_birth, 'MM-DD') BETWEEN TO_CHAR(NOW(),'MM-DD') AND TO_CHAR(NOW() + INTERVAL '30 days','MM-DD')
-         ORDER BY TO_CHAR(date_of_birth,'MM-DD') LIMIT 5`
+         ORDER BY TO_CHAR(date_of_birth,'MM-DD') LIMIT 5`,
+        [req.user.company_id]
       ),
       db.query(
         `SELECT id, first_name, last_name, photo_url, job_title, hire_date
-         FROM employees WHERE is_active = true ORDER BY hire_date DESC LIMIT 5`
+         FROM employees WHERE company_id = $1 AND is_active = true ORDER BY hire_date DESC LIMIT 5`,
+        [req.user.company_id]
       )
     ]);
 
@@ -46,9 +49,8 @@ exports.getAll = async (req, res) => {
   try {
     const { department_id, role, search, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
-    const params = [];
-    let where = 'WHERE e.is_active = true';
-
+    const params = [req.user.company_id];
+    let where = 'WHERE e.company_id = $1 AND e.is_active = true';
     if (department_id) { params.push(department_id); where += ` AND e.department_id = $${params.length}`; }
     if (role)          { params.push(role);          where += ` AND e.role = $${params.length}`; }
     if (search) {
@@ -101,8 +103,8 @@ exports.getById = async (req, res) => {
        FROM employees e
        LEFT JOIN departments d ON d.id = e.department_id
        LEFT JOIN employees m   ON m.id = e.manager_id
-       WHERE e.id = $1`,
-      [id]
+       WHERE e.id = $1 AND e.company_id = $2`,
+      [id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });
 
@@ -137,16 +139,16 @@ exports.create = async (req, res) => {
 
     const hash = await bcrypt.hash(password, 12);
     const { rows } = await db.query(
-      `INSERT INTO employees (first_name, last_name, email, password_hash, role, employment_type,
+      `INSERT INTO employees (company_id, first_name, last_name, email, password_hash, role, employment_type,
         department_id, manager_id, job_title, salary, hire_date, phone, address, date_of_birth,
         education_information, education_level, education_institution, education_field, graduation_year,
         experience, previous_company, previous_job_title, experience_years, experience_summary,
         emergency_contact_name, emergency_contact_relationship,
         emergency_contact_phone, emergency_contact_address, bank_name, bank_account_name,
         bank_account_number, bank_branch)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
        RETURNING id, first_name, last_name, email, role, job_title, hire_date`,
-      [first_name, last_name, email.toLowerCase(), hash, role || 'employee', employment_type || 'staff',
+      [req.user.company_id, first_name, last_name, email.toLowerCase(), hash, role || 'employee', employment_type || 'staff',
        department_id || null, manager_id || null, job_title, salary || 0,
        hire_date || null, phone, address, date_of_birth || null,
        education_information || '', education_level || '', education_institution || '',
@@ -160,8 +162,8 @@ exports.create = async (req, res) => {
 
     // Create welcome notification
     await db.query(
-      "INSERT INTO notifications (employee_id, type, message) VALUES ($1,'welcome',$2)",
-      [rows[0].id, `Welcome to the team, ${first_name}! Your account has been created.`]
+      "INSERT INTO notifications (company_id, employee_id, type, message) VALUES ($1,$2,'welcome',$3)",
+      [req.user.company_id, rows[0].id, `Welcome to the team, ${first_name}! Your account has been created.`]
     );
 
     res.status(201).json(rows[0]);
@@ -232,7 +234,7 @@ exports.update = async (req, res) => {
 
     params.push(id);
     const { rows } = await db.query(
-      `UPDATE employees SET ${updates.join(', ')} WHERE id=$${params.length}
+      `UPDATE employees SET ${updates.join(', ')} WHERE id=$${params.length} AND company_id=$${params.length + 1}
        RETURNING id, first_name, last_name, email, role, job_title, phone, address,
                  date_of_birth, hire_date, department_id, manager_id, salary, photo_url, employment_type,
                  education_information, education_level, education_institution, education_field, graduation_year,
@@ -240,7 +242,7 @@ exports.update = async (req, res) => {
                  emergency_contact_name, emergency_contact_relationship,
                  emergency_contact_phone, emergency_contact_address, bank_name, bank_account_name,
                  bank_account_number, bank_branch`,
-      params
+      [...params, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });
     res.json(rows[0]);
@@ -275,9 +277,9 @@ exports.resetAccount = async (req, res) => {
     if (!updates.length) return res.status(400).json({ error: 'Email or password required' });
     params.push(id);
     const { rows } = await db.query(
-      `UPDATE employees SET ${updates.join(', ')} WHERE id=$${params.length}
+      `UPDATE employees SET ${updates.join(', ')} WHERE id=$${params.length} AND company_id=$${params.length + 1}
        RETURNING id, first_name, last_name, email, role`,
-      params
+      [...params, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });
     res.json(rows[0]);
@@ -293,7 +295,7 @@ exports.uploadPhoto = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const photoUrl = `/uploads/photos/${req.file.filename}`;
-    await db.query('UPDATE employees SET photo_url = $1 WHERE id = $2', [photoUrl, req.user.id]);
+    await db.query('UPDATE employees SET photo_url = $1 WHERE id = $2 AND company_id = $3', [photoUrl, req.user.id, req.user.company_id]);
     res.json({ photo_url: photoUrl });
   } catch (err) {
     res.status(500).json({ error: 'Could not save photo' });
@@ -305,7 +307,11 @@ exports.deactivate = async (req, res) => {
   try {
     const { id } = req.params;
     if (parseInt(id) === req.user.id) return res.status(400).json({ error: 'Cannot deactivate yourself' });
-    await db.query('UPDATE employees SET is_active = false WHERE id = $1', [id]);
+    const { rowCount } = await db.query(
+      'UPDATE employees SET is_active = false WHERE id = $1 AND company_id = $2',
+      [id, req.user.company_id]
+    );
+    if (!rowCount) return res.status(404).json({ error: 'Employee not found' });
     res.json({ message: 'Employee deactivated' });
   } catch (err) {
     res.status(500).json({ error: 'Could not deactivate employee' });
@@ -319,8 +325,10 @@ exports.getDirectory = async (req, res) => {
     const { rows } = await db.query(
       `SELECT id, first_name, last_name, photo_url, job_title, role, department_id
        FROM employees
-       WHERE is_active = true
+       WHERE company_id = $1 AND is_active = true
        ORDER BY first_name, last_name`
+      ,
+      [req.user.company_id]
     );
     res.json(rows);
   } catch (err) {
@@ -336,8 +344,10 @@ exports.getDepartments = async (req, res) => {
        FROM departments d
        LEFT JOIN employees e   ON e.id = d.manager_id
        LEFT JOIN employees emp ON emp.department_id = d.id AND emp.is_active = true
+       WHERE d.company_id = $1
        GROUP BY d.id, e.first_name, e.last_name
-       ORDER BY d.name`
+       ORDER BY d.name`,
+      [req.user.company_id]
     );
     res.json(rows);
   } catch (err) {
@@ -351,14 +361,14 @@ exports.createDepartment = async (req, res) => {
     const managerId = req.body.manager_id || null;
     if (!name) return res.status(400).json({ error: 'Department name is required' });
 
-    const existing = await db.query('SELECT id FROM departments WHERE LOWER(name)=LOWER($1)', [name]);
+    const existing = await db.query('SELECT id FROM departments WHERE company_id=$1 AND LOWER(name)=LOWER($2)', [req.user.company_id, name]);
     if (existing.rows.length) return res.status(409).json({ error: 'Department already exists' });
 
     const { rows } = await db.query(
-      `INSERT INTO departments (name, manager_id)
-       VALUES ($1, $2)
+      `INSERT INTO departments (company_id, name, manager_id)
+       VALUES ($1, $2, $3)
        RETURNING *`,
-      [name, managerId || null]
+      [req.user.company_id, name, managerId || null]
     );
     res.status(201).json({ ...rows[0], manager_name: null, employee_count: 0 });
   } catch (err) {
@@ -371,7 +381,7 @@ exports.deleteDepartment = async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid department id' });
 
-    const { rows } = await db.query('DELETE FROM departments WHERE id=$1 RETURNING id, name', [id]);
+    const { rows } = await db.query('DELETE FROM departments WHERE id=$1 AND company_id=$2 RETURNING id, name', [id, req.user.company_id]);
     if (!rows.length) return res.status(404).json({ error: 'Department not found' });
     res.json({ message: 'Department deleted', department: rows[0] });
   } catch (err) {

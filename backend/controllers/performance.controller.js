@@ -1,24 +1,28 @@
 // controllers/performance.controller.js
 const db = require('../config/db');
 
-// ─── Create review (manager/admin only) ──────────────────────
 exports.create = async (req, res) => {
   try {
     const { employee_id, rating, comments, period } = req.body;
     if (!employee_id || !rating) return res.status(400).json({ error: 'Employee and rating required' });
-    if (rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be 1–5' });
-    if (parseInt(employee_id) === req.user.id) return res.status(400).json({ error: 'Cannot review yourself' });
+    if (rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be 1-5' });
+    if (parseInt(employee_id, 10) === req.user.id) return res.status(400).json({ error: 'Cannot review yourself' });
+
+    const employeeCheck = await db.query(
+      'SELECT id FROM employees WHERE id=$1 AND company_id=$2 AND is_active=true',
+      [employee_id, req.user.company_id]
+    );
+    if (!employeeCheck.rows.length) return res.status(404).json({ error: 'Employee not found' });
 
     const { rows } = await db.query(
-      `INSERT INTO performance_reviews (employee_id, reviewer_id, rating, comments, period, review_date)
-       VALUES ($1,$2,$3,$4,$5,CURRENT_DATE) RETURNING *`,
-      [employee_id, req.user.id, rating, comments, period]
+      `INSERT INTO performance_reviews (company_id, employee_id, reviewer_id, rating, comments, period, review_date)
+       VALUES ($1,$2,$3,$4,$5,$6,CURRENT_DATE) RETURNING *`,
+      [req.user.company_id, employee_id, req.user.id, rating, comments, period]
     );
 
-    // Notify the reviewed employee
     await db.query(
-      "INSERT INTO notifications (employee_id,type,message) VALUES ($1,'review',$2)",
-      [employee_id, `You have received a new performance review${period ? ' for ' + period : ''}.`]
+      "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,'review',$3)",
+      [req.user.company_id, employee_id, `You have received a new performance review${period ? ' for ' + period : ''}.`]
     );
 
     res.status(201).json(rows[0]);
@@ -27,20 +31,19 @@ exports.create = async (req, res) => {
   }
 };
 
-// ─── Get reviews for an employee ─────────────────────────────
 exports.getForEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    if (req.user.role === 'employee' && req.user.id !== parseInt(id)) {
+    if (req.user.role === 'employee' && req.user.id !== parseInt(id, 10)) {
       return res.status(403).json({ error: 'Access denied' });
     }
     const { rows } = await db.query(
       `SELECT pr.*, CONCAT(r.first_name,' ',r.last_name) AS reviewer_name, r.photo_url AS reviewer_photo
        FROM performance_reviews pr
        JOIN employees r ON r.id = pr.reviewer_id
-       WHERE pr.employee_id = $1
+       WHERE pr.company_id = $1 AND pr.employee_id = $2
        ORDER BY pr.review_date DESC`,
-      [id]
+      [req.user.company_id, id]
     );
     res.json(rows);
   } catch (err) {
@@ -48,16 +51,15 @@ exports.getForEmployee = async (req, res) => {
   }
 };
 
-// ─── Get my reviews ───────────────────────────────────────────
 exports.getMine = async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT pr.*, CONCAT(r.first_name,' ',r.last_name) AS reviewer_name, r.photo_url AS reviewer_photo
        FROM performance_reviews pr
        JOIN employees r ON r.id = pr.reviewer_id
-       WHERE pr.employee_id = $1
+       WHERE pr.company_id = $1 AND pr.employee_id = $2
        ORDER BY pr.review_date DESC`,
-      [req.user.id]
+      [req.user.company_id, req.user.id]
     );
     res.json(rows);
   } catch (err) {
@@ -65,7 +67,6 @@ exports.getMine = async (req, res) => {
   }
 };
 
-// ─── All reviews (admin overview) ────────────────────────────
 exports.getAll = async (req, res) => {
   try {
     const { rows } = await db.query(
@@ -77,7 +78,9 @@ exports.getAll = async (req, res) => {
        JOIN employees e        ON e.id = pr.employee_id
        JOIN employees r        ON r.id = pr.reviewer_id
        LEFT JOIN departments d ON d.id = e.department_id
-       ORDER BY pr.review_date DESC`
+       WHERE pr.company_id = $1
+       ORDER BY pr.review_date DESC`,
+      [req.user.company_id]
     );
     res.json(rows);
   } catch (err) {
@@ -85,7 +88,6 @@ exports.getAll = async (req, res) => {
   }
 };
 
-// ─── Team ratings summary ─────────────────────────────────────
 exports.getTeamSummary = async (req, res) => {
   try {
     const { rows } = await db.query(
@@ -95,11 +97,12 @@ exports.getTeamSummary = async (req, res) => {
               COUNT(pr.id) AS review_count,
               MAX(pr.review_date) AS last_reviewed
        FROM employees e
-       LEFT JOIN performance_reviews pr ON pr.employee_id = e.id
+       LEFT JOIN performance_reviews pr ON pr.employee_id = e.id AND pr.company_id = e.company_id
        LEFT JOIN departments d ON d.id = e.department_id
-       WHERE e.is_active = true
+       WHERE e.company_id = $1 AND e.is_active = true
        GROUP BY e.id, d.name
-       ORDER BY avg_rating DESC NULLS LAST`
+       ORDER BY avg_rating DESC NULLS LAST`,
+      [req.user.company_id]
     );
     res.json(rows);
   } catch (err) {

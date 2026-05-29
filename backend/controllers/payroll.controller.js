@@ -5,8 +5,8 @@ const db = require('../config/db');
 exports.getMine = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT * FROM payroll WHERE employee_id=$1 ORDER BY year DESC, month DESC`,
-      [req.user.id]
+      `SELECT * FROM payroll WHERE company_id=$1 AND employee_id=$2 ORDER BY year DESC, month DESC`,
+      [req.user.company_id, req.user.id]
     );
     res.json(rows);
   } catch (err) {
@@ -24,8 +24,8 @@ exports.getPayslip = async (req, res) => {
        FROM payroll p
        JOIN employees e        ON e.id = p.employee_id
        LEFT JOIN departments d ON d.id = e.department_id
-       WHERE p.id = $1`,
-      [id]
+       WHERE p.id = $1 AND p.company_id = $2`,
+      [id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Payslip not found' });
 
@@ -44,8 +44,8 @@ exports.getPayslip = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const { month, year, status, department_id } = req.query;
-    const params = [];
-    let where = 'WHERE 1=1';
+    const params = [req.user.company_id];
+    let where = 'WHERE p.company_id = $1';
 
     if (month)         { params.push(month);         where += ` AND p.month = $${params.length}`; }
     if (year)          { params.push(year);          where += ` AND p.year = $${params.length}`; }
@@ -77,11 +77,12 @@ exports.processMonth = async (req, res) => {
     // Get all active employees not yet in payroll for this period
     const { rows: emps } = await db.query(
       `SELECT e.id, e.salary FROM employees e
-       WHERE e.is_active = true
+       WHERE e.company_id = $3
+         AND e.is_active = true
          AND NOT EXISTS (
            SELECT 1 FROM payroll p WHERE p.employee_id = e.id AND p.month=$1 AND p.year=$2
          )`,
-      [month, year]
+      [month, year, req.user.company_id]
     );
 
     if (!emps.length) return res.status(409).json({ error: 'Payroll already processed for this period' });
@@ -93,14 +94,14 @@ exports.processMonth = async (req, res) => {
       const deductions = (emp.salary * deductionRate).toFixed(2);
       const allowances = (emp.salary * allowanceRate).toFixed(2);
       await db.query(
-        `INSERT INTO payroll (employee_id, month, year, base_salary, allowances, deductions, status)
-         VALUES ($1,$2,$3,$4,$5,$6,'processed')`,
-        [emp.id, month, year, emp.salary, allowances, deductions]
+        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, deductions, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'processed')`,
+        [req.user.company_id, emp.id, month, year, emp.salary, allowances, deductions]
       );
       // Notify employee
       await db.query(
-        "INSERT INTO notifications (employee_id,type,message) VALUES ($1,'payroll','Your payroll for this month has been processed. View your payslip.')",
-        [emp.id]
+        "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,'payroll','Your payroll for this month has been processed. View your payslip.')",
+        [req.user.company_id, emp.id]
       );
     }
 
@@ -116,8 +117,8 @@ exports.markPaid = async (req, res) => {
   try {
     const { id } = req.params;
     const { rows } = await db.query(
-      "UPDATE payroll SET status='paid', paid_at=NOW() WHERE id=$1 RETURNING *",
-      [id]
+      "UPDATE payroll SET status='paid', paid_at=NOW() WHERE id=$1 AND company_id=$2 RETURNING *",
+      [id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Payroll record not found' });
     res.json(rows[0]);
@@ -146,9 +147,9 @@ exports.updatePayroll = async (req, res) => {
            deductions=$3,
            status=$4,
            paid_at=CASE WHEN $4='paid' THEN COALESCE(paid_at, NOW()) ELSE NULL END
-       WHERE id=$5
+       WHERE id=$5 AND company_id=$6
        RETURNING *`,
-      [baseSalary, allowances, deductions, status, id]
+      [baseSalary, allowances, deductions, status, id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Payroll record not found' });
     res.json(rows[0]);
@@ -169,9 +170,11 @@ exports.getSummary = async (req, res) => {
               COUNT(*) AS employee_count,
               COUNT(*) FILTER (WHERE status='paid') AS paid_count
        FROM payroll
+       WHERE company_id=$1
        GROUP BY year, month
        ORDER BY year DESC, month DESC
-       LIMIT 12`
+       LIMIT 12`,
+      [req.user.company_id]
     );
     res.json(rows);
   } catch (err) {

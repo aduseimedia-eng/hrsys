@@ -10,8 +10,9 @@ exports.getTree = async (req, res) => {
               d.name AS department_name, e.role
        FROM employees e
        LEFT JOIN departments d ON d.id = e.department_id
-       WHERE e.is_active = true
-       ORDER BY e.manager_id NULLS FIRST, e.first_name`
+       WHERE e.company_id = $1 AND e.is_active = true
+       ORDER BY e.manager_id NULLS FIRST, e.first_name`,
+      [req.user.company_id]
     );
 
     // Build tree structure
@@ -51,8 +52,10 @@ exports.getDepartments = async (req, res) => {
        FROM departments d
        LEFT JOIN employees m ON m.id = d.manager_id
        LEFT JOIN employees e ON e.department_id = d.id AND e.is_active=true AND e.id != d.manager_id
+       WHERE d.company_id = $1
        GROUP BY d.id, m.first_name, m.last_name, m.photo_url, m.job_title
-       ORDER BY d.name`
+       ORDER BY d.name`,
+      [req.user.company_id]
     );
     res.json(rows);
   } catch (err) {
