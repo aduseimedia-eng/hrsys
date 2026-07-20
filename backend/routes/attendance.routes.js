@@ -10,5 +10,6 @@ router.get ('/today',      auth, ctrl.getToday);
 router.get ('/my-history', auth, ctrl.getMyHistory);
 router.get ('/report',     auth, rbac('admin','manager'), ctrl.getReport);
 router.get ('/summary',    auth, rbac('admin','manager'), ctrl.getSummary);
+router.get ('/export',     auth, rbac('admin'), ctrl.exportReport);
 
 module.exports = router;

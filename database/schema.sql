@@ -1,5 +1,5 @@
 -- ============================================================
--- HRConnect - PostgreSQL Schema
+-- KenadHR - PostgreSQL Schema
 -- Multi-company ready
 -- ============================================================
 
@@ -36,8 +36,8 @@ CREATE TABLE employees (
   password_hash  TEXT         NOT NULL,
   role           VARCHAR(20)  NOT NULL DEFAULT 'employee'
                    CHECK (role IN ('admin','manager','employee')),
-  employment_type VARCHAR(20) NOT NULL DEFAULT 'staff'
-                   CHECK (employment_type IN ('staff','contractual')),
+  employment_type VARCHAR(30) NOT NULL DEFAULT 'staff'
+                   CHECK (employment_type IN ('staff','contractual','national_service','internship')),
   department_id  INT REFERENCES departments(id) ON DELETE SET NULL,
   manager_id     INT REFERENCES employees(id)   ON DELETE SET NULL,
   job_title      VARCHAR(120),
@@ -65,6 +65,8 @@ CREATE TABLE employees (
   bank_account_number VARCHAR(80),
   bank_branch    VARCHAR(140),
   photo_url      VARCHAR(300),
+  photo_data     BYTEA,
+  photo_mime_type VARCHAR(100),
   is_active      BOOLEAN DEFAULT TRUE,
   created_at     TIMESTAMPTZ DEFAULT NOW(),
   updated_at     TIMESTAMPTZ DEFAULT NOW(),
@@ -128,6 +130,7 @@ CREATE TABLE documents (
   employee_id   INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   doc_type      VARCHAR(60) NOT NULL
                   CHECK (doc_type IN ('contract','certificate','id','offer_letter','other')),
+  title         VARCHAR(200) NOT NULL,
   file_path     VARCHAR(400) NOT NULL,
   original_name VARCHAR(200) NOT NULL,
   file_size     INT,

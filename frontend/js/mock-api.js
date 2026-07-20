@@ -104,7 +104,7 @@
         },
         {
           id: 5, first_name: 'Abena', last_name: 'Frimpong', email: 'abena.frimpong@company.com',
-          password: PASSWORD, role: 'employee', employment_type: 'staff', department_id: 5, manager_id: 1,
+          password: PASSWORD, role: 'employee', employment_type: 'national_service', department_id: 5, manager_id: 1,
           job_title: 'Account Analyst', salary: 4500, hire_date: `${y - 4}-09-20`,
           phone: '+233266667777', address: 'Cape Coast, Ghana', date_of_birth: '1991-08-25',
           education_information: 'BSc Accounting - University of Cape Coast',
@@ -116,7 +116,7 @@
         },
         {
           id: 6, first_name: 'Yaw', last_name: 'Darko', email: 'yaw.darko@company.com',
-          password: PASSWORD, role: 'employee', employment_type: 'contractual', department_id: 3, manager_id: 1,
+          password: PASSWORD, role: 'employee', employment_type: 'internship', department_id: 3, manager_id: 1,
           job_title: 'Public Relations Lead', salary: 4200, hire_date: `${y - 3}-04-01`,
           phone: '+233277778888', address: 'Takoradi, Ghana', date_of_birth: '1994-12-10',
           education_information: 'BA Marketing - University of Professional Studies',
@@ -173,7 +173,7 @@
         { id: 4, employee_id: 2, type: 'payroll', message: 'Your payroll for this month has been processed.', link: null, is_read: false, created_at: minutesAgo(400) }
       ],
       announcements: [
-        { id: 1, created_by: 1, title: 'Welcome to HRConnect', body: 'We are excited to launch our HR management workspace. Please update your profile and explore the modules.', is_pinned: true, created_at: minutesAgo(9000) },
+        { id: 1, created_by: 1, title: 'Welcome to KenadHR', body: 'We are excited to launch our HR management workspace. Please update your profile and explore the modules.', is_pinned: true, created_at: minutesAgo(9000) },
         { id: 2, created_by: 1, title: 'Q2 Performance Reviews', body: 'Q2 performance reviews will begin next month. Managers, please prepare review notes.', is_pinned: false, created_at: minutesAgo(7000) }
       ],
       messages: [
@@ -375,6 +375,10 @@
     return dept ? dept.name : null;
   }
 
+  function leaveDays(startDate, endDate) {
+    return Math.ceil((new Date(endDate) - new Date(startDate)) / MS_DAY) + 1;
+  }
+
   function enrichEmployee(db, emp) {
     return {
       ...clone(emp),
@@ -421,9 +425,11 @@
     let rows = db.employees.filter((e) => e.is_active);
     const departmentId = params.get('department_id');
     const role = params.get('role');
+    const employmentType = params.get('employment_type');
     const search = (params.get('search') || '').toLowerCase();
     if (departmentId) rows = rows.filter((e) => e.department_id === Number(departmentId));
     if (role) rows = rows.filter((e) => e.role === role);
+    if (employmentType) rows = rows.filter((e) => e.employment_type === employmentType);
     if (search) {
       rows = rows.filter((e) => `${e.first_name} ${e.last_name} ${e.email}`.toLowerCase().includes(search));
     }
@@ -499,14 +505,31 @@
   }
 
   function leaveRows(db, rows) {
+    const annualEntitlement = 20;
+    const currentYear = new Date().getFullYear();
     return rows.map((r) => {
       const emp = db.employees.find((e) => e.id === r.employee_id) || {};
+      const annualRows = db.leave_requests.filter((leave) => (
+        leave.employee_id === r.employee_id &&
+        leave.leave_type === 'annual' &&
+        new Date(leave.start_date).getFullYear() === currentYear
+      ));
+      const annualUsedDays = annualRows
+        .filter((leave) => leave.status === 'approved')
+        .reduce((sum, leave) => sum + leaveDays(leave.start_date, leave.end_date), 0);
+      const annualPendingDays = annualRows
+        .filter((leave) => leave.status === 'pending')
+        .reduce((sum, leave) => sum + leaveDays(leave.start_date, leave.end_date), 0);
       return {
         ...clone(r),
         employee_name: emp.id ? `${emp.first_name} ${emp.last_name}` : '',
         photo_url: emp.photo_url,
         department_name: departmentName(db, emp.department_id),
-        approver_name: r.approved_by ? employeeName(db, r.approved_by) : null
+        approver_name: r.approved_by ? employeeName(db, r.approved_by) : null,
+        annual_entitlement: annualEntitlement,
+        annual_used_days: annualUsedDays,
+        annual_pending_days: annualPendingDays,
+        annual_remaining_days: Math.max(0, annualEntitlement - annualUsedDays)
       };
     });
   }
@@ -724,6 +747,7 @@
           photo_url: e.photo_url,
           job_title: e.job_title,
           role: e.role,
+          employment_type: e.employment_type,
           department_id: e.department_id
         }))
         .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
@@ -943,13 +967,18 @@
         created_at: new Date().toISOString()
       };
       db.leave_requests.push(row);
-      db.employees.filter((e) => e.is_active && ['admin', 'manager'].includes(e.role)).forEach((e) => {
+      const recipientRoles = user.role === 'admin' ? ['manager'] : ['admin', 'manager'];
+      db.employees.filter((e) => (
+        e.is_active &&
+        e.id !== user.id &&
+        recipientRoles.includes(e.role)
+      )).forEach((e) => {
         db.notifications.push({
           id: nextId(db.notifications),
           employee_id: e.id,
           type: 'leave_request',
           message: `${user.first_name} ${user.last_name} requested ${body.leave_type} leave.`,
-          link: '/leave',
+          link: '/pages/workspace.html#leave',
           is_read: false,
           created_at: new Date().toISOString()
         });
@@ -975,6 +1004,12 @@
     if (method === 'GET' && route === '/leave') {
       requireRole(user, ['admin', 'manager']);
       let rows = db.leave_requests.slice();
+      if (user.role === 'admin') {
+        rows = rows.filter((l) => {
+          const employee = db.employees.find((e) => e.id === l.employee_id);
+          return employee?.role !== 'admin';
+        });
+      }
       const status = url.searchParams.get('status');
       if (status) rows = rows.filter((l) => l.status === status);
       return leaveRows(db, rows).sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -987,6 +1022,11 @@
       if (!row) throw new Error('Leave request not found');
       if (row.status !== 'pending') throw new Error('Leave request already processed');
       if (!['approved', 'rejected'].includes(body?.status)) throw new Error('Status must be approved or rejected');
+      const leaveEmployee = db.employees.find((e) => e.id === row.employee_id);
+      if (row.employee_id === user.id) throw new Error('You cannot approve your own leave request');
+      if (leaveEmployee?.role === 'admin' && user.role !== 'manager') {
+        throw new Error('HR leave requests must be approved by the CEO/manager');
+      }
       row.status = body.status;
       row.approved_by = user.id;
       row.approved_at = new Date().toISOString();
@@ -1348,7 +1388,7 @@
       if (Number(body.receiver_id) === user.id) throw new Error('Cannot message yourself');
       const row = { id: nextId(db.messages), sender_id: user.id, receiver_id: Number(body.receiver_id), body: body.body.trim(), is_read: false, sent_at: new Date().toISOString() };
       db.messages.push(row);
-      db.notifications.push({ id: nextId(db.notifications), employee_id: row.receiver_id, type: 'message', message: `New message from ${user.first_name} ${user.last_name}`, link: '/messages', is_read: false, created_at: new Date().toISOString() });
+      db.notifications.push({ id: nextId(db.notifications), employee_id: row.receiver_id, type: 'message', message: `New message from ${user.first_name} ${user.last_name}`, link: '/pages/messages.html', is_read: false, created_at: new Date().toISOString() });
       saveDb(db);
       return clone(row);
     }
@@ -1424,7 +1464,7 @@
       const row = { id: nextId(db.announcements), created_by: user.id, title: body.title, body: body.body, is_pinned: !!body.is_pinned, created_at: new Date().toISOString() };
       db.announcements.push(row);
       db.employees.filter((e) => e.is_active).forEach((e) => {
-        db.notifications.push({ id: nextId(db.notifications), employee_id: e.id, type: 'announcement', message: body.title, link: null, is_read: false, created_at: new Date().toISOString() });
+        db.notifications.push({ id: nextId(db.notifications), employee_id: e.id, type: 'announcement', message: `Announcement: ${body.title}`, link: '/pages/staff-portal.html#announcements', is_read: false, created_at: new Date().toISOString() });
       });
       saveDb(db);
       return clone(row);

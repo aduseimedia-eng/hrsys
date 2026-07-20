@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attendance — HRConnect</title>
+  <title>Attendance — KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
     .clock-section {
@@ -18,11 +18,6 @@
       margin-bottom: 24px;
       position: relative;
       overflow: hidden;
-    }
-    .clock-section::before {
-      content:''; position:absolute; top:-60px;right:-60px;
-      width:200px;height:200px;border-radius:50%;
-      background:rgba(245,158,11,.08);
     }
     .clock-main-time {
       font-family: var(--font-display);
@@ -103,6 +98,7 @@
           <option value="on-leave">On Leave</option>
         </select>
         <button class="btn btn-outline" onclick="loadHrReport()">Filter</button>
+        <button class="btn btn-primary" id="attendance-export-btn" style="display:none" onclick="exportAttendance()">Export Attendance</button>
       </div>
       <!-- Summary cards -->
       <div class="stat-grid" id="att-summary" style="margin-bottom:20px"></div>
@@ -127,6 +123,7 @@ if (['admin','manager'].includes(user.role)) {
   document.getElementById('hr-tab').style.display = '';
   document.getElementById('hr-date').value = new Date().toISOString().split('T')[0];
 }
+if (user.role === 'admin') document.getElementById('attendance-export-btn').style.display = '';
 
 // Live clock
 function updateClock() {
@@ -214,13 +211,58 @@ async function loadHrReport() {
   if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>No records</p></div></td></tr>`; return; }
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td><div style="display:flex;align-items:center;gap:10px">${initialsAvatar(r.employee_name?.split(' ')[0]||'?', r.employee_name?.split(' ')[1]||'', 'sm')}<div><div style="font-weight:500">${r.employee_name}</div><div style="font-size:.78rem;color:var(--text-muted)">${r.job_title||''}</div></div></div></td>
+      <td><div style="display:flex;align-items:center;gap:10px">${attendanceEmployeeAvatar(r)}<div><div style="font-weight:500">${r.employee_name}</div><div style="font-size:.78rem;color:var(--text-muted)">${r.job_title||''}</div></div></div></td>
       <td>${r.department_name||'—'}</td>
       <td>${r.clock_in ? fmt.time(r.clock_in) : '—'}</td>
       <td>${r.clock_out ? fmt.time(r.clock_out) : '—'}</td>
       <td>${fmt.duration(r.clock_in, r.clock_out)}</td>
       <td>${fmt.statusBadge(r.status)}</td>
     </tr>`).join('');
+}
+
+function attendanceEmployeeAvatar(row) {
+  const parts = String(row.employee_name || '').trim().split(/\s+/);
+  return avatarEl({
+    first_name: parts[0] || '?',
+    last_name: parts.slice(1).join(' '),
+    photo_url: row.photo_url || null
+  }, 'sm');
+}
+
+async function exportAttendance() {
+  if (user.role !== 'admin') return;
+  const date = document.getElementById('hr-date').value;
+  const status = document.getElementById('hr-status').value;
+  const params = new URLSearchParams();
+  if (date) params.set('date', date);
+  if (status) params.set('status', status);
+
+  const button = document.getElementById('attendance-export-btn');
+  button.disabled = true;
+  button.textContent = 'Preparing export…';
+  try {
+    const response = await fetch(`${API_BASE}/attendance/export?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${api.getToken()}` }
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || 'Could not export attendance');
+    }
+    const file = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file);
+    link.download = `kenadhr-attendance-${date || 'report'}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+    toast('Attendance export downloaded', 'success');
+  } catch (error) {
+    toast(error.message || 'Could not export attendance', 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Export Attendance';
+  }
 }
 
 function switchTab(tab) {

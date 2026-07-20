@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HRConnect - Staff Sign In</title>
+  <title>KenadHR - Staff Sign In</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
     body {
@@ -178,6 +178,39 @@
       margin-bottom: 28px;
     }
 
+    .staff-access-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      width: fit-content;
+      padding: 6px 10px;
+      margin-bottom: 14px;
+      border-radius: 999px;
+      background: var(--mint-100);
+      color: var(--navy-800);
+      font-size: .74rem;
+      font-weight: 800;
+    }
+
+    .staff-access-badge::before { content: '✓'; }
+
+    .password-field { position: relative; }
+    .password-field .form-control { padding-right: 66px; }
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 5px 7px;
+      border-radius: 5px;
+      color: var(--navy-700);
+      background: transparent;
+      font-size: .76rem;
+      font-weight: 800;
+    }
+
+    .password-toggle:hover { background: var(--navy-50); }
+
     .error-alert {
       background: var(--danger-bg);
       color: var(--danger-fg);
@@ -206,41 +239,18 @@
       white-space: nowrap;
     }
 
-    .demo-card {
-      margin-top: 24px;
-      padding: 15px;
-      border: 1px solid var(--border);
+    .new-staff-help {
+      margin-top: 16px;
+      padding: 13px 14px;
       border-radius: 8px;
-      background: var(--navy-50);
-    }
-
-    .demo-card h3 {
-      font-size: .78rem;
+      border: 1px solid var(--border);
+      background: #fff;
       color: var(--text-secondary);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-    }
-
-    .demo-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 7px 0;
       font-size: .8rem;
-      color: var(--text-secondary);
+      line-height: 1.45;
     }
 
-    .demo-row + .demo-row { border-top: 1px solid rgba(12,43,54,.08); }
-
-    .demo-row button {
-      padding: 4px 9px;
-      border-radius: 6px;
-      background: var(--mint-100);
-      color: var(--navy-800);
-      font-size: .74rem;
-      font-weight: 700;
-    }
+    .new-staff-help strong { color: var(--text-primary); }
 
     @media (max-width: 960px) {
       .staff-login-shell {
@@ -284,8 +294,8 @@
   <div class="staff-login-shell">
     <section class="staff-login-story" aria-label="Staff self-service overview">
       <div class="staff-brand">
-        <div class="staff-brand-mark">HR</div>
-        <div class="staff-brand-name">HR<span>Connect</span></div>
+        <div class="staff-brand-mark">KH</div>
+        <div class="staff-brand-name">Kenad<span>HR</span></div>
       </div>
 
       <div class="staff-story-copy">
@@ -314,8 +324,9 @@
     </section>
 
     <section class="staff-login-panel" aria-label="Staff login form">
+      <span class="staff-access-badge">Staff self-service</span>
       <h2>Staff sign in</h2>
-      <p class="subtitle">Access your employee self-service portal.</p>
+      <p class="subtitle">Use your work email and password to access your personal workspace.</p>
 
       <div class="error-alert" id="login-error"></div>
 
@@ -326,7 +337,10 @@
         </div>
         <div class="form-group">
           <label class="form-label required" for="password">Password</label>
-          <input type="password" id="password" class="form-control" placeholder="Password" required autocomplete="current-password">
+          <div class="password-field">
+            <input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+            <button class="password-toggle" type="button" id="password-toggle" aria-label="Show password">Show</button>
+          </div>
         </div>
         <button type="submit" class="btn btn-primary btn-lg w-full" id="login-btn" style="justify-content:center;">
           Staff Sign In
@@ -338,21 +352,11 @@
         <a href="login.html">Use admin sign in</a>
       </div>
 
-      <div class="demo-card">
-        <h3>Demo staff accounts</h3>
-        <div class="demo-row">
-          <span><strong>Employee</strong> - akosua.boateng@company.com</span>
-          <button type="button" onclick="fillStaffDemo('akosua.boateng@company.com')">Use</button>
-        </div>
-        <div class="demo-row">
-          <span><strong>Manager</strong> - kwame.mensah@company.com</span>
-          <button type="button" onclick="fillStaffDemo('kwame.mensah@company.com')">Use</button>
-        </div>
-        <div class="demo-row">
-          <span>Password</span>
-          <strong>Password123!</strong>
-        </div>
+      <div class="new-staff-help">
+        <strong>New to KenadHR?</strong><br>
+        Your HR team creates your secure staff account. Contact them if you have not received your sign-in details.
       </div>
+
     </section>
   </div>
 
@@ -395,10 +399,15 @@
       }
     });
 
-    function fillStaffDemo(email) {
-      document.getElementById('email').value = email;
-      document.getElementById('password').value = 'Password123!';
-    }
+    document.getElementById('password-toggle').addEventListener('click', () => {
+      const password = document.getElementById('password');
+      const toggle = document.getElementById('password-toggle');
+      const show = password.type === 'password';
+      password.type = show ? 'text' : 'password';
+      toggle.textContent = show ? 'Hide' : 'Show';
+      toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+
   </script>
 </body>
 </html>

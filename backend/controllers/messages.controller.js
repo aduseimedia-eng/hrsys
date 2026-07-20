@@ -26,7 +26,7 @@ exports.send = async (req, res) => {
     // Notify receiver
     const senderName = `${req.user.first_name} ${req.user.last_name}`;
     await db.query(
-      "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'message',$3,'/messages')",
+      "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'message',$3,'/pages/messages.html')",
       [req.user.company_id, receiver_id, `New message from ${senderName}`]
     );
 

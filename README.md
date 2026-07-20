@@ -1,4 +1,4 @@
-# HRConnect — HR Management System
+# KenadHR — HR Management System
 
 A complete, production-ready HR Management web application built with Node.js, Express, PostgreSQL, and Vanilla JavaScript.
 
@@ -71,8 +71,23 @@ psql -U postgres -c "CREATE DATABASE hrconnect;"
 # Run the schema
 psql -U postgres -d hrconnect -f database/schema.sql
 
-# Load demo data (optional)
-psql -U postgres -d hrconnect -f database/seed.sql
+```
+
+### Applying migrations to an existing database
+
+New installations get the current schema directly from `database/schema.sql`. For an
+existing installation, run each numbered migration once, in order, and record it in
+your deployment notes. The current migration adds the `national_service` and
+`internship` employee employment types:
+
+```bash
+psql -v ON_ERROR_STOP=1 -U postgres -d hrconnect -f database/migrations/002_employee_employment_types.sql
+```
+
+Confirm it was applied before deploying the related UI:
+
+```bash
+psql -U postgres -d hrconnect -c "SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'employees_employment_type_check';"
 ```
 
 ### 3. Backend Setup
@@ -90,6 +105,7 @@ npm install
 # Start server
 npm run dev         # development (nodemon)
 npm start           # production
+npm test            # critical controller and authorization tests
 ```
 
 ### 4. Frontend Setup
@@ -113,13 +129,9 @@ python3 -m http.server 3000 --directory frontend
 
 ---
 
-## Demo Accounts
+## Initial Account Setup
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@company.com | Password123! |
-| Manager | kwame.mensah@company.com | Password123! |
-| Employee | akosua.boateng@company.com | Password123! |
+For a new installation, open the HR/Admin workspace and use **Create your HR account** to set up the first company administrator. Staff accounts are then created by HR.
 
 ---
 

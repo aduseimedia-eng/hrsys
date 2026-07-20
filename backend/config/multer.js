@@ -5,18 +5,8 @@ const fs     = require('fs');
 
 const ensureDir = (dir) => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); };
 
-// Storage for employee profile photos
-const photoStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../uploads/photos');
-    ensureDir(dir);
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `photo_${req.user.id}_${Date.now()}${ext}`);
-  }
-});
+// Keep avatars in PostgreSQL so they survive Railway redeployments.
+const photoStorage = multer.memoryStorage();
 
 // Storage for HR documents
 const docStorage = multer.diskStorage({

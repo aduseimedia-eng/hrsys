@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payroll - HRConnect</title>
+  <title>Payroll - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
   <style>
@@ -218,7 +218,7 @@ async function viewPayslip(id) {
         <div class="company-logo">
           <div class="mark">HR</div>
           <div>
-            <div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem">HRConnect</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem">KenadHR</div>
             <div style="font-size:.8rem;color:var(--text-muted)">Payroll Department</div>
           </div>
         </div>
@@ -305,7 +305,7 @@ async function loadAllPayroll() {
   if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><p>No payroll records</p></div></td></tr>`; return; }
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td><div style="display:flex;align-items:center;gap:10px">${initialsAvatar(r.employee_name?.split(' ')[0]||'?',r.employee_name?.split(' ')[1]||'','sm')}<span style="font-weight:500">${r.employee_name}</span></div></td>
+      <td><div style="display:flex;align-items:center;gap:10px">${payrollEmployeeAvatar(r)}<span style="font-weight:500">${r.employee_name}</span></div></td>
       <td>${r.department_name || '-'}</td>
       <td>${fmt.currency(r.base_salary)}</td>
       <td style="color:var(--success-fg)">+${fmt.currency(r.allowances)}</td>
@@ -317,6 +317,15 @@ async function loadAllPayroll() {
         ${r.status === 'processed' ? `<button class="btn btn-success btn-sm" onclick="markPaid(${r.id})">Mark Paid</button>` : ''}
       </td>
     </tr>`).join('');
+}
+
+function payrollEmployeeAvatar(row) {
+  const parts = String(row.employee_name || '').trim().split(/\s+/);
+  return avatarEl({
+    first_name: parts[0] || '?',
+    last_name: parts.slice(1).join(' '),
+    photo_url: row.photo_url || null
+  }, 'sm');
 }
 
 async function markPaid(id) {

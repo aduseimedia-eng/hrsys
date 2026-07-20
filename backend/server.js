@@ -1,5 +1,5 @@
 // ============================================================
-// HRConnect — Express Server Entry Point
+// KenadHR — Express Server Entry Point
 // ============================================================
 require('dotenv').config();
 const express  = require('express');
@@ -11,7 +11,24 @@ const path     = require('path');
 const app = express();
 
 // ─── Security & Middleware ────────────────────────────────────
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // The current browser app uses inline page scripts and event handlers.
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      fontSrc: ["'self'", 'https:', 'data:'],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      objectSrc: ["'none'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", 'https:', "'unsafe-inline'"]
+    }
+  }
+}));
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
@@ -37,6 +54,13 @@ app.use('/api/orgchart',      require('./routes/orgchart.routes'));
 app.use('/api/todos',         require('./routes/todos.routes'));
 app.use('/api/tickets',       require('./routes/tickets.routes'));
 
+// Serve the browser application from the same Railway service in production.
+const frontendDir = path.join(__dirname, '..', 'frontend');
+app.use(express.static(frontendDir));
+app.get('/', (req, res) => res.sendFile(path.join(frontendDir, 'index.html')));
+// Keep older message notifications working after the staff messages page moved.
+app.get('/messages', (req, res) => res.redirect('/pages/messages.html'));
+
 // ─── Health check ─────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 
@@ -50,4 +74,4 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 HRConnect API running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 KenadHR API running on port ${PORT}`));

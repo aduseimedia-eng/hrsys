@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HRConnect - HR/Admin Sign In</title>
+  <title>KenadHR - HR/Admin Sign In</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
     body {
+      height: 100vh;
+      min-height: 0;
       min-height: 100vh;
+      overflow: hidden;
       background:
         linear-gradient(145deg, rgba(12,43,54,.94), rgba(25,74,89,.88) 42%, rgba(234,242,243,.96) 42%),
         var(--bg-page);
@@ -158,42 +161,6 @@
       display: none;
     }
 
-    .demo-accounts {
-      margin-top: 24px;
-      padding: 15px;
-      background: var(--navy-50);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    .demo-accounts h3 {
-      font-size: .78rem;
-      margin-bottom: 8px;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-    }
-
-    .demo-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 7px 0;
-      font-size: .8rem;
-      color: var(--text-secondary);
-    }
-
-    .demo-row + .demo-row { border-top: 1px solid rgba(12,43,54,.08); }
-
-    .demo-row button {
-      padding: 4px 9px;
-      border-radius: 6px;
-      background: var(--mint-100);
-      color: var(--navy-800);
-      font-size: .74rem;
-      font-weight: 700;
-    }
-
     .staff-login-link {
       display: flex;
       align-items: center;
@@ -282,6 +249,115 @@
         width: 100%;
       }
     }
+
+    /* Clean, illustrated split-card treatment */
+    body {
+      background: #f7f9ff;
+      position: relative;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      box-sizing: border-box;
+    }
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      width: 250px; height: 250px;
+      border-radius: 50%;
+      background: rgba(58, 115, 240, .07);
+      filter: blur(4px);
+      pointer-events: none;
+    }
+    body::before { top: -95px; left: -75px; }
+    body::after { right: -90px; bottom: -110px; }
+    .login-shell {
+      grid-template-columns: minmax(0, 1fr) 450px;
+      height: min(690px, calc(100vh - 64px));
+      min-height: 0;
+      max-width: 1060px;
+      margin: 0;
+      border: 0;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 24px 70px rgba(36, 56, 103, .13);
+    }
+    .login-story {
+      color: var(--text-primary);
+      background: linear-gradient(145deg, #fbfcff, #f3f6ff);
+      padding: 34px 50px 42px;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-story::before, .login-story::after {
+      content: ''; position: absolute; border: 1px solid rgba(61, 114, 240, .12); border-radius: 50%;
+    }
+    .login-story::before { width: 300px; height: 300px; left: -160px; bottom: -160px; }
+    .login-story::after { width: 180px; height: 180px; right: -95px; top: -95px; }
+    .login-brand { position: relative; z-index: 1; margin-top: 82px; }
+    .login-brand .mark { width: 50px; height: 50px; border-radius: 12px; background: #3977ee; color: #fff; font-size: .9rem; }
+    .login-brand .name { color: #1d2b4d; font-size: 1.35rem; letter-spacing: -.025em; }
+    .login-brand .name span { color: #3977ee; }
+    .login-copy { position: relative; z-index: 1; margin: auto 0; }
+    .login-copy .eyebrow { padding: 0; background: transparent; color: #6e7b97; letter-spacing: .04em; }
+    .login-copy h1 { color: #1d2b4d; font-size: 2.15rem; max-width: 430px; margin: 12px 0; }
+    .login-copy p { color: #77839a; max-width: 420px; }
+    .login-features { display: none; }
+    .login-illustration { position: relative; z-index: 1; width: min(100%, 410px); margin: 6px auto 0; }
+    .login-illustration svg { display: block; width: 100%; height: auto; }
+    .login-panel { background: #fff; padding: 42px 48px; }
+    .login-panel::before { content: 'WELCOME BACK'; color: #78849a; font-size: .67rem; letter-spacing: .08em; font-weight: 800; margin-bottom: 9px; }
+    .login-panel h2 { color: #202a3d; font-size: 1.8rem; margin-bottom: 8px; }
+    .login-panel .subtitle { color: #8791a2; margin-bottom: 22px; }
+    .access-options { display: grid; gap: 13px; }
+    .access-option {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 17px;
+      border: 1px solid #dfe6f2;
+      border-radius: 11px;
+      background: #fff;
+      text-align: left;
+      transition: .2s ease;
+    }
+    .access-option:hover { border-color: #92b4f7; background: #f7faff; box-shadow: 0 10px 24px rgba(48, 93, 180, .09); transform: translateY(-1px); }
+    .access-option-icon { flex: 0 0 42px; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 10px; background: #e8f0ff; color: #3977ee; }
+    .access-option-icon svg { width: 21px; height: 21px; }
+    .access-option strong { display: block; color: #24304a; font-size: .94rem; margin-bottom: 3px; }
+    .access-option small { display: block; color: #77839a; font-size: .77rem; line-height: 1.35; }
+    .access-option-arrow { margin-left: auto; color: #3977ee; font-size: 1.25rem; }
+    .access-note { margin: 18px 2px 0; color: #8490a2; font-size: .78rem; line-height: 1.45; }
+    .form-label { color: #48546a; font-size: .79rem; font-weight: 700; }
+    .form-control { min-height: 46px; border: 1px solid #e2e6ee; border-radius: 8px; box-shadow: none; }
+    .form-control:focus { border-color: #3977ee; box-shadow: 0 0 0 3px rgba(57,119,238,.12); }
+    #login-btn { min-height: 46px; border-radius: 8px; background: #3977ee; box-shadow: 0 8px 18px rgba(57,119,238,.2); }
+    #login-btn:hover { background: #2865d9; }
+    .portal-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 14px; color: #9aa4b4; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .portal-divider::before, .portal-divider::after { content: ''; height: 1px; flex: 1; background: #e8ebf0; }
+    .staff-login-link { margin-top: 0; padding: 14px 15px; border: 1px solid #dce6fa; border-radius: 10px; background: #f7faff; box-shadow: none; color: #647189; transition: .2s ease; }
+    .staff-login-link strong { color: #24304a; font-size: .9rem; }
+    .staff-login-link span:last-child { min-height: 38px; padding: 0 14px; border-radius: 7px; background: #e7efff; color: #2865d9; box-shadow: none; }
+    .staff-login-link:hover { border-color: #9fbcf9; background: #f1f6ff; box-shadow: none; transform: translateY(-1px); }
+
+    .sign-in-modal { position: fixed; inset: 0; z-index: 20; display: none; place-items: center; padding: 20px; background: rgba(23, 36, 66, .42); backdrop-filter: blur(5px); }
+    .sign-in-modal.is-open { display: grid; }
+    .sign-in-dialog { position: relative; width: min(100%, 430px); padding: 34px; border-radius: 16px; background: #fff; box-shadow: 0 28px 70px rgba(17, 28, 55, .3); }
+    .modal-close { position: absolute; top: 13px; right: 13px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: #69758a; font-size: 1.25rem; }
+    .modal-close:hover { background: #f0f3f8; color: #24304a; }
+    .modal-eyebrow { color: #3977ee; font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+    .sign-in-dialog h2 { margin: 7px 0 6px; color: #202a3d; font-size: 1.65rem; }
+    .modal-subtitle { margin: 0 0 24px; color: #7d899c; font-size: .87rem; }
+    .setup-link { width: 100%; margin-top: 14px; color: #3977ee; font-size: .8rem; font-weight: 800; text-align: center; }
+    .setup-link:hover { text-decoration: underline; }
+    .setup-fields { display: none; }
+    .setup-fields.is-visible { display: block; }
+    .password-field { position: relative; }
+    .password-field .form-control { padding-right: 64px; }
+    .password-toggle { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); padding: 5px 7px; border-radius: 5px; color: #3977ee; font-size: .76rem; font-weight: 800; }
+    .password-toggle:hover { background: #eef3ff; }
+    @media (max-width: 960px) { .login-shell { height: auto; min-height: 0; } .login-story { min-height: 430px; } .login-illustration { max-width: 300px; } }
+    @media (max-width: 560px) { body { height: auto; min-height: 100vh; overflow-y: auto; padding: 0; } .login-shell { min-height: 100vh; } .login-panel { padding: 36px 24px; } .login-story { padding: 28px 24px; min-height: 360px; } .login-copy h1 { font-size: 1.8rem; } }
   </style>
 </head>
 <body>
@@ -289,13 +365,33 @@
     <section class="login-story" aria-label="HR workspace overview">
       <div class="login-brand">
         <div class="mark">HR</div>
-        <div class="name">HR<span>Connect</span></div>
+        <div class="name">Kenad<span>HR</span></div>
       </div>
 
       <div class="login-copy">
         <span class="eyebrow">HR/Admin workspace</span>
-        <h1>Run people operations from one focused console.</h1>
-        <p>Manage employee records, leave approvals, payroll, documents, performance, and team communication with a single secure sign-in.</p>
+        <h1>People operations, beautifully connected.</h1>
+        <p>One calm workspace for your team, your data, and everything that keeps work moving.</p>
+      </div>
+
+      <div class="login-illustration" aria-hidden="true">
+        <svg viewBox="0 0 440 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="96" y="36" width="246" height="166" rx="12" fill="#E7EEFF"/>
+          <rect x="110" y="51" width="218" height="137" rx="7" fill="white"/>
+          <path d="M110 72H328" stroke="#D5E0FA" stroke-width="4"/>
+          <circle cx="124" cy="61" r="3" fill="#76A4F7"/><circle cx="135" cy="61" r="3" fill="#B6CCFA"/>
+          <rect x="128" y="91" width="86" height="54" rx="6" fill="#F2F6FF"/>
+          <path d="M142 125L159 108L171 119L190 100" stroke="#3B78EF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="230" y="93" width="73" height="9" rx="4.5" fill="#D9E5FB"/><rect x="230" y="111" width="55" height="8" rx="4" fill="#E9EFFB"/><rect x="230" y="129" width="65" height="8" rx="4" fill="#E9EFFB"/>
+          <path d="M62 244C88 235 105 223 122 194L169 210L158 254H62V244Z" fill="#334873"/>
+          <path d="M174 157C174 142 186 130 201 130C216 130 228 142 228 157V187H174V157Z" fill="#5F9AF7"/>
+          <circle cx="201" cy="116" r="22" fill="#613E38"/><path d="M178 111C183 88 218 88 224 109C211 104 196 100 178 111Z" fill="#20283C"/>
+          <path d="M181 153L212 142L228 169L196 182L181 153Z" fill="#4381F0"/>
+          <path d="M224 162L267 125" stroke="#613E38" stroke-width="11" stroke-linecap="round"/><path d="M264 123L283 107" stroke="#3977EE" stroke-width="8" stroke-linecap="round"/>
+          <rect x="273" y="83" width="76" height="45" rx="7" fill="white" stroke="#B9CDF8" stroke-width="2"/>
+          <path d="M286 98H334M286 110H320" stroke="#AFC7F6" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="63" cy="88" r="10" stroke="#BED1F8" stroke-width="2"/><path d="M56 80L47 70M70 80L79 70" stroke="#BED1F8" stroke-width="2" stroke-linecap="round"/>
+        </svg>
       </div>
 
       <div class="login-features">
@@ -318,42 +414,44 @@
     </section>
 
     <section class="login-panel" aria-label="HR admin login form">
-      <h2>HR/Admin sign in</h2>
-      <p class="subtitle">Only authorized HR/Admin and manager accounts can access this workspace.</p>
+      <h2>Welcome to KenadHR</h2>
+      <p class="subtitle">Choose the workspace you need, then sign in securely.</p>
 
-      <div class="error-alert" id="login-error"></div>
-
-      <form id="login-form">
-        <div class="form-group">
-          <label class="form-label required" for="email">Email address</label>
-          <input type="email" id="email" class="form-control" placeholder="you@company.com" required autocomplete="email">
-        </div>
-        <div class="form-group">
-          <label class="form-label required" for="password">Password</label>
-          <input type="password" id="password" class="form-control" placeholder="Password" required autocomplete="current-password">
-        </div>
-        <button type="submit" class="btn btn-primary w-full btn-lg" id="login-btn" style="justify-content:center; margin-top:8px;">
-          Sign in
+      <div class="access-options">
+        <button class="access-option" type="button" onclick="openSignIn('staff')">
+          <span class="access-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg></span>
+          <span><strong>Staff portal</strong><small>Leave, payslips, documents, and your profile.</small></span>
+          <span class="access-option-arrow">›</span>
         </button>
-      </form>
-
-      <div class="demo-accounts">
-        <h3>HR/Admin demo account</h3>
-        <div class="demo-row">
-          <span><strong>HR/Admin</strong> - admin@company.com</span>
-          <button type="button" onclick="fillDemo('admin@company.com')">Use</button>
-        </div>
-        <div class="demo-row">
-          <span>Password</span>
-          <strong>Password123!</strong>
-        </div>
+        <button class="access-option" type="button" onclick="openSignIn('hr')">
+          <span class="access-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 15h3"/></svg></span>
+          <span><strong>HR/Admin workspace</strong><small>People operations, approvals, and reporting.</small></span>
+          <span class="access-option-arrow">›</span>
+        </button>
       </div>
+      <p class="access-note">New staff members receive their sign-in details from the HR team.</p>
 
-      <a class="staff-login-link" href="staff-login.html">
-        <span><strong>Staff portal</strong><br>Employee self-service login</span>
-        <span>Staff Sign In</span>
-      </a>
     </section>
+  </div>
+
+  <div class="sign-in-modal" id="sign-in-modal" role="dialog" aria-modal="true" aria-labelledby="sign-in-title">
+    <div class="sign-in-dialog">
+      <button class="modal-close" type="button" onclick="closeSignIn()" aria-label="Close sign in">×</button>
+      <div class="modal-eyebrow" id="modal-eyebrow">Staff portal</div>
+      <h2 id="sign-in-title">Staff sign in</h2>
+      <p class="modal-subtitle" id="modal-subtitle">Use your work email and password to continue.</p>
+      <div class="error-alert" id="login-error"></div>
+      <form id="login-form">
+        <div class="setup-fields" id="setup-fields">
+          <div class="form-group"><label class="form-label required" for="company-name">Company name</label><input type="text" id="company-name" class="form-control" placeholder="Your organization" autocomplete="organization"></div>
+          <div class="form-group"><label class="form-label required" for="full-name">Your full name</label><input type="text" id="full-name" class="form-control" placeholder="First and last name" autocomplete="name"></div>
+        </div>
+        <div class="form-group"><label class="form-label required" for="email">Work email</label><input type="email" id="email" class="form-control" placeholder="name@company.com" required autocomplete="email"></div>
+        <div class="form-group"><label class="form-label required" for="password">Password</label><div class="password-field"><input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password"><button class="password-toggle" type="button" id="password-toggle">Show</button></div></div>
+        <button type="submit" class="btn btn-primary w-full btn-lg" id="login-btn" style="justify-content:center; margin-top:8px;">Sign in</button>
+      </form>
+      <button type="button" class="setup-link" id="setup-link">First time using KenadHR? Create your HR account</button>
+    </div>
   </div>
 
   <script src="../js/api.js"></script>
@@ -365,6 +463,53 @@
       api.clearAuth();
     }
 
+    let signInMode = 'staff';
+    let setupMode = false;
+    const modal = document.getElementById('sign-in-modal');
+
+    function openSignIn(mode) {
+      signInMode = mode;
+      const isStaff = mode === 'staff';
+      setupMode = false;
+      document.getElementById('modal-eyebrow').textContent = isStaff ? 'Staff portal' : 'HR/Admin workspace';
+      document.getElementById('sign-in-title').textContent = isStaff ? 'Staff sign in' : 'HR/Admin sign in';
+      document.getElementById('modal-subtitle').textContent = isStaff ? 'Use your work email and password to continue.' : 'For authorized HR administrators and managers.';
+      document.getElementById('login-btn').textContent = isStaff ? 'Sign in to staff portal' : 'Sign in to HR workspace';
+      document.getElementById('setup-fields').classList.remove('is-visible');
+      document.getElementById('setup-link').style.display = isStaff ? 'none' : 'block';
+      document.getElementById('company-name').required = false;
+      document.getElementById('full-name').required = false;
+      document.getElementById('login-error').style.display = 'none';
+      modal.classList.add('is-open');
+      document.getElementById('email').focus();
+    }
+
+    function closeSignIn() { modal.classList.remove('is-open'); }
+
+    document.getElementById('setup-link').addEventListener('click', () => {
+      setupMode = true;
+      document.getElementById('modal-eyebrow').textContent = 'First-time setup';
+      document.getElementById('sign-in-title').textContent = 'Create your HR account';
+      document.getElementById('modal-subtitle').textContent = 'Set up your organization and become its first HR administrator.';
+      document.getElementById('login-btn').textContent = 'Create HR account';
+      document.getElementById('setup-fields').classList.add('is-visible');
+      document.getElementById('setup-link').style.display = 'none';
+      document.getElementById('company-name').required = true;
+      document.getElementById('full-name').required = true;
+      document.getElementById('company-name').focus();
+    });
+
+    modal.addEventListener('click', (event) => { if (event.target === modal) closeSignIn(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSignIn(); });
+
+    document.getElementById('password-toggle').addEventListener('click', () => {
+      const password = document.getElementById('password');
+      const toggle = document.getElementById('password-toggle');
+      const show = password.type === 'password';
+      password.type = show ? 'text' : 'password';
+      toggle.textContent = show ? 'Hide' : 'Show';
+    });
+
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
@@ -374,29 +519,32 @@
       btn.textContent = 'Signing in...';
 
       try {
-        const data = await api.post('/auth/login', {
+        const data = await api.post(setupMode ? '/auth/setup' : (signInMode === 'staff' ? '/auth/staff-login' : '/auth/login'), setupMode ? {
+          company_name: document.getElementById('company-name').value,
+          full_name: document.getElementById('full-name').value,
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value,
+        } : {
           email: document.getElementById('email').value,
           password: document.getElementById('password').value,
         });
-        if (!['admin', 'manager'].includes(data.user?.role)) {
+        if (!setupMode && signInMode === 'hr' && !['admin', 'manager'].includes(data.user?.role)) {
           api.clearAuth();
           throw new Error('Only HR/Admin or manager accounts can access this workspace');
         }
         api.setToken(data.token);
         api.setUser(data.user);
-        window.location.href = adminWorkspaceUrl('dashboard');
+        window.location.href = !setupMode && signInMode === 'staff'
+          ? appUrl('/pages/staff-portal.html#overview')
+          : adminWorkspaceUrl('dashboard');
       } catch (err) {
         errorEl.textContent = err.message || 'Invalid credentials';
         errorEl.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Sign in';
+        btn.textContent = setupMode ? 'Create HR account' : (signInMode === 'staff' ? 'Sign in to staff portal' : 'Sign in to HR workspace');
       }
     });
 
-    function fillDemo(email) {
-      document.getElementById('email').value = email;
-      document.getElementById('password').value = 'Password123!';
-    }
   </script>
 </body>
 </html>

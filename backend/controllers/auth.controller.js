@@ -6,6 +6,66 @@ const db     = require('../config/db');
 const JWT_SECRET  = process.env.JWT_SECRET  || 'hr_secret_key_change_in_prod';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
 
+// First-time setup: create the initial company and HR administrator.
+// This route is intentionally locked after the first employee account exists.
+exports.setup = async (req, res) => {
+  const client = await db.getClient();
+  try {
+    const companyName = String(req.body.company_name || '').trim();
+    const fullName = String(req.body.full_name || '').trim();
+    const email = String(req.body.email || '').toLowerCase().trim();
+    const password = String(req.body.password || '');
+    const [firstName, ...lastNameParts] = fullName.split(/\s+/);
+    const lastName = lastNameParts.join(' ');
+
+    if (!companyName || !firstName || !lastName || !email || !password) {
+      return res.status(400).json({ error: 'Company name, full name, email and password are required' });
+    }
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    await client.query('BEGIN');
+    await client.query('LOCK TABLE employees IN ACCESS EXCLUSIVE MODE');
+    // Legacy sample companies do not count as a real organization setup.
+    const existing = await client.query(
+      `SELECT 1
+       FROM employees e
+       JOIN companies c ON c.id = e.company_id
+       WHERE c.slug NOT IN ('hrconnect-demo', 'kenad-hr-demo')
+       LIMIT 1`
+    );
+    if (existing.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'KenadHR has already been set up. Contact your HR administrator for an account.' });
+    }
+
+    const slugBase = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 65) || 'kenadhr';
+    const slug = `${slugBase}-${Date.now().toString(36)}`;
+    const company = await client.query(
+      'INSERT INTO companies (name, slug, email) VALUES ($1,$2,$3) RETURNING id, name, slug',
+      [companyName, slug, email]
+    );
+    const hash = await bcrypt.hash(password, 12);
+    const employee = await client.query(
+      `INSERT INTO employees (company_id, first_name, last_name, email, password_hash, role, is_active)
+       VALUES ($1,$2,$3,$4,$5,'admin',true)
+       RETURNING id, company_id, first_name, last_name, email, role, department_id, photo_url, is_active`,
+      [company.rows[0].id, firstName, lastName, email, hash]
+    );
+    await client.query('COMMIT');
+
+    const user = employee.rows[0];
+    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.status(201).json({ token, user, company: company.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (err.code === '23505') return res.status(409).json({ error: 'That company name or email is already in use' });
+    console.error('Initial setup error:', err);
+    res.status(500).json({ error: 'Could not complete initial setup' });
+  } finally {
+    client.release();
+  }
+};
+
 // ─── Login ────────────────────────────────────────────────────
 exports.login = async (req, res) => {
   try {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - HRConnect</title>
+  <title>Dashboard - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
     body {
@@ -85,7 +85,7 @@
       min-height: 38px;
       padding: 0 13px;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 10px;
       background: var(--bg-surface);
       color: var(--text-secondary);
       font-size: .84rem;
@@ -104,7 +104,7 @@
     .dash-panel {
       background: var(--bg-surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       box-shadow: var(--shadow-sm);
     }
 
@@ -127,18 +127,6 @@
       text-transform: uppercase;
       letter-spacing: .04em;
     }
-
-    .metric-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: var(--mint-500);
-      flex-shrink: 0;
-    }
-
-    .metric-dot.warn { background: var(--amber-500); }
-    .metric-dot.danger { background: var(--rose-600); }
-    .metric-dot.info { background: var(--navy-400); }
 
     .metric-value {
       color: var(--text-primary);
@@ -173,6 +161,30 @@
     .workspace-rail {
       grid-template-rows: auto auto auto;
     }
+
+    .attendance-summary-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+      margin-bottom: 14px;
+    }
+    .attendance-summary-cell {
+      padding: 11px;
+      border: 1px solid #dce6f7;
+      border-radius: 10px;
+      background: #f7faff;
+    }
+    .attendance-summary-cell span { display: block; color: var(--text-muted); font-size: .7rem; font-weight: 700; }
+    .attendance-summary-cell strong { display: block; margin-top: 4px; color: #243a62; font-size: 1.25rem; }
+    .attendance-summary-cell.late { background: #fff7e8; border-color: #f4deb0; }
+    .attendance-summary-cell.leave { background: #f2f7ff; border-color: #d6e5ff; }
+    .attendance-list { display: grid; gap: 2px; }
+    .attendance-person { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #edf1f7; }
+    .attendance-person:first-child { border-top: 0; padding-top: 0; }
+    .attendance-person-info { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .attendance-person-info strong, .attendance-person-info span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .attendance-person-info strong { font-size: .84rem; }
+    .attendance-person-info span { color: var(--text-muted); font-size: .74rem; margin-top: 2px; }
 
     .dash-panel-header {
       min-height: 56px;
@@ -384,6 +396,33 @@
         text-align: left;
       }
     }
+
+    .dashboard-notif-btn {
+      width: 48px;
+      height: 48px;
+      border: 1px solid #cfdcf4;
+      border-radius: 14px;
+      background: #f7faff;
+      color: #2865d9;
+      box-shadow: 0 7px 16px rgba(40, 101, 217, .12);
+    }
+    .dashboard-notif-btn:hover { background: #e8f0ff; color: #174fae; transform: translateY(-1px); }
+    .dashboard-notif-btn svg { width: 24px; height: 24px; }
+    .dashboard-notif-btn .dot {
+      min-width: 18px;
+      width: auto;
+      height: 18px;
+      padding: 0 4px;
+      top: 2px;
+      right: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: .62rem;
+      font-weight: 800;
+      line-height: 1;
+    }
   </style>
 </head>
 <body>
@@ -394,7 +433,7 @@
     <div class="topbar-title">Dashboard</div>
     <div class="topbar-actions">
       <a href="reports.html" class="btn btn-outline btn-sm">Reports</a>
-      <button class="icon-btn" id="notif-btn" title="Notifications">
+      <button class="icon-btn dashboard-notif-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         <span class="dot hidden" id="notif-badge"></span>
       </button>
@@ -433,6 +472,19 @@
             <div class="queue-list" id="attention-list">
               <div class="loading-minimal">Loading work queue...</div>
             </div>
+          </div>
+        </article>
+
+        <article class="dash-panel">
+          <div class="dash-panel-header">
+            <div>
+              <h2>Attendance Today</h2>
+              <span>Live clock-in and attendance overview</span>
+            </div>
+            <a href="attendance.html" class="btn btn-outline btn-sm">Open attendance</a>
+          </div>
+          <div class="dash-panel-body" id="dashboard-attendance">
+            <div class="loading-minimal">Loading attendance...</div>
           </div>
         </article>
 
@@ -526,33 +578,88 @@ loadDashboard();
 async function loadDashboard() {
   try {
     updateHeader();
+    const attendanceDate = new Date().toISOString().slice(0, 10);
 
-    const [stats, leaveQueue, teamSummary, announcements, todos] = await Promise.all([
+    const results = await Promise.allSettled([
       api.get('/employees/dashboard'),
       api.get('/leave'),
       api.get('/performance/team-summary'),
       api.get('/notifications/announcements'),
-      api.get('/todos?status=open')
+      api.get('/todos?status=open'),
+      api.get('/attendance/summary'),
+      api.get(`/attendance/report?limit=5&date=${attendanceDate}`)
     ]);
+
+    const [statsResult, leaveResult, teamResult, announcementsResult, todosResult, attendanceSummaryResult, attendanceReportResult] = results;
+    const stats = statsResult.status === 'fulfilled' ? statsResult.value : {
+      total_employees: 0, payroll_this_month: 0, on_leave_today: 0,
+      upcoming_birthdays: [], recent_hires: []
+    };
+    const leaveQueue = leaveResult.status === 'fulfilled' ? leaveResult.value : [];
+    const teamSummary = teamResult.status === 'fulfilled' ? teamResult.value : [];
+    const announcements = announcementsResult.status === 'fulfilled' ? announcementsResult.value : [];
+    const todos = todosResult.status === 'fulfilled' ? todosResult.value : [];
+    const attendanceSummary = attendanceSummaryResult.status === 'fulfilled' ? attendanceSummaryResult.value : { summary: {} };
+    const attendanceRows = attendanceReportResult.status === 'fulfilled' ? attendanceReportResult.value : [];
 
     let payrollRows = [];
     if (user.role === 'admin') {
-      const now = new Date();
-      payrollRows = await api.get(`/payroll?month=${now.getMonth() + 1}&year=${now.getFullYear()}`);
+      try {
+        const now = new Date();
+        payrollRows = await api.get(`/payroll?month=${now.getMonth() + 1}&year=${now.getFullYear()}`);
+      } catch (error) {
+        payrollRows = [];
+      }
     }
 
-    const data = { stats, leaveQueue, teamSummary, payrollRows, announcements, todos };
+    const data = { stats, leaveQueue, teamSummary, payrollRows, announcements, todos, attendanceSummary, attendanceRows };
     renderMetrics(data);
     renderAttention(data);
     renderToday(data);
     renderAnnouncements(announcements);
     renderTodos(data);
+    renderDashboardAttendance(data);
     renderBirthdays(stats);
     renderEvents();
     loadNotifCount();
+    if (results.some((result) => result.status === 'rejected')) {
+      toast('Some dashboard information could not be refreshed. Please try again.', 'warning');
+    }
   } catch (err) {
+    document.getElementById('metric-grid').innerHTML = '<div class="empty-minimal">Dashboard data could not be loaded. Refresh to try again.</div>';
+    document.getElementById('attention-list').innerHTML = '<div class="empty-minimal">Work queue is unavailable right now.</div>';
+    document.getElementById('announcement-list').innerHTML = '<div class="empty-minimal">Announcements are unavailable right now.</div>';
+    document.getElementById('todo-list').innerHTML = '<div class="empty-minimal">To do items are unavailable right now.</div>';
+    document.getElementById('today-list').innerHTML = '<div class="empty-minimal">Today\'s snapshot is unavailable right now.</div>';
+    document.getElementById('birthday-list').innerHTML = '<div class="empty-minimal">Birthdays are unavailable right now.</div>';
+    document.getElementById('event-list').innerHTML = '<div class="empty-minimal">Events are unavailable right now.</div>';
+    document.getElementById('dashboard-attendance').innerHTML = '<div class="empty-minimal">Attendance is unavailable right now.</div>';
     toast(err.message || 'Could not load dashboard', 'error');
   }
+}
+
+function renderDashboardAttendance({ attendanceSummary, attendanceRows }) {
+  const summary = attendanceSummary?.summary || {};
+  const present = Number(summary.present || 0);
+  const late = Number(summary.late || 0);
+  const onLeave = Number(summary['on-leave'] || 0);
+  const rows = (attendanceRows || []).slice(0, 5);
+  const target = document.getElementById('dashboard-attendance');
+  const list = rows.length ? rows.map((row) => {
+    const parts = String(row.employee_name || '').trim().split(/\s+/);
+    const avatar = avatarEl({ first_name: parts[0] || '?', last_name: parts.slice(1).join(' '), photo_url: row.photo_url || null }, 'sm');
+    return `<div class="attendance-person">
+      <div class="attendance-person-info">${avatar}<div><strong>${escapeHtml(row.employee_name || 'Employee')}</strong><span>${escapeHtml(row.job_title || row.department_name || 'Staff')}</span></div></div>
+      ${fmt.statusBadge(row.status || 'present')}
+    </div>`;
+  }).join('') : '<div class="empty-minimal">No attendance records have been logged today.</div>';
+  target.innerHTML = `
+    <div class="attendance-summary-strip">
+      <div class="attendance-summary-cell"><span>Present</span><strong>${present}</strong></div>
+      <div class="attendance-summary-cell late"><span>Late</span><strong>${late}</strong></div>
+      <div class="attendance-summary-cell leave"><span>On leave</span><strong>${onLeave}</strong></div>
+    </div>
+    <div class="attendance-list">${list}</div>`;
 }
 
 function updateHeader() {
@@ -605,7 +712,6 @@ function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows }) {
     <article class="metric-card">
       <div class="metric-label">
         <span>${escapeHtml(metric.label)}</span>
-        <span class="metric-dot ${metric.tone}"></span>
       </div>
       <div>
         <div class="metric-value">${escapeHtml(metric.value)}</div>
@@ -682,14 +788,14 @@ function renderToday({ stats, leaveQueue, payrollRows }) {
   const upcomingLeave = (leaveQueue || []).filter((row) => row.status === 'approved' && row.start_date >= today).length;
   const recentHires = (stats.recent_hires || []).length;
   const birthdays = (stats.upcoming_birthdays || []).length;
-  const nextInterview = window.hrSuiteData?.hiring?.interviews?.[0];
+  const nextStart = window.hrSuiteData?.onboarding?.cohorts?.[0];
   const processedPayroll = countByStatus(payrollRows, 'processed') + countByStatus(payrollRows, 'paid');
 
   const rows = [
     ['On leave today', onLeave, `${upcomingLeave} upcoming approved periods`, 'leave.html'],
     ['People moments', birthdays, `${recentHires} recent hires to follow up`, 'employees.html'],
     ['Payroll processed', processedPayroll, 'current month records', 'payroll.html'],
-    ['Next interview', nextInterview ? nextInterview.time : 'None', nextInterview ? `${nextInterview.candidate} - ${fmt.date(nextInterview.date)}` : 'No interviews scheduled', 'hiring.html']
+    ['Next start', nextStart ? nextStart.status : 'None', nextStart ? `${nextStart.name} - ${fmt.date(nextStart.startDate)}` : 'No starts scheduled', 'onboarding.html']
   ];
 
   document.getElementById('today-list').innerHTML = rows.map(([title, value, detail, href]) => `
@@ -774,12 +880,6 @@ function renderBirthdays(stats) {
 }
 
 function renderEvents() {
-  const interviews = (window.hrSuiteData?.hiring?.interviews || []).slice(0, 2).map((event) => ({
-    title: `${event.candidate} interview`,
-    detail: `${event.role} - ${event.mode}`,
-    date: event.date,
-    badge: event.time
-  }));
   const benefits = (window.hrSuiteData?.benefits?.events || []).slice(0, 2).map((event) => ({
     title: event.event,
     detail: `${event.employee} - ${event.plan}`,
@@ -792,7 +892,7 @@ function renderEvents() {
     date: event.startDate,
     badge: event.status
   }));
-  const rows = [...interviews, ...benefits, ...onboarding]
+  const rows = [...benefits, ...onboarding]
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
     .slice(0, 5);
   const target = document.getElementById('event-list');

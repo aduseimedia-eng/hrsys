@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documents — HRConnect</title>
+  <title>Documents — KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
   <style>
@@ -85,7 +85,7 @@
   <main class="main-content">
     <div class="page-header">
       <div><h1>Documents</h1><p>Upload and manage your HR documents</p></div>
-      <button class="btn btn-primary" onclick="document.getElementById('upload-modal').style.display='flex'">
+      <button class="btn btn-primary" onclick="openUploadModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Upload Document
       </button>
@@ -131,6 +131,11 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
+        <label class="form-label required">Document Title</label>
+        <input type="text" id="doc-title" class="form-control" maxlength="200" placeholder="e.g. Signed employment contract">
+        <div class="form-hint">This title is shown in KenadHR. The original filename is kept separately.</div>
+      </div>
+      <div class="form-group">
         <label class="form-label required">Document Type</label>
         <select id="doc-type" class="form-control form-select">
           <option value="contract">Contract</option>
@@ -157,12 +162,12 @@
       </label>
       <div class="form-group">
         <label class="form-label required">File</label>
-        <input type="file" id="doc-file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+        <input type="file" id="doc-file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="suggestDocumentTitle(this.files[0])">
         <div class="form-hint">PDF, Word, JPG or PNG — max 20MB</div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="document.getElementById('upload-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-outline" onclick="closeUploadModal()">Cancel</button>
       <button class="btn btn-primary" onclick="uploadDocument()">Upload</button>
     </div>
   </div>
@@ -241,7 +246,7 @@ function renderDocs(docs) {
     return `<div class="doc-card">
       <div class="doc-icon ${cls}">${icon}</div>
       <div class="doc-info">
-        <div class="doc-name">${d.original_name}</div>
+        <div class="doc-name">${d.title || d.original_name}</div>
         <div class="doc-meta">
           ${d.employee_name ? `<span>${d.employee_name}</span>` : ''}
           <span class="badge badge-info">${d.doc_type}</span>
@@ -261,34 +266,46 @@ function renderDocs(docs) {
 async function uploadDocument() {
   const file = document.getElementById('doc-file').files[0];
   const type = document.getElementById('doc-type').value;
+  const title = document.getElementById('doc-title').value.trim();
   if (!file) { toast('Please select a file', 'warning'); return; }
+  if (!title) { toast('Please enter a document title', 'warning'); return; }
   try {
     const form = new FormData();
     form.append('document', file);
     form.append('doc_type', type);
+    form.append('title', title);
     form.append('share_with_hr', document.getElementById('doc-share-hr').checked ? 'true' : 'false');
     form.append('shared_with', document.getElementById('doc-share-with').value);
     if (user.role === 'admin') form.append('employee_id', document.getElementById('doc-owner').value || user.id);
     await api.upload('/documents', form);
-    document.getElementById('upload-modal').style.display = 'none';
+    closeUploadModal();
     toast('Document uploaded!', 'success');
     loadDocs();
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function quickUpload(file) {
+function openUploadModal(file = null) {
+  document.getElementById('upload-modal').style.display = 'flex';
+  if (file) {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    document.getElementById('doc-file').files = transfer.files;
+    suggestDocumentTitle(file);
+  }
+}
+
+function closeUploadModal() {
+  document.getElementById('upload-modal').style.display = 'none';
+}
+
+function quickUpload(file) {
+  if (file) openUploadModal(file);
+}
+
+function suggestDocumentTitle(file) {
   if (!file) return;
-  const type = prompt('Document type? (contract / certificate / id / offer_letter / other)', 'other');
-  if (!type) return;
-  try {
-    const form = new FormData();
-    form.append('document', file);
-    form.append('doc_type', type);
-    form.append('share_with_hr', 'true');
-    await api.upload('/documents', form);
-    toast('Document uploaded!', 'success');
-    loadDocs();
-  } catch(e) { toast(e.message, 'error'); }
+  const title = document.getElementById('doc-title');
+  if (!title.value.trim()) title.value = file.name.replace(/\.[^.]+$/, '');
 }
 
 async function deleteDoc(id, btn) {

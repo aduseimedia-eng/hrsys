@@ -3,20 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reports & Workflows - HRConnect</title>
+  <title>Reports & Workflows - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/suite.css">
   <link rel="stylesheet" href="../css/workspace.css">
+  <style>
+    .report-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .report-toolbar .form-control { min-width: 150px; max-width: 190px; }
+    .report-grid-wide {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, .72fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .report-score {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+    }
+    .report-ring {
+      width: 96px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--mint-500) calc(var(--score) * 1%), var(--border) 0);
+      position: relative;
+      font-family: var(--font-display);
+      font-weight: 800;
+      color: var(--navy-900);
+    }
+    .report-ring::before {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: inherit;
+      background: var(--bg-surface);
+    }
+    .report-ring span { position: relative; }
+    .report-insights {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .report-insight {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--navy-50);
+    }
+    .report-insight strong {
+      display: block;
+      color: var(--text-primary);
+      font-size: .86rem;
+    }
+    .report-insight span {
+      display: block;
+      color: var(--text-secondary);
+      font-size: .78rem;
+      margin-top: 3px;
+    }
+    .report-table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .report-table-wrap table { min-width: 760px; }
+    .report-empty {
+      padding: 28px;
+      color: var(--text-muted);
+      text-align: center;
+      font-size: .88rem;
+    }
+    .report-runner {
+      display: grid;
+      gap: 12px;
+    }
+    .report-runner .suite-row {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--bg-page);
+    }
+    @media (max-width: 1100px) {
+      .report-grid-wide { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .topbar-actions { display: none; }
+      .report-score { grid-template-columns: 1fr; }
+      .report-toolbar .form-control,
+      .report-toolbar .btn { width: 100%; max-width: none; }
+    }
+  </style>
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar"></aside>
 
   <header class="topbar">
-    <div class="topbar-title">Reports & Workflows</div>
+    <div class="topbar-title">Reports</div>
     <div class="topbar-actions">
-      <button class="btn btn-outline btn-sm" onclick="toast('CSV export prepared', 'success')">Export</button>
-      <button class="btn btn-primary btn-sm" onclick="toast('Saved report created', 'success')">New Report</button>
+      <button class="btn btn-outline btn-sm" type="button" onclick="exportReportCsv()">Export CSV</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="refreshReports()">Refresh</button>
     </div>
   </header>
 
@@ -24,69 +119,130 @@
     <section class="suite-hero">
       <div>
         <span class="suite-eyebrow">People intelligence</span>
-        <h1>Answer HR questions with trusted data, saved reports, and workflow actions.</h1>
-        <p>Bring headcount, hiring, payroll, benefits, leave, and performance into a leadership-ready reporting center.</p>
+        <h1 id="report-title">Reports</h1>
+        <p id="report-subtitle">Live workforce, attendance, leave, payroll, and performance signals for leadership review.</p>
         <div class="suite-hero-actions">
-          <a href="#reports" class="btn btn-primary">Saved Reports</a>
-          <a href="#workflows" class="btn btn-outline" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.18)">Workflow Automation</a>
+          <button class="btn btn-primary" type="button" onclick="runReport('executive')">Executive Snapshot</button>
+          <button class="btn btn-outline" type="button" onclick="runReport('leave')">Leave Report</button>
+          <button class="btn btn-outline" type="button" onclick="runReport('attendance')">Attendance Report</button>
         </div>
       </div>
       <div class="suite-hero-card">
-        <div class="suite-hero-stat"><span>Saved reports</span><strong id="hero-reports">--</strong></div>
-        <div class="suite-hero-stat"><span>Active workflows</span><strong id="hero-workflows">--</strong></div>
-        <div class="suite-hero-stat"><span>Leadership dashboards</span><strong>4</strong></div>
+        <div class="suite-hero-stat"><span>Active employees</span><strong id="hero-headcount">--</strong></div>
+        <div class="suite-hero-stat"><span>Pending leave</span><strong id="hero-leave">--</strong></div>
+        <div class="suite-hero-stat"><span>Review coverage</span><strong id="hero-reviews">--</strong></div>
       </div>
     </section>
 
-    <section class="suite-kpis" id="report-kpis"></section>
+    <div class="report-toolbar">
+      <select id="report-type" class="form-control form-select" onchange="runSelectedReport()">
+        <option value="executive">Executive snapshot</option>
+        <option value="headcount">Headcount by department</option>
+        <option value="leave">Leave requests</option>
+        <option value="attendance">Attendance today</option>
+        <option value="performance">Performance coverage</option>
+        <option value="payroll">Payroll readiness</option>
+      </select>
+      <select id="department-filter" class="form-control form-select" onchange="runSelectedReport()">
+        <option value="">All departments</option>
+      </select>
+      <select id="status-filter" class="form-control form-select" onchange="runSelectedReport()">
+        <option value="">All statuses</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+        <option value="present">Present</option>
+        <option value="late">Late</option>
+        <option value="absent">Absent</option>
+        <option value="on-leave">On leave</option>
+      </select>
+      <input type="date" id="date-filter" class="form-control" onchange="refreshReports()">
+      <button class="btn btn-outline" type="button" onclick="clearFilters()">Clear</button>
+      <button class="btn btn-primary" type="button" onclick="exportReportCsv()">Export CSV</button>
+    </div>
 
-    <section class="suite-grid">
-      <article class="suite-panel" id="reports">
+    <section class="suite-kpis" id="report-kpis">
+      <article class="suite-kpi"><span>Loading</span><div><strong>--</strong><small>Fetching reports</small></div></article>
+    </section>
+
+    <section class="report-grid-wide">
+      <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
-            <h3>Saved Reports</h3>
-            <span>Recurring views for HR/ Admin, Account Department, and leadership</span>
+            <h3 id="active-report-name">Executive Snapshot</h3>
+            <span id="active-report-meta">Current people operations summary</span>
           </div>
-          <button class="btn btn-outline btn-sm" onclick="toast('Report builder opened', 'info')">Builder</button>
+          <button class="btn btn-outline btn-sm" type="button" onclick="exportReportCsv()">Download</button>
         </div>
-        <div class="suite-panel-body" id="saved-report-list"></div>
+        <div class="suite-panel-body">
+          <div class="report-table-wrap">
+            <table>
+              <thead id="report-table-head"></thead>
+              <tbody id="report-table-body">
+                <tr><td><div class="loading-state"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </article>
 
       <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
-            <h3>Ask HR Data</h3>
-            <span>Suggested questions for a future AI assistant</span>
+            <h3>Readiness Score</h3>
+            <span>Weighted from approvals, attendance, payroll, and review coverage</span>
           </div>
         </div>
         <div class="suite-panel-body">
-          <div class="question-grid" id="question-list"></div>
+          <div class="report-score">
+            <div class="report-ring" id="readiness-ring" style="--score:0"><span id="readiness-score">--</span></div>
+            <div>
+              <strong id="readiness-label">Loading</strong>
+              <p class="text-muted text-sm" id="readiness-detail" style="margin-top:6px">Collecting report inputs...</p>
+            </div>
+          </div>
+          <div class="report-insights" id="report-insights"></div>
         </div>
       </article>
     </section>
 
-    <section class="suite-grid" id="workflows">
+    <section class="suite-grid">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Department Mix</h3>
+            <span>Active staff by team</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="suite-chart" id="department-chart"></div>
+        </div>
+      </article>
+
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Saved Reports</h3>
+            <span>Quick views for common HR questions</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="report-runner" id="saved-report-list"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="suite-grid">
       <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
             <h3>Workflow Automations</h3>
-            <span>Rules that reduce manual HR follow-up</span>
+            <span>Rules that reduce manual follow-up</span>
           </div>
         </div>
         <div class="suite-panel-body" id="automation-list"></div>
       </article>
 
-      <article class="suite-panel">
-        <div class="suite-panel-header">
-          <div>
-            <h3>Executive Snapshot</h3>
-            <span>Cross-module readiness signals</span>
-          </div>
-        </div>
-        <div class="suite-panel-body">
-          <div class="suite-chart" id="executive-chart"></div>
-        </div>
-      </article>
     </section>
   </main>
 </div>
@@ -99,22 +255,109 @@ if (!user) throw new Error('redirect');
 buildSidebar('reports');
 loadNotifCount();
 
-const data = window.hrSuiteData.reports;
-const modules = window.hrSuiteData.modules;
+const suiteReports = window.hrSuiteData?.reports || { savedReports: [], automations: [], questions: [] };
+const state = {
+  stats: {},
+  employees: [],
+  departments: [],
+  leave: [],
+  attendance: { summary: {}, late_arrivals: [] },
+  attendanceRows: [],
+  performance: [],
+  payrollSummary: [],
+  activeReport: 'executive',
+  currentRows: [],
+  currentColumns: []
+};
 
-function bootReports() {
-  const active = data.automations.filter((item) => item.status === 'Active').length;
-  document.getElementById('hero-reports').textContent = data.savedReports.length;
-  document.getElementById('hero-workflows').textContent = active;
+document.getElementById('date-filter').value = new Date().toISOString().slice(0, 10);
+bootReports();
+
+async function bootReports() {
+  try {
+    await loadReportData();
+    populateDepartmentFilter();
+    renderShell();
+    runReport('executive');
+  } catch (err) {
+    toast(err.message || 'Could not load reports', 'error');
+    renderError(err);
+  }
+}
+
+async function loadReportData() {
+  const today = document.getElementById('date-filter').value || new Date().toISOString().slice(0, 10);
+  const [stats, employeesPage, departments, leave, attendance, attendanceRows, performance] = await Promise.all([
+    api.get('/employees/dashboard'),
+    api.get('/employees?limit=1000'),
+    api.get('/employees/departments'),
+    api.get('/leave'),
+    api.get('/attendance/summary'),
+    api.get(`/attendance/report?date=${today}&limit=1000`),
+    api.get('/performance/team-summary')
+  ]);
+
+  state.stats = stats || {};
+  state.employees = employeesPage?.employees || [];
+  state.departments = departments || [];
+  state.leave = leave || [];
+  state.attendance = attendance || { summary: {}, late_arrivals: [] };
+  state.attendanceRows = attendanceRows || [];
+  state.performance = performance || [];
+
+  if (user.role === 'admin') {
+    try {
+      state.payrollSummary = await api.get('/payroll/summary');
+    } catch (err) {
+      state.payrollSummary = [];
+    }
+  }
+}
+
+function renderShell() {
+  const total = Number(state.stats.total_employees || state.employees.length || 0);
+  const pendingLeave = state.leave.filter((row) => row.status === 'pending').length;
+  const reviewed = state.performance.filter((row) => Number(row.review_count || 0) > 0).length;
+  const reviewCoverage = total ? Math.round((reviewed / total) * 100) : 0;
+  const activeAutomations = suiteReports.automations.filter((item) => item.status === 'Active').length;
+
+  setText('hero-headcount', total);
+  setText('hero-leave', pendingLeave);
+  setText('hero-reviews', `${reviewCoverage}%`);
+  setText('report-title', `${total} employees, ${pendingLeave} leave approval${pendingLeave === 1 ? '' : 's'} open`);
+  setText('report-subtitle', `${state.departments.length} departments tracked. ${activeAutomations} workflow automation${activeAutomations === 1 ? '' : 's'} active.`);
+
   renderKpis();
+  renderReadiness();
+  renderDepartmentChart();
   renderSavedReports();
-  renderQuestions();
   renderAutomations();
-  renderExecutiveChart();
 }
 
 function renderKpis() {
-  document.getElementById('report-kpis').innerHTML = data.metrics.map((metric) => `
+  const total = Number(state.stats.total_employees || state.employees.length || 0);
+  const pendingLeave = state.leave.filter((row) => row.status === 'pending').length;
+  const present = Number(state.attendance.summary?.present || 0);
+  const late = Number(state.attendance.summary?.late || 0);
+  const reviewed = state.performance.filter((row) => Number(row.review_count || 0) > 0).length;
+  const reviewCoverage = total ? Math.round((reviewed / total) * 100) : 0;
+  const latestPayroll = state.payrollSummary[0];
+  const payrollNote = user.role === 'admin' && latestPayroll
+    ? `${Number(latestPayroll.paid_count || 0)}/${Number(latestPayroll.employee_count || 0)} paid`
+    : user.role === 'admin' ? 'No payroll summary yet' : 'Admin only';
+
+  const metrics = [
+    { label: 'Headcount', value: total, note: `${state.departments.length} departments` },
+    { label: 'Leave queue', value: pendingLeave, note: `${state.leave.filter((row) => row.status === 'approved').length} approved periods` },
+    { label: 'Attendance today', value: present + late, note: `${late} late arrivals` },
+    { label: 'Review coverage', value: `${reviewCoverage}%`, note: `${reviewed}/${total || 0} reviewed` },
+    { label: 'Payroll', value: latestPayroll ? shortMoney(latestPayroll.total_net) : '--', note: payrollNote },
+    { label: 'Open reports', value: suiteReports.savedReports.length, note: 'saved views' },
+    { label: 'Automations', value: suiteReports.automations.filter((item) => item.status === 'Active').length, note: 'active workflows' },
+    { label: 'On leave today', value: Number(state.stats.on_leave_today || state.attendance.summary?.['on-leave'] || 0), note: 'attendance signal' }
+  ];
+
+  document.getElementById('report-kpis').innerHTML = metrics.map((metric) => `
     <article class="suite-kpi">
       <span>${escapeHtml(metric.label)}</span>
       <div><strong>${escapeHtml(metric.value)}</strong><small>${escapeHtml(metric.note)}</small></div>
@@ -122,29 +365,87 @@ function renderKpis() {
   `).join('');
 }
 
+function renderReadiness() {
+  const total = Math.max(Number(state.stats.total_employees || state.employees.length || 0), 1);
+  const pendingLeave = state.leave.filter((row) => row.status === 'pending').length;
+  const attendanceCount = Object.values(state.attendance.summary || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+  const reviewed = state.performance.filter((row) => Number(row.review_count || 0) > 0).length;
+  const reviewCoverage = reviewed / total;
+  const latestPayroll = state.payrollSummary[0];
+  const payrollCoverage = latestPayroll ? Number(latestPayroll.paid_count || 0) / Math.max(Number(latestPayroll.employee_count || 0), 1) : (user.role === 'admin' ? 0 : .8);
+  const leaveScore = Math.max(0, 1 - pendingLeave / total);
+  const attendanceScore = Math.min(1, attendanceCount / total);
+  const score = Math.round((leaveScore * .28 + attendanceScore * .22 + reviewCoverage * .25 + payrollCoverage * .25) * 100);
+
+  document.getElementById('readiness-ring').style.setProperty('--score', score);
+  setText('readiness-score', `${score}%`);
+  setText('readiness-label', score >= 85 ? 'Leadership-ready' : score >= 70 ? 'Needs a few updates' : 'Action needed');
+  setText('readiness-detail', `${pendingLeave} pending leave request${pendingLeave === 1 ? '' : 's'}, ${Math.round(reviewCoverage * 100)}% review coverage, ${attendanceCount}/${total} attendance records today.`);
+
+  const insights = [
+    {
+      title: pendingLeave ? 'Leave approvals need attention' : 'Leave queue is clear',
+      detail: pendingLeave ? `${pendingLeave} request${pendingLeave === 1 ? '' : 's'} waiting for a decision.` : 'No pending leave requests in the current queue.',
+      tone: pendingLeave ? 'warn' : 'good'
+    },
+    {
+      title: reviewCoverage >= .8 ? 'Reviews are in good shape' : 'Performance coverage is low',
+      detail: `${reviewed} of ${total} active employees have at least one review.`,
+      tone: reviewCoverage >= .8 ? 'good' : 'warn'
+    },
+    {
+      title: latestPayroll ? 'Payroll summary available' : 'Payroll summary unavailable',
+      detail: latestPayroll ? `${shortMoney(latestPayroll.total_net)} net payroll in latest cycle.` : (user.role === 'admin' ? 'Process payroll to unlock payroll reporting.' : 'Payroll metrics are restricted to HR/Admin.'),
+      tone: latestPayroll ? 'good' : 'warn'
+    }
+  ];
+
+  document.getElementById('report-insights').innerHTML = insights.map((item) => `
+    <div class="report-insight">
+      <strong>${escapeHtml(item.title)}</strong>
+      <span>${escapeHtml(item.detail)}</span>
+    </div>
+  `).join('');
+}
+
+function renderDepartmentChart() {
+  const max = Math.max(...state.departments.map((dept) => Number(dept.employee_count || 0)), 1);
+  document.getElementById('department-chart').innerHTML = state.departments.map((dept) => {
+    const count = Number(dept.employee_count || 0);
+    return `
+      <div class="suite-chart-row">
+        <span>${escapeHtml(dept.name)}</span>
+        <div class="suite-bar"><span style="width:${Math.max(4, Math.round((count / max) * 100))}%"></span></div>
+        <strong>${count}</strong>
+      </div>`;
+  }).join('') || '<div class="suite-empty">No departments found.</div>';
+}
+
 function renderSavedReports() {
-  document.getElementById('saved-report-list').innerHTML = data.savedReports.map((report) => `
+  const reports = [
+    { title: 'Executive snapshot', type: 'executive', owner: 'Leadership', cadence: 'Daily' },
+    { title: 'Headcount by department', type: 'headcount', owner: 'HR/Admin', cadence: 'Weekly' },
+    { title: 'Leave requests', type: 'leave', owner: 'Managers', cadence: 'Daily' },
+    { title: 'Attendance today', type: 'attendance', owner: 'HR/Admin', cadence: 'Daily' },
+    { title: 'Performance coverage', type: 'performance', owner: 'Managers', cadence: 'Monthly' },
+    { title: 'Payroll readiness', type: 'payroll', owner: 'Account Department', cadence: 'Monthly' }
+  ];
+
+  document.getElementById('saved-report-list').innerHTML = reports.map((report) => `
     <div class="suite-row">
       <div>
         <strong>${escapeHtml(report.title)}</strong>
-        <span>${escapeHtml(report.owner)} - ${escapeHtml(report.cadence)} - ${escapeHtml(report.audience)}</span>
+        <span>${escapeHtml(report.owner)} - ${escapeHtml(report.cadence)}</span>
       </div>
       <div class="suite-meta">
-        <span class="suite-pill">Run</span>
-        <small>${fmt.date(report.lastRun)}</small>
+        <button class="btn btn-outline btn-sm" type="button" onclick="runReport('${report.type}')">Run</button>
       </div>
     </div>
   `).join('');
 }
 
-function renderQuestions() {
-  document.getElementById('question-list').innerHTML = data.questions.map((question) => `
-    <button class="question-card" onclick="toast('Question queued for HR assistant', 'info')">${escapeHtml(question)}</button>
-  `).join('');
-}
-
 function renderAutomations() {
-  document.getElementById('automation-list').innerHTML = data.automations.map((automation) => `
+  document.getElementById('automation-list').innerHTML = suiteReports.automations.map((automation) => `
     <div class="suite-row">
       <div>
         <strong>${escapeHtml(automation.title)}</strong>
@@ -157,14 +458,203 @@ function renderAutomations() {
   `).join('');
 }
 
-function renderExecutiveChart() {
-  document.getElementById('executive-chart').innerHTML = modules.map((module) => `
-    <div class="suite-chart-row">
-      <span>${escapeHtml(module.title.split(' ')[0])}</span>
-      <div class="suite-bar"><span style="width:${module.health}%"></span></div>
-      <strong>${module.health}%</strong>
-    </div>
+function runSelectedReport() {
+  runReport(document.getElementById('report-type').value);
+}
+
+function runReport(type) {
+  state.activeReport = type;
+  document.getElementById('report-type').value = type;
+  const report = buildReport(type);
+  state.currentRows = report.rows;
+  state.currentColumns = report.columns;
+  setText('active-report-name', report.title);
+  setText('active-report-meta', report.meta);
+  renderReportTable(report.columns, report.rows);
+}
+
+function buildReport(type) {
+  const departmentId = document.getElementById('department-filter').value;
+  const status = document.getElementById('status-filter').value;
+  const date = document.getElementById('date-filter').value;
+  const departmentName = departmentId ? state.departments.find((dept) => Number(dept.id) === Number(departmentId))?.name : '';
+  const byDepartment = (row) => !departmentId || Number(row.department_id) === Number(departmentId) || row.department_name === departmentName;
+  const byStatus = (row) => !status || row.status === status;
+
+  if (type === 'headcount') {
+    const rows = state.departments
+      .filter((dept) => !departmentId || Number(dept.id) === Number(departmentId))
+      .map((dept) => ({
+        department: dept.name,
+        manager: dept.manager_name || 'Unassigned',
+        employees: Number(dept.employee_count || 0),
+        share: percent(Number(dept.employee_count || 0), state.employees.length || 1)
+      }));
+    return reportConfig('Headcount by department', `Active staff distribution${departmentName ? ' for ' + departmentName : ''}`, ['department', 'manager', 'employees', 'share'], rows);
+  }
+
+  if (type === 'leave') {
+    const rows = state.leave.filter((row) => byDepartment(row) && byStatus(row)).map((row) => ({
+      employee: row.employee_name,
+      department: row.department_name || 'Unassigned',
+      type: typeLabel(row.leave_type),
+      dates: `${fmt.date(row.start_date)} - ${fmt.date(row.end_date)}`,
+      days: leaveDays(row),
+      status: row.status,
+      approver: row.approver_name || '--'
+    }));
+    return reportConfig('Leave requests', `Leave queue and history${status ? ' filtered by ' + status : ''}`, ['employee', 'department', 'type', 'dates', 'days', 'status', 'approver'], rows);
+  }
+
+  if (type === 'attendance') {
+    const rows = state.attendanceRows.filter((row) => byDepartment(row) && byStatus(row)).map((row) => ({
+      employee: row.employee_name,
+      department: row.department_name || 'Unassigned',
+      date: fmt.date(row.work_date || date),
+      status: row.status,
+      clock_in: row.clock_in ? fmt.time(row.clock_in) : '--',
+      clock_out: row.clock_out ? fmt.time(row.clock_out) : '--'
+    }));
+    return reportConfig('Attendance today', `Attendance records for ${fmt.date(date)}`, ['employee', 'department', 'date', 'status', 'clock_in', 'clock_out'], rows);
+  }
+
+  if (type === 'performance') {
+    const rows = state.performance.filter((row) => byDepartment(row)).map((row) => ({
+      employee: row.name,
+      department: row.department_name || 'Unassigned',
+      role: row.job_title || '--',
+      reviews: Number(row.review_count || 0),
+      rating: row.avg_rating || '--',
+      last_reviewed: row.last_reviewed ? fmt.date(row.last_reviewed) : 'Not reviewed'
+    }));
+    return reportConfig('Performance coverage', 'Review coverage and last-review status', ['employee', 'department', 'role', 'reviews', 'rating', 'last_reviewed'], rows);
+  }
+
+  if (type === 'payroll') {
+    const rows = user.role === 'admin'
+      ? state.payrollSummary.map((row) => ({
+          period: `${monthName(row.month)} ${row.year}`,
+          net: fmt.currency(Number(row.total_net || 0)),
+          base: fmt.currency(Number(row.total_base || 0)),
+          deductions: fmt.currency(Number(row.total_deductions || 0)),
+          employees: Number(row.employee_count || 0),
+          paid: Number(row.paid_count || 0)
+        }))
+      : [];
+    return reportConfig('Payroll readiness', user.role === 'admin' ? 'Latest payroll cycles' : 'Payroll reporting is restricted to HR/Admin', ['period', 'net', 'base', 'deductions', 'employees', 'paid'], rows);
+  }
+
+  const total = Number(state.stats.total_employees || state.employees.length || 0);
+  const pendingLeave = state.leave.filter((row) => row.status === 'pending').length;
+  const reviewed = state.performance.filter((row) => Number(row.review_count || 0) > 0).length;
+  const late = Number(state.attendance.summary?.late || 0);
+  const rows = [
+    { area: 'Headcount', signal: `${total} active employees`, status: total ? 'Ready' : 'Needs data', owner: 'HR/Admin' },
+    { area: 'Leave', signal: `${pendingLeave} pending request${pendingLeave === 1 ? '' : 's'}`, status: pendingLeave ? 'Review' : 'Clear', owner: 'CEO/Managers' },
+    { area: 'Attendance', signal: `${late} late arrival${late === 1 ? '' : 's'} today`, status: late ? 'Watch' : 'Clear', owner: 'HR/Admin' },
+    { area: 'Performance', signal: `${percent(reviewed, total || 1)} reviewed`, status: reviewed >= total * .8 ? 'Ready' : 'Needs reviews', owner: 'Managers' },
+    { area: 'Payroll', signal: state.payrollSummary[0] ? `${shortMoney(state.payrollSummary[0].total_net)} latest net` : 'No summary available', status: state.payrollSummary[0] ? 'Ready' : 'Restricted', owner: 'Account Department' }
+  ];
+  return reportConfig('Executive snapshot', 'Current leadership-ready people operations summary', ['area', 'signal', 'status', 'owner'], rows);
+}
+
+function reportConfig(title, meta, columns, rows) {
+  return { title, meta, columns, rows };
+}
+
+function renderReportTable(columns, rows) {
+  document.getElementById('report-table-head').innerHTML = `<tr>${columns.map((column) => `<th>${escapeHtml(titleCase(column))}</th>`).join('')}</tr>`;
+  const body = document.getElementById('report-table-body');
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="${columns.length}"><div class="report-empty">No rows match the current filters.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map((row) => `
+    <tr>${columns.map((column) => `<td>${escapeHtml(row[column] ?? '--')}</td>`).join('')}</tr>
   `).join('');
+}
+
+async function refreshReports() {
+  await loadReportData();
+  renderShell();
+  runReport(state.activeReport);
+}
+
+async function clearFilters() {
+  document.getElementById('department-filter').value = '';
+  document.getElementById('status-filter').value = '';
+  document.getElementById('date-filter').value = new Date().toISOString().slice(0, 10);
+  await refreshReports();
+}
+
+function populateDepartmentFilter() {
+  const select = document.getElementById('department-filter');
+  const current = select.value;
+  select.innerHTML = '<option value="">All departments</option>' + state.departments
+    .map((dept) => `<option value="${dept.id}">${escapeHtml(dept.name)}</option>`)
+    .join('');
+  select.value = current;
+}
+
+function exportReportCsv() {
+  if (!state.currentRows.length) {
+    toast('No report rows to export', 'warning');
+    return;
+  }
+  const lines = [
+    state.currentColumns.map(csvCell).join(','),
+    ...state.currentRows.map((row) => state.currentColumns.map((column) => csvCell(row[column])).join(','))
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${state.activeReport}-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast('CSV export prepared', 'success');
+}
+
+function renderError(err) {
+  document.getElementById('report-table-head').innerHTML = '';
+  document.getElementById('report-table-body').innerHTML = `<tr><td><div class="report-empty">${escapeHtml(err.message || 'Could not load reports')}</div></td></tr>`;
+}
+
+function csvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function percent(value, total) {
+  return `${Math.round((Number(value || 0) / Math.max(Number(total || 0), 1)) * 100)}%`;
+}
+
+function leaveDays(leave) {
+  return Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / 86400000) + 1;
+}
+
+function shortMoney(value) {
+  const n = Number(value || 0);
+  if (!n) return '--';
+  if (Math.abs(n) >= 1000000) return `GHS ${(n / 1000000).toFixed(1)}m`;
+  if (Math.abs(n) >= 1000) return `GHS ${(n / 1000).toFixed(1)}k`;
+  return fmt.currency(n);
+}
+
+function monthName(value) {
+  return new Date(2026, Number(value || 1) - 1, 1).toLocaleDateString('en-GB', { month: 'short' });
+}
+
+function titleCase(value) {
+  return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function typeLabel(value) {
+  return titleCase(String(value || '').replace(/-/g, ' '));
 }
 
 function escapeHtml(value) {
@@ -172,8 +662,6 @@ function escapeHtml(value) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
 }
-
-bootReports();
 </script>
 </body>
 </html>

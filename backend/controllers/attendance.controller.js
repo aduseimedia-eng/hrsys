@@ -2,6 +2,21 @@
 const db = require('../config/db');
 
 const LATE_THRESHOLD_HOUR = parseInt(process.env.LATE_THRESHOLD_HOUR) || 9;
+const ATTENDANCE_TIME_ZONE = process.env.ATTENDANCE_TIME_ZONE || 'Africa/Accra';
+
+function formatExportDate(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: ATTENDANCE_TIME_ZONE, day: '2-digit', month: '2-digit', year: 'numeric'
+  }).format(new Date(value));
+}
+
+function formatExportTime(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: ATTENDANCE_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).format(new Date(value));
+}
 
 // ─── Clock In ─────────────────────────────────────────────────
 exports.clockIn = async (req, res) => {
@@ -110,7 +125,7 @@ exports.getReport = async (req, res) => {
     params.push(limit, offset);
     const { rows } = await db.query(
       `SELECT a.*, CONCAT(e.first_name,' ',e.last_name) AS employee_name,
-              e.job_title, d.name AS department_name
+              e.job_title, e.photo_url, d.name AS department_name
        FROM attendance a
        JOIN employees e  ON e.id = a.employee_id
        LEFT JOIN departments d ON d.id = e.department_id
@@ -126,6 +141,46 @@ exports.getReport = async (req, res) => {
 };
 
 // ─── Summary stats for HR ─────────────────────────────────────
+exports.exportReport = async (req, res) => {
+  try {
+    const { date, department_id, status } = req.query;
+    const params = [req.user.company_id];
+    let where = 'WHERE a.company_id = $1';
+
+    if (date)          { params.push(date);          where += ` AND a.work_date = $${params.length}`; }
+    if (status)        { params.push(status);        where += ` AND a.status = $${params.length}`; }
+    if (department_id) { params.push(department_id); where += ` AND e.department_id = $${params.length}`; }
+
+    const { rows } = await db.query(
+      `SELECT a.work_date, CONCAT(e.first_name,' ',e.last_name) AS employee_name,
+              e.email, e.job_title, d.name AS department_name,
+              a.clock_in, a.clock_out, a.status
+       FROM attendance a
+       JOIN employees e ON e.id = a.employee_id
+       LEFT JOIN departments d ON d.id = e.department_id
+       ${where}
+       ORDER BY a.work_date DESC, e.first_name, e.last_name`,
+      params
+    );
+
+    const columns = ['Date', 'Employee', 'Email', 'Job Title', 'Department', 'Clock In', 'Clock Out', 'Status'];
+    const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const lines = [columns.map(csvCell).join(',')];
+    rows.forEach((row) => lines.push([
+      formatExportDate(row.work_date),
+      row.employee_name, row.email, row.job_title, row.department_name,
+      formatExportTime(row.clock_in), formatExportTime(row.clock_out), row.status
+    ].map(csvCell).join(',')));
+
+    const suffix = date || new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="kenadhr-attendance-${suffix}.csv"`);
+    res.send(`\uFEFF${lines.join('\n')}`);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not export attendance' });
+  }
+};
+
 exports.getSummary = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];

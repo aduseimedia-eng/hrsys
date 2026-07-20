@@ -1,6 +1,7 @@
 // controllers/employee.controller.js
 const bcrypt = require('bcrypt');
 const db     = require('../config/db');
+const EMPLOYMENT_TYPES = ['staff', 'contractual', 'national_service', 'internship'];
 
 // ─── Dashboard stats (admin/manager) ─────────────────────────
 exports.getDashboard = async (req, res) => {
@@ -47,12 +48,13 @@ exports.getDashboard = async (req, res) => {
 // ─── List all employees ───────────────────────────────────────
 exports.getAll = async (req, res) => {
   try {
-    const { department_id, role, search, page = 1, limit = 20 } = req.query;
+    const { department_id, role, employment_type, search, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
     const params = [req.user.company_id];
     let where = 'WHERE e.company_id = $1 AND e.is_active = true';
     if (department_id) { params.push(department_id); where += ` AND e.department_id = $${params.length}`; }
     if (role)          { params.push(role);          where += ` AND e.role = $${params.length}`; }
+    if (employment_type) { params.push(employment_type); where += ` AND e.employment_type = $${params.length}`; }
     if (search) {
       params.push(`%${search}%`);
       where += ` AND (e.first_name ILIKE $${params.length} OR e.last_name ILIKE $${params.length} OR e.email ILIKE $${params.length})`;
@@ -132,6 +134,9 @@ exports.create = async (req, res) => {
 
     if (!first_name || !last_name || !email || !password) {
       return res.status(400).json({ error: 'Name, email and password are required' });
+    }
+    if (employment_type && !EMPLOYMENT_TYPES.includes(employment_type)) {
+      return res.status(400).json({ error: 'Invalid employment type' });
     }
 
     const existing = await db.query('SELECT id FROM employees WHERE email = $1', [email.toLowerCase()]);
@@ -220,7 +225,7 @@ exports.update = async (req, res) => {
       if (field === 'role' && value && !['admin', 'manager', 'employee'].includes(value)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
-      if (field === 'employment_type' && value && !['staff', 'contractual'].includes(value)) {
+      if (field === 'employment_type' && value && !EMPLOYMENT_TYPES.includes(value)) {
         return res.status(400).json({ error: 'Invalid employment type' });
       }
 
@@ -294,11 +299,28 @@ exports.resetAccount = async (req, res) => {
 exports.uploadPhoto = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const photoUrl = `/uploads/photos/${req.file.filename}`;
-    await db.query('UPDATE employees SET photo_url = $1 WHERE id = $2 AND company_id = $3', [photoUrl, req.user.id, req.user.company_id]);
+    const photoUrl = `/api/employees/photo/${req.user.id}`;
+    await db.query(
+      'UPDATE employees SET photo_url = $1, photo_data = $2, photo_mime_type = $3 WHERE id = $4 AND company_id = $5',
+      [photoUrl, req.file.buffer, req.file.mimetype, req.user.id, req.user.company_id]
+    );
     res.json({ photo_url: photoUrl });
   } catch (err) {
     res.status(500).json({ error: 'Could not save photo' });
+  }
+};
+
+exports.getPhoto = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT photo_data, photo_mime_type FROM employees WHERE id = $1 AND photo_data IS NOT NULL',
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).end();
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.type(rows[0].photo_mime_type || 'image/jpeg').send(rows[0].photo_data);
+  } catch (err) {
+    res.status(500).end();
   }
 };
 
@@ -323,7 +345,7 @@ exports.deactivate = async (req, res) => {
 exports.getDirectory = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT id, first_name, last_name, photo_url, job_title, role, department_id
+      `SELECT id, first_name, last_name, photo_url, job_title, role, employment_type, department_id
        FROM employees
        WHERE company_id = $1 AND is_active = true
        ORDER BY first_name, last_name`

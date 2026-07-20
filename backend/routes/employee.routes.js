@@ -5,6 +5,8 @@ const auth   = require('../middleware/auth');
 const rbac   = require('../middleware/rbac');
 const { uploadPhoto } = require('../config/multer');
 
+router.get  ('/photo/:id',          ctrl.getPhoto);
+
 router.get  ('/dashboard',          auth, rbac('admin','manager'), ctrl.getDashboard);
 router.get  ('/departments',        auth, ctrl.getDepartments);
 router.post ('/departments',        auth, rbac('admin'), ctrl.createDepartment);

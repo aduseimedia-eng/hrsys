@@ -1,0 +1,2 @@
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS photo_data BYTEA;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS photo_mime_type VARCHAR(100);

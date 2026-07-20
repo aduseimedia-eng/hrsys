@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Announcements - HRConnect</title>
+  <title>Announcements - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/suite.css">
   <link rel="stylesheet" href="../css/workspace.css">
@@ -93,6 +93,26 @@
       justify-content: flex-end;
       gap: 8px;
       flex-wrap: wrap;
+    }
+    .delete-confirm-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(225,29,72,.1);
+      color: var(--rose-600);
+      margin-bottom: 14px;
+    }
+    .delete-confirm-copy {
+      color: var(--text-secondary);
+      font-size: .9rem;
+      line-height: 1.55;
+      margin-top: 8px;
+    }
+    .delete-confirm-name {
+      color: var(--text-primary);
+      font-weight: 700;
     }
     @media (max-width: 720px) {
       .ann-page-head {
@@ -269,7 +289,7 @@ function renderAnnouncements() {
             <td>
               <div class="ann-actions">
                 <button class="btn btn-outline btn-sm" type="button" onclick="editAnnouncement(${item.id})">Edit</button>
-                <button class="btn btn-danger btn-sm" type="button" onclick="deleteAnnouncement(${item.id})">Delete</button>
+                <button class="btn btn-danger btn-sm" type="button" onclick="showDeleteAnnouncementModal(${item.id})">Delete</button>
               </div>
             </td>
           </tr>
@@ -325,14 +345,43 @@ async function saveAnnouncement() {
 }
 
 async function deleteAnnouncement(id) {
-  if (!confirm('Delete this announcement?')) return;
   try {
     await api.delete(`/notifications/announcements/${id}`);
+    document.querySelector('.modal-overlay[data-delete-announcement]')?.remove();
     toast('Announcement deleted', 'success');
     await loadAnnouncements();
   } catch (err) {
     toast(err.message || 'Could not delete announcement', 'error');
   }
+}
+
+function showDeleteAnnouncementModal(id) {
+  const item = announcements.find((row) => Number(row.id) === Number(id));
+  const title = item?.title || 'this announcement';
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.dataset.deleteAnnouncement = 'true';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="delete-confirm-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+          </div>
+          <h3>Delete Announcement?</h3>
+          <p class="delete-confirm-copy">
+            <span class="delete-confirm-name">${escapeHtml(title)}</span> will be removed from the announcement history.
+            Staff will no longer see this update.
+          </p>
+        </div>
+        <button class="modal-close" type="button" onclick="this.closest('.modal-overlay').remove()">x</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" type="button" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn btn-danger" type="button" onclick="deleteAnnouncement(${id})">Delete Announcement</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
 }
 
 function daysSince(date) {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HRConnect - Staff Portal</title>
+  <title>KenadHR - Staff Portal</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
     body {
@@ -71,18 +71,21 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
+      overflow-y: auto;
+      scrollbar-width: thin;
     }
 
     .staff-nav a,
     .staff-logout {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 11px;
+      padding: 9px 11px;
       border-radius: 8px;
       color: rgba(255,255,255,.66);
-      font-size: .88rem;
+      font-size: .84rem;
       transition: none;
     }
 
@@ -103,6 +106,46 @@
       height: 18px;
       flex-shrink: 0;
       color: var(--mint-200);
+    }
+
+    .staff-nav-badge,
+    .staff-mobile-badge {
+      margin-left: auto;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      background: var(--rose-600);
+      color: #fff;
+      font-size: .68rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .staff-mobile-badge {
+      position: absolute;
+      top: 5px;
+      right: 8px;
+      margin-left: 0;
+      min-width: 16px;
+      height: 16px;
+      font-size: .62rem;
+    }
+
+    .announcement-alert {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--danger-fg);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .announcement-alert svg {
+      width: 16px;
+      height: 16px;
     }
 
     .staff-account-block {
@@ -216,6 +259,8 @@
     .staff-topbar-actions .btn {
       min-height: 34px;
     }
+
+    .staff-message-shortcut { display: none; }
 
     .staff-date-chip {
       min-height: 34px;
@@ -567,26 +612,57 @@
     }
 
     .staff-attendance-clock {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--navy-50);
-      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #173d88 0%, #0c2458 100%);
+      padding: 26px;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 18px;
+      gap: 26px;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(16, 47, 112, .18);
+    }
+
+    .staff-attendance-clock::after {
+      content: '';
+      position: absolute;
+      width: 210px;
+      height: 210px;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 50%;
+      right: 22%;
+      top: -138px;
+      pointer-events: none;
+    }
+
+    .staff-attendance-clock > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .staff-attendance-kicker {
+      color: rgba(255,255,255,.58);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .09em;
+      text-transform: uppercase;
     }
 
     .staff-attendance-time {
-      color: var(--navy-950);
-      font-size: 2.3rem;
+      color: #fff;
+      font-size: clamp(2.65rem, 5vw, 3.7rem);
       line-height: 1;
       font-weight: 800;
+      letter-spacing: -.055em;
+      margin-top: 8px;
     }
 
     .staff-attendance-date {
-      color: var(--text-secondary);
+      color: rgba(255,255,255,.68);
       font-size: .84rem;
       margin-top: 6px;
     }
@@ -599,19 +675,41 @@
       flex-wrap: wrap;
     }
 
+    .staff-attendance-actions .btn {
+      min-width: 142px;
+      justify-content: center;
+      font-weight: 750;
+    }
+
+    .staff-attendance-actions .btn-primary {
+      background: var(--amber-400);
+      border-color: var(--amber-400);
+      color: var(--navy-950);
+    }
+
+    .staff-attendance-actions .btn-outline {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.25);
+      color: #fff;
+    }
+
+    .staff-attendance-actions .btn:disabled {
+      opacity: .5;
+    }
+
     .staff-attendance-status {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 16px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
     }
 
     .staff-attendance-stat {
       min-width: 0;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-surface);
-      padding: 12px;
+      border-radius: 12px;
+      background: #f7faff;
+      padding: 14px;
     }
 
     .staff-attendance-stat span {
@@ -625,8 +723,37 @@
     .staff-attendance-stat strong {
       display: block;
       color: var(--text-primary);
-      font-size: .92rem;
+      font-size: .98rem;
       margin-top: 7px;
+    }
+
+    .staff-attendance-history {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--bg-surface);
+    }
+
+    .staff-attendance-history-head {
+      padding: 15px 16px 11px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .staff-attendance-history-head h4 {
+      margin: 0;
+      color: var(--text-primary);
+      font-size: .92rem;
+    }
+
+    .staff-attendance-history-head p {
+      color: var(--text-muted);
+      font-size: .78rem;
+      margin: 3px 0 0;
     }
 
     .staff-attendance-filter {
@@ -642,6 +769,10 @@
       margin-bottom: 0;
     }
 
+    #attendance-history-list .staff-row {
+      padding: 15px 16px;
+    }
+
     .leave-form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -651,6 +782,39 @@
     .leave-form-grid .span-2 {
       grid-column: 1 / -1;
     }
+
+    .staff-leave-balance {
+      display: grid;
+      grid-template-columns: 1.3fr repeat(2, 1fr);
+      gap: 10px;
+    }
+    .staff-leave-balance-main, .staff-leave-balance-stat {
+      padding: 15px;
+      border: 1px solid #d9e5f8;
+      border-radius: 12px;
+      background: #f6f9ff;
+    }
+    .staff-leave-balance-main { background: linear-gradient(135deg, #e8f0ff, #f7faff); }
+    .staff-leave-balance span { display: block; color: var(--text-muted); font-size: .76rem; font-weight: 650; }
+    .staff-leave-balance strong { display: block; margin-top: 5px; color: #2865d9; font-size: 1.5rem; line-height: 1; }
+    .staff-leave-balance small { display: block; margin-top: 5px; color: #6f7c91; font-size: .72rem; }
+
+    .staff-messages-frame {
+      display: block;
+      width: 100%;
+      height: 690px;
+      border: 0;
+      border-radius: 12px;
+      background: #f7faff;
+    }
+
+    .overview-priority-list { display: grid; gap: 9px; margin-top: 16px; }
+    .overview-priority-item { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid #dbe6f7; border-radius: 10px; background: rgba(255,255,255,.72); color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
+    .overview-priority-item:hover { background: #eef4ff; border-color: #bcd2f8; }
+    .overview-priority-item strong, .overview-priority-item span { display: block; }
+    .overview-priority-item strong { font-size: .84rem; }
+    .overview-priority-item span { margin-top: 3px; color: var(--text-secondary); font-size: .76rem; }
+    .overview-priority-empty { padding: 14px; border-radius: 10px; background: #f6f9ff; color: var(--text-secondary); font-size: .84rem; }
 
     .staff-row {
       display: flex;
@@ -695,6 +859,60 @@
     .row-meta small {
       color: var(--text-muted);
       font-size: .74rem;
+    }
+
+    .staff-hierarchy {
+      display: grid;
+      gap: 10px;
+    }
+
+    .staff-hierarchy-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-surface);
+    }
+
+    .staff-hierarchy-guide {
+      width: calc(var(--hierarchy-indent, 0px) + 10px);
+      min-height: 36px;
+      border-left: 2px solid var(--border-dark);
+      border-bottom: 2px solid var(--border-dark);
+      border-bottom-left-radius: 8px;
+      align-self: stretch;
+      opacity: .55;
+    }
+
+    .staff-hierarchy-item[data-level="0"] .staff-hierarchy-guide {
+      width: 10px;
+      min-height: 10px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--mint-500);
+      align-self: center;
+      opacity: 1;
+    }
+
+    .staff-hierarchy-person {
+      min-width: 0;
+    }
+
+    .staff-hierarchy-person strong {
+      display: block;
+      color: var(--text-primary);
+      font-size: .9rem;
+      margin-bottom: 3px;
+    }
+
+    .staff-hierarchy-person span {
+      display: block;
+      color: var(--text-secondary);
+      font-size: .8rem;
+      line-height: 1.45;
     }
 
     .profile-list {
@@ -751,6 +969,21 @@
       white-space: pre-line;
     }
 
+    .profile-health {
+      padding: 16px;
+      border: 1px solid #d8e5fa;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f8fbff, #edf4ff);
+    }
+    .profile-health-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+    .profile-health-top span { color: #61708a; font-size: .8rem; }
+    .profile-health-top strong { color: #2865d9; font-size: 1.45rem; line-height: 1; }
+    .profile-health-bar { height: 8px; margin: 13px 0 10px; overflow: hidden; border-radius: 99px; background: #dce8fa; }
+    .profile-health-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3977ee, #6f9df3); transition: width .25s ease; }
+    .profile-health-note { color: #5f6e86; font-size: .78rem; line-height: 1.5; }
+    .profile-employment-list { display: grid; gap: 10px; }
+    .profile-employment-list .profile-item { padding-bottom: 10px; }
+
     .document-form {
       display: grid;
       grid-template-columns: minmax(0, 140px) minmax(0, 1fr) minmax(0, 170px) auto;
@@ -795,6 +1028,43 @@
 
     .alert-row {
       justify-content: flex-start;
+      width: 100%;
+      border: 0;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+    }
+
+    .alert-row:hover {
+      background: #f3f7ff;
+    }
+
+    .alert-row.hr-update {
+      background: #edf4ff;
+      border: 1px solid #d5e4ff;
+      box-shadow: 0 5px 14px rgba(57, 119, 238, .08);
+    }
+
+    .alert-row.hr-update strong { color: #1e58bf; }
+    .hr-updates-btn {
+      position: relative;
+      gap: 7px;
+      border-color: #bcd1fb !important;
+      background: #edf4ff;
+      color: #245ec7;
+    }
+    .hr-updates-count {
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #3977ee;
+      color: #fff;
+      font-size: .66rem;
+      font-weight: 800;
+      line-height: 1;
     }
 
     .staff-main section[id],
@@ -848,7 +1118,7 @@
         bottom: 10px;
         z-index: 180;
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 4px;
         padding: 7px;
         background: rgba(251,253,252,.96);
@@ -857,6 +1127,7 @@
         box-shadow: 0 12px 28px rgba(12,43,54,.18);
       }
       .staff-mobile-nav a {
+        position: relative;
         min-width: 0;
         min-height: 54px;
         display: flex;
@@ -903,6 +1174,9 @@
         min-width: 0;
         justify-content: center;
       }
+      .staff-leave-balance { grid-template-columns: 1fr; }
+      .staff-messages-frame { height: 760px; }
+      .staff-message-shortcut { display: inline-flex; }
       .staff-hero-actions .btn {
         flex: 1;
         min-width: 150px;
@@ -922,6 +1196,14 @@
       .staff-attendance-clock,
       .staff-attendance-status {
         grid-template-columns: 1fr;
+      }
+      .staff-hierarchy-item {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+      .staff-hierarchy-item .row-meta {
+        grid-column: 2;
+        align-items: flex-start;
+        text-align: left;
       }
       .staff-attendance-actions {
         justify-content: stretch;
@@ -965,6 +1247,43 @@
         text-align: left;
       }
     }
+
+    /* Unified KenadHR staff experience */
+    .staff-sidebar {
+      background: #fff;
+      color: var(--text-primary);
+      border-right: 1px solid var(--border);
+      box-shadow: none;
+    }
+    .staff-brand-mark { background: #3977ee; color: #fff; border-radius: 10px; }
+    .staff-brand-name { color: #1d2b4d; font-size: 1.08rem; }
+    .staff-brand-name span { color: #3977ee; }
+    .staff-nav a, .staff-logout { color: #6f7c91; font-weight: 600; border-radius: 9px; }
+    .staff-nav a:hover, .staff-logout:hover { color: #24304a; background: #f3f6ff; }
+    .staff-nav a.active { color: #2865d9; background: #e8f0ff; }
+    .staff-nav svg, .staff-logout svg { color: currentColor; }
+    .staff-sidebar-user { background: #f7faff; border-color: #dfe6f2; border-radius: 12px; }
+    .staff-sidebar-user .avatar { background: #e8f0ff; color: #3977ee; }
+    .staff-sidebar-user strong { color: #24304a; }
+    .staff-sidebar-user span { color: #77839a; }
+    .staff-topbar { border-radius: 12px; background: rgba(255,255,255,.92); box-shadow: none; }
+    .staff-date-chip { border-radius: 9px; background: #f7faff; }
+    .staff-hero, .metric-card, .staff-panel { border-radius: 12px; }
+    .staff-hero { background: linear-gradient(145deg, #fff, #f3f7ff); border-color: #dfe6f2; }
+    .staff-profile-detail, .staff-representative-card,
+    .staff-attendance-stat, .profile-item.profile-item-stack, .empty-compact { border-radius: 10px; }
+    .staff-profile-detail { background: #fff; box-shadow: none; }
+    .staff-representative-card, .profile-item.profile-item-stack, .empty-compact { background: #f7faff; }
+    .metric-card:hover, .staff-panel:hover { border-color: #b8cff9; box-shadow: var(--shadow-md); }
+    .staff-mobile-nav { border-radius: 14px; background: rgba(255,255,255,.96); border-color: #dfe6f2; box-shadow: 0 14px 34px rgba(36,56,103,.16); }
+    .staff-mobile-nav a { border-radius: 9px; }
+    .staff-mobile-nav a.active { color: #2865d9; background: #e8f0ff; }
+    .modal .detail-section { margin-bottom: 20px; }
+    .modal .detail-section h4 { font-size: .82rem; color: #647189; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    .modal .detail-row { display: flex; justify-content: space-between; gap: 18px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .88rem; }
+    .modal .detail-row span:first-child { color: var(--text-secondary); }
+    .modal .detail-row.total { font-weight: 800; color: var(--text-primary); }
+    .modal .net-salary-box { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px; border: 1px solid #d5e2fb; border-radius: 12px; background: #f3f7ff; }
   </style>
 </head>
 <body>
@@ -973,7 +1292,7 @@
       <div class="staff-sidebar-header">
         <div class="staff-brand">
           <div class="staff-brand-mark">HR</div>
-          <div class="staff-brand-name">HR<span>Connect</span></div>
+          <div class="staff-brand-name">Kenad<span>HR</span></div>
         </div>
       </div>
 
@@ -981,6 +1300,15 @@
         <a href="#overview" class="active">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           Overview
+        </a>
+        <a href="#announcements">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 002 2h2l4 4v-4h3l6 3V6l-6 3H5a2 2 0 00-2 2z"/><path d="M14 9v6"/></svg>
+          Announcements
+          <span class="staff-nav-badge hidden" data-announcement-badge>0</span>
+        </a>
+        <a href="#messages">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg>
+          Messages
         </a>
         <a href="#profile">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1016,7 +1344,7 @@
         </a>
         <a href="#orgchart">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="6" rx="1"/><rect x="1" y="16" width="8" height="6" rx="1"/><rect x="15" y="16" width="8" height="6" rx="1"/><path d="M12 8v4M12 12H5v4M12 12h7v4"/></svg>
-          Org Chart
+          Hierarchy
         </a>
         <a href="#settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 .6 1.65 1.65 0 00-.4 1.1V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.6-1 1.65 1.65 0 00-1.1-.4H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-.6A1.65 1.65 0 0010.4 3V3a2 2 0 014 0v.09a1.65 1.65 0 00.4 1.1c.27.27.62.44 1 .6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.38.33.73.6 1 .27.27.62.44 1 .4H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51.6z"/></svg>
@@ -1044,12 +1372,16 @@
       <header class="staff-topbar">
         <div class="staff-topbar-title">
           <div>
-            <h1>Staff details</h1>
-            <span id="topbar-detail">Loading employee workspace...</span>
+            <h1>Staff workspace</h1>
+            <span id="topbar-detail">Your work, updates, and HR requests in one place.</span>
           </div>
         </div>
         <div class="staff-topbar-actions">
           <span class="staff-date-chip" id="topbar-date-range">Today</span>
+          <button class="btn btn-outline btn-sm hr-updates-btn" type="button" onclick="goToStaffPage('announcements')" aria-label="Open HR updates">
+            HR updates <span class="hr-updates-count hidden" id="staff-hr-updates-count">0</span>
+          </button>
+          <button class="btn btn-primary btn-sm staff-message-shortcut" type="button" onclick="goToStaffPage('messages')">Messages</button>
           <button class="btn btn-outline btn-sm" type="button" onclick="goToStaffPage('documents')">View Documents</button>
           <label class="btn btn-outline btn-sm">
             Change Avatar
@@ -1061,44 +1393,25 @@
 
       <section class="staff-hero staff-page-active" id="overview" data-staff-page="overview">
         <div class="staff-hero-copy">
-          <div class="staff-profile-summary">
-            <div id="hero-avatar-preview">
-              <div class="avatar">--</div>
-            </div>
-            <div class="staff-profile-main">
-              <div class="staff-profile-heading">
-                <h2 id="hero-title">Staff member</h2>
-                <span class="staff-eyebrow">Active employee</span>
-              </div>
-              <div class="staff-profile-role"><span id="hero-role">Loading role...</span></div>
-              <div class="staff-profile-details">
-                <div class="staff-profile-detail">
-                  <span>Email address</span>
-                  <strong id="hero-email">--</strong>
-                </div>
-                <div class="staff-profile-detail">
-                  <span>Phone number</span>
-                  <strong id="hero-phone">--</strong>
-                </div>
-                <div class="staff-profile-detail">
-                  <span>Department</span>
-                  <strong id="hero-department">--</strong>
-                </div>
-              </div>
-            </div>
+          <div class="staff-profile-heading">
+            <h2>Important updates</h2>
+            <span class="staff-eyebrow" id="overview-update-count">HR and team activity</span>
           </div>
+          <p>Stay on top of messages, HR announcements, and actions that need your attention.</p>
+          <div class="overview-priority-list" id="overview-priority-list"><div class="overview-priority-empty">Loading your latest updates...</div></div>
         </div>
         <div class="staff-representative-card" aria-label="Representative">
-          <span>Representative</span>
+          <span>Quick actions</span>
           <div class="representative-person">
-            <div class="avatar avatar-sm" id="representative-avatar">HR</div>
+            <div class="avatar avatar-sm">HR</div>
             <div>
-              <strong id="representative-name">--</strong>
-              <small id="representative-title">HR representative</small>
+              <strong>HR &amp; work tools</strong>
+              <small>Access your key staff actions</small>
             </div>
           </div>
           <div class="staff-hero-actions compact" style="margin-top:14px">
             <button class="btn btn-primary btn-sm" type="button" id="overview-attendance-action">Attendance</button>
+            <button class="btn btn-outline btn-sm" type="button" onclick="goToStaffPage('messages')">Messages</button>
             <button class="btn btn-outline btn-sm" type="button" onclick="goToStaffPage('leave')">Request Leave</button>
           </div>
         </div>
@@ -1126,6 +1439,34 @@
                 </label>
               </div>
             </div>
+          </div>
+        </article>
+
+        <article class="staff-panel">
+          <div class="staff-panel-header">
+            <div>
+              <h3>Profile Health</h3>
+              <span>Keep your staff record ready for HR</span>
+            </div>
+          </div>
+          <div class="staff-panel-body">
+            <div class="profile-health">
+              <div class="profile-health-top"><span>Profile completion</span><strong id="profile-completion-value">--%</strong></div>
+              <div class="profile-health-bar"><span id="profile-completion-bar" style="width:0%"></span></div>
+              <div class="profile-health-note" id="profile-completion-note">Checking your profile details...</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="staff-panel">
+          <div class="staff-panel-header">
+            <div>
+              <h3>Employment Record</h3>
+              <span>Your current role details</span>
+            </div>
+          </div>
+          <div class="staff-panel-body">
+            <div class="profile-employment-list" id="profile-employment-list"></div>
           </div>
         </article>
 
@@ -1250,6 +1591,7 @@
           <div class="staff-panel-body">
             <div class="staff-attendance-clock">
               <div>
+                <div class="staff-attendance-kicker">KenadHR time clock</div>
                 <div class="staff-attendance-time" id="staff-clock-time">--:--:--</div>
                 <div class="staff-attendance-date" id="staff-clock-date">Today</div>
               </div>
@@ -1269,31 +1611,57 @@
                 <strong id="attendance-clock-in">--</strong>
               </div>
               <div class="staff-attendance-stat">
-                <span>Hours</span>
+                <span>Clock out</span>
+                <strong id="attendance-clock-out">--</strong>
+              </div>
+              <div class="staff-attendance-stat">
+                <span>Hours today</span>
                 <strong id="attendance-hours">--</strong>
               </div>
             </div>
 
-            <div class="staff-attendance-filter">
-              <div class="form-group">
-                <label class="form-label" for="attendance-from">From</label>
-                <input type="date" id="attendance-from" class="form-control">
+            <div class="staff-attendance-history">
+              <div class="staff-attendance-history-head">
+                <div>
+                  <h4>Attendance history</h4>
+                  <p>Review your recent check-ins and working hours.</p>
+                </div>
+                <div class="staff-attendance-filter">
+                  <div class="form-group">
+                    <label class="form-label" for="attendance-from">From</label>
+                    <input type="date" id="attendance-from" class="form-control">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="attendance-to">To</label>
+                    <input type="date" id="attendance-to" class="form-control">
+                  </div>
+                  <button class="btn btn-outline" type="button" onclick="loadStaffAttendanceHistory()">Filter</button>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="attendance-to">To</label>
-                <input type="date" id="attendance-to" class="form-control">
+              <div id="attendance-history-list">
+                <div class="loading-state"><div class="spinner"></div><span>Loading attendance...</span></div>
               </div>
-              <button class="btn btn-outline" type="button" onclick="loadStaffAttendanceHistory()">Filter</button>
-            </div>
-
-            <div id="attendance-history-list">
-              <div class="loading-state"><div class="spinner"></div><span>Loading attendance...</span></div>
             </div>
           </div>
         </article>
       </section>
 
       <section class="staff-grid" data-staff-page="leave">
+        <article class="staff-panel">
+          <div class="staff-panel-header">
+            <div>
+              <h3>Annual Leave Balance</h3>
+              <span>Your available days for the current year</span>
+            </div>
+          </div>
+          <div class="staff-panel-body">
+            <div class="staff-leave-balance">
+              <div class="staff-leave-balance-main"><span>Available</span><strong id="staff-leave-balance">--</strong><small>of 20 annual leave days</small></div>
+              <div class="staff-leave-balance-stat"><span>Used</span><strong id="staff-leave-used">--</strong><small>approved days</small></div>
+              <div class="staff-leave-balance-stat"><span>Pending</span><strong id="staff-leave-pending">--</strong><small>awaiting approval</small></div>
+            </div>
+          </div>
+        </article>
         <article class="staff-panel" id="leave-request">
           <div class="staff-panel-header">
             <div>
@@ -1327,6 +1695,9 @@
                   <input type="text" id="leave-reason" class="form-control" placeholder="Short note">
                 </div>
                 <div class="form-group span-2">
+                  <div class="form-hint" id="leave-duration-preview" aria-live="polite">Select dates to see the number of leave days.</div>
+                </div>
+                <div class="form-group span-2">
                   <button class="btn btn-primary" type="submit" id="leave-submit">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                     Submit Request
@@ -1334,6 +1705,20 @@
                 </div>
               </div>
             </form>
+          </div>
+        </article>
+      </section>
+
+      <section class="staff-grid" data-staff-page="messages">
+        <article class="staff-panel">
+          <div class="staff-panel-header">
+            <div>
+              <h3>Messages</h3>
+              <span>Chat with HR and colleagues without leaving your staff portal</span>
+            </div>
+          </div>
+          <div class="staff-panel-body" style="padding:0">
+            <iframe class="staff-messages-frame" src="messages.html?embed=1" title="KenadHR Messages"></iframe>
           </div>
         </article>
       </section>
@@ -1426,7 +1811,7 @@
                   <textarea id="ticket-description" class="form-control" rows="4" required></textarea>
                 </div>
                 <div class="form-group span-2">
-                  <button class="btn btn-primary" type="submit">Submit Ticket</button>
+                  <button class="btn btn-primary" type="submit" id="ticket-submit">Submit Ticket</button>
                 </div>
               </div>
             </form>
@@ -1467,6 +1852,7 @@
               <h3>Payslips</h3>
               <span>Latest payroll records</span>
             </div>
+            <button class="btn btn-outline btn-sm" type="button" onclick="refreshStaffPayslips()">Refresh</button>
           </div>
           <div class="staff-panel-body" id="payslip-list">
             <div class="loading-state"><div class="spinner"></div><span>Loading payslips...</span></div>
@@ -1490,7 +1876,8 @@
                 <option value="contract">Contract</option>
                 <option value="other">Other</option>
               </select>
-              <input id="doc-file" type="file" class="form-control" required>
+              <input id="doc-title" type="text" class="form-control" maxlength="200" placeholder="Document title" required>
+              <input id="doc-file" type="file" class="form-control" required onchange="suggestStaffDocumentTitle(this.files[0])">
               <select id="doc-share-with" class="form-control form-select" aria-label="Share with">
                 <option value="">HR only</option>
               </select>
@@ -1521,12 +1908,30 @@
         <article class="staff-panel">
           <div class="staff-panel-header">
             <div>
-              <h3>Organization Chart</h3>
+              <h3>Organizational Hierarchy</h3>
               <span>Your reporting structure</span>
             </div>
           </div>
           <div class="staff-panel-body" id="staff-org-chart">
             <div class="loading-state"><div class="spinner"></div></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="staff-grid" data-staff-page="announcements">
+        <article class="staff-panel" id="announcements">
+          <div class="staff-panel-header">
+            <div>
+              <h3>Announcements</h3>
+              <span id="announcement-page-summary">All company updates</span>
+            </div>
+            <span class="announcement-alert hidden" id="announcement-new-alert">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              <span id="announcement-new-count">0 new</span>
+            </span>
+          </div>
+          <div class="staff-panel-body" id="announcement-page-list">
+            <div class="loading-state"><div class="spinner"></div><span>Loading announcements...</span></div>
           </div>
         </article>
       </section>
@@ -1570,12 +1975,13 @@
       </section>
 
       <section class="staff-grid staff-page-active" data-staff-page="overview">
-        <article class="staff-panel" id="announcements">
+        <article class="staff-panel" id="announcements-overview">
           <div class="staff-panel-header">
             <div>
               <h3>Announcements</h3>
               <span>Company updates</span>
             </div>
+            <button class="btn btn-sm btn-outline" type="button" onclick="goToStaffPage('announcements')">View All</button>
           </div>
           <div class="staff-panel-body" id="announcement-list">
             <div class="loading-state"><div class="spinner"></div><span>Loading announcements...</span></div>
@@ -1587,8 +1993,8 @@
         <article class="staff-panel" id="alerts">
           <div class="staff-panel-header">
             <div>
-              <h3>Notifications</h3>
-              <span id="alert-summary">Personal alerts</span>
+              <h3>HR updates &amp; notifications</h3>
+              <span id="alert-summary">Important updates from HR</span>
             </div>
             <button class="btn btn-sm btn-outline" type="button" id="mark-alerts-read">Mark Read</button>
           </div>
@@ -1617,6 +2023,15 @@
       <a href="#overview" class="active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         Overview
+      </a>
+      <a href="#announcements">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 002 2h2l4 4v-4h3l6 3V6l-6 3H5a2 2 0 00-2 2z"/><path d="M14 9v6"/></svg>
+        News
+        <span class="staff-mobile-badge hidden" data-announcement-badge>0</span>
+      </a>
+      <a href="#messages">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg>
+        Messages
       </a>
       <a href="#profile">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1652,7 +2067,7 @@
       </a>
       <a href="#orgchart">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="6" rx="1"/><rect x="1" y="16" width="8" height="6" rx="1"/><rect x="15" y="16" width="8" height="6" rx="1"/><path d="M12 8v4M12 12H5v4M12 12h7v4"/></svg>
-        Org
+        Hierarchy
       </a>
       <a href="#settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 .6A1.65 1.65 0 0013.6 21V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.6-1A1.65 1.65 0 003 13.6H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-.6A1.65 1.65 0 0010.4 3V3a2 2 0 014 0v.09a1.65 1.65 0 00.4 1.1c.27.27.62.44 1 .6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.38.33.73.6 1 .27.27.62.44 1 .4H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51.6z"/></svg>
@@ -1668,6 +2083,7 @@
     const MS_DAY = 86400000;
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const STAFF_PAGE_ALIASES = {
+      announcement: 'announcements',
       'leave-request': 'leave',
       payslips: 'payroll',
       reviews: 'performance',
@@ -1676,6 +2092,8 @@
     };
     const STAFF_PAGE_TITLES = {
       overview: 'Staff Portal',
+      announcements: 'Announcements',
+      messages: 'Messages',
       profile: 'Staff Profile',
       attendance: 'Attendance',
       leave: 'Leave',
@@ -1684,7 +2102,7 @@
       todos: 'To Do List',
       tickets: 'Tickets',
       performance: 'Reviews',
-      orgchart: 'Org Chart',
+      orgchart: 'Organizational Hierarchy',
       settings: 'Settings',
     };
     let portalState = {
@@ -1728,13 +2146,14 @@
         section.classList.toggle('staff-page-active', section.dataset.staffPage === page);
       });
       setStaffNavActive(targetHash);
-      document.title = `${STAFF_PAGE_TITLES[page]} - HRConnect`;
+      document.title = `${STAFF_PAGE_TITLES[page]} - KenadHR`;
       if (window.location.hash !== targetHash) {
         window.history.replaceState(null, '', targetHash);
       }
       if (options.scroll !== false) {
         window.scrollTo({ top: 0, behavior: options.instant ? 'auto' : 'smooth' });
       }
+      if (page === 'announcements') markAnnouncementNotificationsRead();
     }
 
     function goToStaffPage(page) {
@@ -1802,7 +2221,9 @@
         renderStaffEvents();
         renderAnnouncements();
         renderNotifications();
+        renderAnnouncementIndicators();
         renderNextLeave();
+        if (getStaffPage() === 'announcements') markAnnouncementNotificationsRead();
       } catch (err) {
         toast(err.message || 'Could not load staff portal', 'error');
       }
@@ -1842,6 +2263,34 @@
       ['education', 'experience', 'emergency', 'bank', 'personal'].forEach((section) => {
         setProfileList(profileCardConfig(section).target, profileCardRows(section, profile));
       });
+      setProfileList('profile-employment-list', [
+        ['Staff ID', profile.id ? `EMP-${String(profile.id).padStart(4, '0')}` : ''],
+        ['Department', profile.department_name || 'Unassigned'],
+        ['Job title', profile.job_title || titleCase(profile.role || 'staff')],
+        ['Employment type', typeLabel(profile.employment_type || 'staff')],
+        ['Hire date', profile.hire_date ? fmt.date(profile.hire_date) : ''],
+        ['Line manager', profile.manager_name || 'HR team']
+      ]);
+      renderProfileHealth(profile);
+    }
+
+    function renderProfileHealth(profile) {
+      const checks = [
+        ['phone', 'phone number'], ['address', 'home address'], ['date_of_birth', 'date of birth'],
+        ['education_level', 'education'], ['emergency_contact_name', 'emergency contact'],
+        ['emergency_contact_phone', 'emergency contact phone'], ['bank_name', 'bank information'],
+        ['bank_account_number', 'bank account number']
+      ];
+      const missing = checks.filter(([field]) => !String(profile[field] || '').trim()).map(([, label]) => label);
+      const complete = checks.length - missing.length;
+      const percent = Math.round((complete / checks.length) * 100);
+      setText('profile-completion-value', `${percent}%`);
+      const bar = document.getElementById('profile-completion-bar');
+      if (bar) bar.style.width = `${percent}%`;
+      const note = missing.length
+        ? `Add ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ', and more' : ''} to complete your profile.`
+        : 'Your profile is complete and ready for HR.';
+      setText('profile-completion-note', note);
     }
 
     function setProfileList(id, rows) {
@@ -2021,12 +2470,18 @@
       const annualUsed = leaves
         .filter((leave) => leave.status === 'approved' && leave.leave_type === 'annual' && new Date(leave.start_date).getFullYear() === new Date().getFullYear())
         .reduce((total, leave) => total + leaveDays(leave), 0);
+      const annualPending = leaves
+        .filter((leave) => leave.status === 'pending' && leave.leave_type === 'annual' && new Date(leave.start_date).getFullYear() === new Date().getFullYear())
+        .reduce((total, leave) => total + leaveDays(leave), 0);
       const remaining = Math.max(0, 20 - annualUsed);
       const latestPay = latestPayroll(payroll);
       const latestReview = latestReviewRow(reviews);
 
       setText('kpi-pending-leave', pending);
       setText('kpi-leave-balance', remaining);
+      setText('staff-leave-balance', remaining);
+      setText('staff-leave-used', annualUsed);
+      setText('staff-leave-pending', annualPending);
       setText('kpi-latest-pay', latestPay ? compactMoney(latestPay.net_salary) : '--');
       setText('kpi-latest-pay-note', latestPay ? `${monthLabel(latestPay.month, latestPay.year)} net salary` : 'net salary');
       setText('kpi-review-score', latestReview ? `${Number(latestReview.rating).toFixed(1)}/5` : '--');
@@ -2046,6 +2501,7 @@
       setText('overview-date', now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }));
       setText('overview-next-leave', nextLeave ? `${typeLabel(nextLeave.leave_type)} ${fmt.date(nextLeave.start_date)}` : 'None scheduled');
       setText('overview-alerts', unread ? `${unread} unread` : 'All clear');
+      renderOverviewPriority();
 
       if (statusNode) {
         statusNode.innerHTML = hasClockIn ? fmt.statusBadge(att.status || 'present') : '<span class="badge badge-neutral">Not started</span>';
@@ -2057,6 +2513,43 @@
         else if (!hasClockOut) action.textContent = 'Clock Out';
         else action.textContent = 'View Attendance';
       }
+    }
+
+    function renderOverviewPriority() {
+      const target = document.getElementById('overview-priority-list');
+      if (!target) return;
+      const rows = [...(portalState.notifications || [])]
+        .sort((left, right) => Number(!right.is_read) - Number(!left.is_read) || String(right.created_at).localeCompare(String(left.created_at)))
+        .slice(0, 3);
+      const unread = rows.filter((row) => !row.is_read).length;
+      setText('overview-update-count', unread ? `${unread} unread update${unread === 1 ? '' : 's'} need your attention` : 'You are all caught up');
+      if (!rows.length) {
+        target.innerHTML = '<div class="overview-priority-empty">No new messages or HR updates right now.</div>';
+        return;
+      }
+      target.innerHTML = rows.map((row) => `
+        <button class="overview-priority-item" type="button" data-overview-notification="${row.id}">
+          <div><strong>${safe(typeLabel(row.type))}</strong><span>${safe(row.message)}</span></div>
+          ${row.is_read ? '' : '<span class="unread-dot" aria-label="Unread"></span>'}
+        </button>
+      `).join('');
+      target.querySelectorAll('[data-overview-notification]').forEach((button) => {
+        button.addEventListener('click', () => openOverviewNotification(Number(button.dataset.overviewNotification)));
+      });
+    }
+
+    async function openOverviewNotification(id) {
+      const alert = (portalState.notifications || []).find((row) => Number(row.id) === Number(id));
+      if (!alert) return;
+      try {
+        if (!alert.is_read) await api.patch(`/notifications/${alert.id}/read`);
+        portalState.notifications = portalState.notifications.map((row) => row.id === alert.id ? { ...row, is_read: true } : row);
+        const link = String(alert.link || '');
+        if (alert.type === 'message' || link.includes('messages')) goToStaffPage('messages');
+        else if (alert.type === 'announcement' || link.includes('announcements')) goToStaffPage('announcements');
+        else if (link.includes('leave')) goToStaffPage('leave');
+        else renderOverview();
+      } catch (err) { toast(err.message || 'Could not open update', 'error'); }
     }
 
     function renderAttendance() {
@@ -2081,6 +2574,7 @@
         statusNode.innerHTML = hasClockIn ? fmt.statusBadge(att.status || 'present') : '<span class="badge badge-neutral">Not started</span>';
       }
       setText('attendance-clock-in', hasClockIn ? fmt.time(att.clock_in) : '--');
+      setText('attendance-clock-out', hasClockOut ? fmt.time(att.clock_out) : '--');
       setText('attendance-hours', hasClockIn ? (hasClockOut ? fmt.duration(att.clock_in, att.clock_out) : 'In progress') : '--');
     }
 
@@ -2229,9 +2723,81 @@
           <div class="row-meta">
             <strong>${fmt.currency(pay.net_salary)}</strong>
             ${fmt.statusBadge(pay.status)}
+            <button class="btn btn-outline btn-sm" type="button" onclick="openStaffPayslip(${pay.id})">View payslip</button>
           </div>
         </div>
       `).join('');
+    }
+
+    async function refreshStaffPayslips() {
+      try {
+        portalState.payroll = await api.get('/payroll/mine');
+        renderPayslips();
+        renderKpis();
+        toast('Payslips refreshed', 'success');
+      } catch (err) {
+        toast(err.message || 'Could not refresh payslips', 'error');
+      }
+    }
+
+    async function openStaffPayslip(id) {
+      try {
+        const pay = await api.get(`/payroll/${id}`);
+        const month = new Date(Number(pay.year), Number(pay.month) - 1, 1)
+          .toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        const gross = Number(pay.base_salary || 0) + Number(pay.allowances || 0);
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+          <div class="modal modal-lg">
+            <div class="modal-header">
+              <div><h3>Payslip</h3><p style="font-size:.82rem;margin-top:2px">${safe(month)}</p></div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn btn-outline btn-sm" type="button" onclick="printStaffPayslip(this)">Print</button>
+                <button class="modal-close" type="button" onclick="this.closest('.modal-overlay').remove()">×</button>
+              </div>
+            </div>
+            <div class="modal-body" id="staff-printable-payslip">
+              <div class="detail-section">
+                <h4>Employee Details</h4>
+                <div class="detail-row"><span>Name</span><span>${safe(`${pay.first_name} ${pay.last_name}`)}</span></div>
+                <div class="detail-row"><span>Job title</span><span>${safe(pay.job_title || '—')}</span></div>
+                <div class="detail-row"><span>Department</span><span>${safe(pay.department_name || '—')}</span></div>
+              </div>
+              <div class="detail-section">
+                <h4>Earnings</h4>
+                <div class="detail-row"><span>Base salary</span><span>${fmt.currency(pay.base_salary)}</span></div>
+                <div class="detail-row"><span>Allowances</span><span>+${fmt.currency(pay.allowances)}</span></div>
+                <div class="detail-row total"><span>Gross pay</span><span>${fmt.currency(gross)}</span></div>
+              </div>
+              <div class="detail-section">
+                <h4>Deductions</h4>
+                <div class="detail-row"><span>Total deductions</span><span>-${fmt.currency(pay.deductions)}</span></div>
+              </div>
+              <div class="net-salary-box">
+                <div><div style="font-size:.78rem;color:var(--text-muted)">NET PAY</div><strong style="font-size:1.5rem">${fmt.currency(pay.net_salary)}</strong></div>
+                <div style="text-align:right">${fmt.statusBadge(pay.status)}${pay.paid_at ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Paid ${fmt.date(pay.paid_at)}</div>` : ''}</div>
+              </div>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+      } catch (err) {
+        toast(err.message || 'Could not open payslip', 'error');
+      }
+    }
+
+    function printStaffPayslip(button) {
+      const content = button.closest('.modal').querySelector('#staff-printable-payslip');
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast('Allow popups to print this payslip.', 'warning');
+        return;
+      }
+      printWindow.document.title = 'KenadHR Payslip';
+      printWindow.document.head.innerHTML = '<link rel="stylesheet" href="../css/main.css"><style>body{padding:36px;background:#fff}.modal-body{max-width:760px;margin:auto}.detail-section{margin-bottom:22px}.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #dfe6f2}.net-salary-box{display:flex;justify-content:space-between;padding:18px;background:#f3f7ff;border-radius:12px}</style>';
+      printWindow.document.body.innerHTML = content.innerHTML;
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 250);
     }
 
     function renderDocuments() {
@@ -2245,11 +2811,13 @@
       target.innerHTML = docs.map((doc) => `
         <div class="staff-row">
           <div>
-            <strong>${safe(doc.original_name)}</strong>
+            <strong>${safe(doc.title || doc.original_name)}</strong>
             <span>${safe(typeLabel(doc.doc_type))} &middot; ${formatFileSize(doc.file_size)}</span>
           </div>
           <div class="row-meta">
             <small>${fmt.date(doc.uploaded_at)}</small>
+            <a class="btn btn-outline btn-sm" href="${assetUrl(doc.file_path)}" target="_blank" rel="noopener">View</a>
+            ${Number(doc.employee_id) === Number(portalState.profile?.id) ? `<button class="btn btn-outline btn-sm" type="button" onclick="deleteStaffDocument(${doc.id})">Delete</button>` : ''}
           </div>
         </div>
       `).join('');
@@ -2390,11 +2958,14 @@
 
     async function submitTicket(event) {
       event.preventDefault();
+      const button = document.getElementById('ticket-submit');
       try {
         if (portalState.profile?.department_name === 'IT Department') {
           toast('IT Department users can view and complete staff tickets, but cannot submit tickets', 'error');
           return;
         }
+        button.disabled = true;
+        button.textContent = 'Submitting...';
         await api.post('/tickets', {
           category: document.getElementById('ticket-category').value,
           priority: document.getElementById('ticket-priority').value,
@@ -2407,6 +2978,11 @@
         await loadPortal();
       } catch (err) {
         toast(err.message || 'Could not submit ticket', 'error');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Submit Ticket';
+        }
       }
     }
 
@@ -2414,18 +2990,24 @@
       const target = document.getElementById('staff-org-chart');
       const rows = flattenOrg(portalState.orgTree || []);
       if (!rows.length) {
-        target.innerHTML = emptyBlock('No organization chart available yet.');
+        target.innerHTML = emptyBlock('No organizational hierarchy available yet.');
         return;
       }
-      target.innerHTML = rows.map((node) => `
-        <div class="staff-row" style="padding-left:${Math.min(node.level * 18, 72)}px">
-          <div>
+      target.innerHTML = `<div class="staff-hierarchy">
+        ${rows.map((node) => `
+        <div class="staff-hierarchy-item" data-level="${node.level}" style="--hierarchy-indent:${Math.min(node.level * 18, 90)}px">
+          <div class="staff-hierarchy-guide" aria-hidden="true"></div>
+          <div class="staff-hierarchy-person">
             <strong>${safe(node.first_name)} ${safe(node.last_name)}</strong>
             <span>${safe(node.job_title || titleCase(node.role))}${node.department_name ? ' - ' + safe(node.department_name) : ''}</span>
           </div>
-          <div class="row-meta">${fmt.statusBadge(node.role)}</div>
+          <div class="row-meta">
+            ${fmt.statusBadge(node.role)}
+            <small>${node.level === 0 ? 'Top level' : `Level ${node.level + 1}`}</small>
+          </div>
         </div>
-      `).join('');
+        `).join('')}
+      </div>`;
     }
 
     function flattenOrg(nodes, level = 0) {
@@ -2495,14 +3077,17 @@
     }
 
     function renderAnnouncements() {
-      const rows = portalState.announcements.slice(0, 4);
-      const target = document.getElementById('announcement-list');
+      const rows = portalState.announcements || [];
+      const previewTarget = document.getElementById('announcement-list');
+      const pageTarget = document.getElementById('announcement-page-list');
+
       if (!rows.length) {
-        target.innerHTML = emptyBlock('No announcements yet.');
+        if (previewTarget) previewTarget.innerHTML = emptyBlock('No announcements yet.');
+        if (pageTarget) pageTarget.innerHTML = emptyBlock('No announcements yet.');
         return;
       }
 
-      target.innerHTML = rows.map((item) => `
+      const buildRows = (items) => items.map((item) => `
         <div class="staff-row">
           <div>
             <strong>${safe(item.title)}</strong>
@@ -2514,18 +3099,15 @@
           </div>
         </div>
       `).join('');
+
+      if (previewTarget) previewTarget.innerHTML = buildRows(rows.slice(0, 4));
+      if (pageTarget) pageTarget.innerHTML = buildRows(rows);
     }
 
     function renderStaffEvents() {
       const target = document.getElementById('staff-event-list');
       if (!target) return;
 
-      const interviews = (window.hrSuiteData?.hiring?.interviews || []).map((event) => ({
-        title: `${event.candidate} interview`,
-        detail: `${event.role} - ${event.mode}`,
-        date: event.date,
-        badge: event.time
-      }));
       const benefits = (window.hrSuiteData?.benefits?.events || []).map((event) => ({
         title: event.event,
         detail: `${event.employee} - ${event.plan}`,
@@ -2538,7 +3120,7 @@
         date: event.startDate,
         badge: event.status
       }));
-      const rows = [...interviews, ...benefits, ...onboarding]
+      const rows = [...benefits, ...onboarding]
         .filter((event) => event.date)
         .sort((a, b) => String(a.date).localeCompare(String(b.date)))
         .slice(0, 5);
@@ -2563,7 +3145,9 @@
     }
 
     function renderNotifications() {
-      const rows = portalState.notifications.slice(0, 6);
+      const rows = [...portalState.notifications]
+        .sort((left, right) => Number(right.type === 'announcement') - Number(left.type === 'announcement'))
+        .slice(0, 6);
       const unread = portalState.notifications.filter((alert) => !alert.is_read).length;
       setText('alert-summary', `${unread} unread alert${unread === 1 ? '' : 's'}`);
       const target = document.getElementById('notification-list');
@@ -2573,15 +3157,79 @@
       }
 
       target.innerHTML = rows.map((alert) => `
-        <div class="staff-row alert-row">
+        <button class="staff-row alert-row ${alert.type === 'announcement' ? 'hr-update' : ''}" type="button" data-notification-id="${alert.id}" data-notification-link="${safe(alert.link || '')}">
           ${alert.is_read ? '' : '<span class="unread-dot"></span>'}
           <div>
             <strong>${safe(typeLabel(alert.type))}</strong>
             <span>${safe(alert.message)}</span>
             <span>${fmt.relativeTime(alert.created_at)}</span>
           </div>
-        </div>
+        </button>
       `).join('');
+      target.querySelectorAll('[data-notification-id]').forEach((row) => {
+        row.addEventListener('click', () => openStaffNotification(
+          Number(row.dataset.notificationId), row.dataset.notificationLink || ''
+        ));
+      });
+    }
+
+    async function openStaffNotification(id, link) {
+      try {
+        await api.patch(`/notifications/${id}/read`);
+        if (link) {
+          window.location.href = link;
+          return;
+        }
+        portalState.notifications = portalState.notifications.map((alert) => (
+          alert.id === id ? { ...alert, is_read: true } : alert
+        ));
+        renderNotifications();
+      } catch (err) {
+        toast(err.message || 'Could not open notification', 'error');
+      }
+    }
+
+    function unreadAnnouncementNotifications() {
+      return (portalState.notifications || []).filter((alert) => alert.type === 'announcement' && !alert.is_read);
+    }
+
+    function renderAnnouncementIndicators() {
+      const count = unreadAnnouncementNotifications().length;
+      const headerBadge = document.getElementById('staff-hr-updates-count');
+      if (headerBadge) {
+        headerBadge.textContent = count > 9 ? '9+' : String(count);
+        headerBadge.classList.toggle('hidden', count === 0);
+      }
+      document.querySelectorAll('[data-announcement-badge]').forEach((badge) => {
+        badge.textContent = count > 9 ? '9+' : String(count);
+        badge.classList.toggle('hidden', count === 0);
+      });
+
+      const alert = document.getElementById('announcement-new-alert');
+      if (alert) alert.classList.toggle('hidden', count === 0);
+      setText('announcement-new-count', `${count} new`);
+      setText('announcement-page-summary', count ? `${count} new announcement${count === 1 ? '' : 's'}` : 'All company updates');
+    }
+
+    async function markAnnouncementNotificationsRead() {
+      const unreadAnnouncements = unreadAnnouncementNotifications();
+      if (!unreadAnnouncements.length) {
+        renderAnnouncementIndicators();
+        return;
+      }
+
+      portalState.notifications = portalState.notifications.map((alert) => (
+        alert.type === 'announcement' && !alert.is_read ? { ...alert, is_read: true } : alert
+      ));
+      renderOverview();
+      renderNotifications();
+      renderAnnouncementIndicators();
+
+      try {
+        await Promise.all(unreadAnnouncements.map((alert) => api.patch(`/notifications/${alert.id}/read`)));
+      } catch (err) {
+        toast(err.message || 'Could not update announcement notifications', 'error');
+      }
     }
 
     function renderNextLeave() {
@@ -2635,10 +3283,19 @@
       event.preventDefault();
       const button = document.getElementById('doc-submit');
       const file = document.getElementById('doc-file').files[0];
-      if (!file) return;
+      const title = document.getElementById('doc-title').value.trim();
+      if (!file || !title) {
+        toast('Choose a file and enter a document title', 'warning');
+        return;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        toast('Documents must be 20MB or smaller', 'warning');
+        return;
+      }
 
       const form = new FormData();
       form.append('doc_type', document.getElementById('doc-type').value);
+      form.append('title', title);
       form.append('document', file);
       form.append('share_with_hr', 'true');
       form.append('shared_with', document.getElementById('doc-share-with')?.value || '');
@@ -2658,6 +3315,22 @@
       }
     }
 
+    function suggestStaffDocumentTitle(file) {
+      const title = document.getElementById('doc-title');
+      if (file && title && !title.value.trim()) title.value = file.name.replace(/\.[^.]+$/, '');
+    }
+
+    async function deleteStaffDocument(id) {
+      if (!confirm('Delete this document? This cannot be undone.')) return;
+      try {
+        await api.delete(`/documents/${id}`);
+        toast('Document deleted', 'success');
+        await loadPortal();
+      } catch (err) {
+        toast(err.message || 'Could not delete document', 'error');
+      }
+    }
+
     async function markAlertsRead() {
       try {
         await api.patch('/notifications/read-all');
@@ -2670,13 +3343,22 @@
 
     function staffLogout() {
       api.clearAuth();
-      window.location.href = appUrl('/pages/staff-login.html');
+      window.location.href = appUrl('/pages/login.html');
     }
 
     function setDateDefaults() {
       const today = new Date().toISOString().slice(0, 10);
       const start = document.getElementById('leave-start');
       const end = document.getElementById('leave-end');
+      const preview = document.getElementById('leave-duration-preview');
+      const updateDuration = () => {
+        if (!start?.value || !end?.value || end.value < start.value) {
+          if (preview) preview.textContent = 'Choose a valid start and end date.';
+          return;
+        }
+        const days = Math.round((new Date(`${end.value}T00:00:00`) - new Date(`${start.value}T00:00:00`)) / 86400000) + 1;
+        if (preview) preview.textContent = `${days} leave day${days === 1 ? '' : 's'} requested, including both dates.`;
+      };
       start.min = today;
       end.min = today;
       if (!start.value) start.value = today;
@@ -2684,7 +3366,10 @@
       start.onchange = () => {
         end.min = start.value || today;
         if (end.value && end.value < start.value) end.value = start.value;
+        updateDuration();
       };
+      end.onchange = updateDuration;
+      updateDuration();
     }
 
     function setText(id, value) {

@@ -1,5 +1,5 @@
 /* ============================================================
-   HRConnect — Design System
+   KenadHR — Design System
    Font: Inter
    Aesthetic: Clean executive — deep navy, crisp white, amber accent
    ============================================================ */
@@ -839,3 +839,63 @@ tbody tr:hover { background: var(--bg-page); }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .notif-panel { width: 100%; }
 }
+
+/* KenadHR application theme — aligned with the sign-in experience */
+:root {
+  --navy-950: #172442; --navy-900: #1d2b4d; --navy-800: #2865d9;
+  --navy-700: #3977ee; --navy-600: #3977ee; --navy-400: #92b4f7;
+  --navy-200: #d5e2fb; --navy-100: #e8f0ff; --navy-50: #f3f7ff;
+  --mint-600: #3977ee; --mint-500: #72a0f4; --mint-200: #d5e2fb;
+  --mint-100: #e8f0ff; --mint-50: #f7faff;
+  --bg-page: #f7f9ff; --bg-surface: #fff; --bg-elevated: #fff;
+  --border: #dfe6f2; --border-dark: #c6d4ec;
+  --text-primary: #202a3d; --text-secondary: #647189; --text-muted: #8791a2;
+  --accent: #3977ee; --accent-dark: #2865d9; --accent-soft: #e8f0ff;
+  --brand: #3977ee; --brand-dark: #1d2b4d;
+  --info-bg: #e8f0ff; --info-fg: #3977ee;
+  --violet-600: #5668bf; --violet-100: #eceeff;
+  --shadow-sm: 0 2px 8px rgba(36,56,103,.06);
+  --shadow-md: 0 10px 24px rgba(48,93,180,.10);
+  --shadow-lg: 0 24px 70px rgba(36,56,103,.16);
+  --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+}
+body { background: var(--bg-page); }
+.sidebar { background: #fff; border-right: 1px solid var(--border); box-shadow: none; }
+.sidebar-logo { border-bottom-color: var(--border); padding: 0 18px; }
+.sidebar-logo .logo-mark { width: 42px; height: 42px; border-radius: 10px; background: #3977ee; color: #fff; }
+.sidebar-logo .logo-text { color: #1d2b4d; font-size: 1.12rem; font-weight: 800; }
+.sidebar-logo .logo-text span { color: #3977ee; }
+.nav-section-label { color: #97a2b7; padding: 16px 18px 7px; }
+.nav-item { margin: 2px 10px; padding: 10px; border-radius: 9px; color: #6f7c91; font-weight: 500; }
+.nav-item:hover { color: #24304a; background: #f3f6ff; }
+.nav-item.active { color: #2865d9; background: #e8f0ff; font-weight: 700; }
+.nav-item.active::before { display: none; }
+.nav-badge { background: #e8f0ff; color: #2865d9; }
+.sidebar-user { border-top-color: var(--border); }
+.sidebar-user .user-avatar { background: #e8f0ff; color: #3977ee; }
+.sidebar-user .user-name { color: #24304a; font-weight: 700; }
+.sidebar-user .user-role { color: #77839a; }
+.sidebar-user .logout-btn { color: #8b96a8; }
+.sidebar-user .logout-btn:hover { color: var(--rose-600); background: #fff3f5; }
+.topbar { background: rgba(255,255,255,.9); border-bottom-color: var(--border); box-shadow: none; backdrop-filter: blur(12px); }
+.topbar-title { color: #24304a; font-weight: 800; }
+.icon-btn:hover { background: #f0f4fc; color: #2865d9; }
+.main-content { max-width: none; padding: 30px; }
+.page-header h1 { color: #202a3d; font-size: 1.65rem; letter-spacing: -.025em; }
+.card, .stat-card, .org-card, .table-container, .modal { border-radius: 12px; border-color: var(--border); box-shadow: var(--shadow-sm); }
+.card-header { padding: 17px 20px; }
+.card-body { padding: 20px; }
+.stat-card { padding: 18px 20px; }
+.stat-card:hover, .org-card:hover { border-color: #b8cff9; box-shadow: var(--shadow-md); }
+.stat-icon.blue { background: #e8f0ff; color: #3977ee; }
+.btn-primary, .btn-accent { background: #3977ee; box-shadow: 0 8px 18px rgba(57,119,238,.2); }
+.btn-primary:hover, .btn-accent:hover { background: #2865d9; }
+.btn-outline { border-color: #d4deed; background: #fff; color: #536078; }
+.btn-outline:hover { border-color: #92b4f7; color: #2865d9; background: #f7faff; }
+.form-control { border-color: #e2e6ee; background: #fff; }
+.form-control:focus { border-color: #3977ee; box-shadow: 0 0 0 3px rgba(57,119,238,.12); }
+thead th { background: #f7faff; }
+tbody tr:hover { background: #f7faff; }
+.tab-btn.active { color: #3977ee; border-bottom-color: #3977ee; }
+.empty-state, .loading-state { border-radius: 12px; }
+@media (max-width: 768px) { .main-content { padding: 20px 16px; } .sidebar { box-shadow: 18px 0 48px rgba(29,43,77,.14); } }

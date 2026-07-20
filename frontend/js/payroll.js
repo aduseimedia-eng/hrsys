@@ -63,7 +63,7 @@ async function viewPayslip(id) {
         <div class="company-logo">
           <div class="mark">HR</div>
           <div>
-            <div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem">HRConnect</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem">KenadHR</div>
             <div style="font-size:.8rem;color:var(--text-muted)">Payroll Department</div>
           </div>
         </div>
@@ -148,7 +148,7 @@ function payslipHtml(s) {
         <div class="company-logo">
           <div class="mark">HR</div>
           <div>
-            <div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem">HRConnect</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem">KenadHR</div>
             <div style="font-size:.8rem;color:var(--text-muted)">Payroll Department</div>
           </div>
         </div>
@@ -352,7 +352,13 @@ function showProcessModal() {
 loadMyPayslips();
 
 function payrollTypeLabel(row) {
-  return row.employment_type === 'contractual' || /contract/i.test(row.job_title || '') ? 'Contractual' : 'Staff';
+  const labels = {
+    staff: 'Staff',
+    contractual: 'Contractual',
+    national_service: 'National Service',
+    internship: 'Internship'
+  };
+  return labels[row.employment_type] || (/contract/i.test(row.job_title || '') ? 'Contractual' : 'Staff');
 }
 
 function safe(value) {

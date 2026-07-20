@@ -67,7 +67,7 @@ exports.announce = async (req, res) => {
     );
     for (const emp of emps) {
       await db.query(
-        "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,'announcement',$3)",
+        "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'announcement',$3,'/pages/staff-portal.html#announcements')",
         [req.user.company_id, emp.id, `Announcement: ${title}`]
       );
     }

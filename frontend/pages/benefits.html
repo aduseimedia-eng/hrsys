@@ -3,10 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Benefits - HRConnect</title>
+  <title>Benefits - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/suite.css">
   <link rel="stylesheet" href="../css/workspace.css">
+  <style>
+    .benefits-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .benefits-toolbar .form-control { min-width: 160px; max-width: 210px; }
+    .benefits-grid-wide {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, .78fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .benefits-table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .benefits-table-wrap table { min-width: 760px; }
+    .benefit-card-list {
+      display: grid;
+      gap: 12px;
+    }
+    .benefit-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      background: var(--bg-page);
+    }
+    .benefit-card-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .benefit-card h4 {
+      margin: 0;
+      font-size: .94rem;
+      color: var(--text-primary);
+    }
+    .benefit-card p {
+      color: var(--text-secondary);
+      font-size: .8rem;
+      margin: 4px 0 0;
+    }
+    .benefit-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .benefits-score {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+    }
+    .benefits-ring {
+      width: 92px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--mint-500) calc(var(--score) * 1%), var(--border) 0);
+      position: relative;
+      font-family: var(--font-display);
+      font-weight: 800;
+      color: var(--navy-900);
+    }
+    .benefits-ring::before {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: inherit;
+      background: var(--bg-surface);
+    }
+    .benefits-ring span { position: relative; }
+    .renewal-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .renewal-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px;
+      background: var(--navy-50);
+    }
+    .renewal-item strong {
+      display: block;
+      color: var(--text-primary);
+      font-size: .84rem;
+    }
+    .renewal-item span {
+      display: block;
+      color: var(--text-secondary);
+      font-size: .76rem;
+      margin-top: 3px;
+    }
+    .benefits-empty {
+      padding: 26px;
+      color: var(--text-muted);
+      text-align: center;
+      font-size: .88rem;
+    }
+    @media (max-width: 1100px) {
+      .benefits-grid-wide { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .topbar-actions { display: none; }
+      .benefits-toolbar .form-control,
+      .benefits-toolbar .btn { width: 100%; max-width: none; }
+      .benefit-card-top,
+      .benefits-score { display: grid; grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
 <div class="app-shell">
@@ -16,7 +134,8 @@
     <div class="topbar-title">Benefits</div>
     <div class="topbar-actions">
       <a href="payroll.html" class="btn btn-outline btn-sm">Payroll</a>
-      <button class="btn btn-primary btn-sm" onclick="toast('Open enrollment cycle drafted', 'success')">Open Enrollment</button>
+      <button class="btn btn-outline btn-sm" type="button" onclick="exportBenefitsCsv()">Export CSV</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="draftEnrollmentCycle()">Open Enrollment</button>
     </div>
   </header>
 
@@ -24,11 +143,12 @@
     <section class="suite-hero">
       <div>
         <span class="suite-eyebrow">Benefits administration</span>
-        <h1>Manage plans, elections, dependents, and payroll-ready deductions.</h1>
-        <p>Keep employee benefits data organized, enrollment changes visible, and payroll deductions aligned without duplicate tracking.</p>
+        <h1 id="benefits-title">Benefits</h1>
+        <p id="benefits-subtitle">Manage plan coverage, enrollment changes, payroll deductions, and renewal readiness.</p>
         <div class="suite-hero-actions">
-          <a href="#plans" class="btn btn-primary">Plan Overview</a>
-          <a href="#events" class="btn btn-outline" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.18)">Change Events</a>
+          <button class="btn btn-primary" type="button" onclick="showBenefitsView('plans')">Plan Overview</button>
+          <button class="btn btn-outline" type="button" onclick="showBenefitsView('events')">Change Events</button>
+          <button class="btn btn-outline" type="button" onclick="showBenefitsView('exports')">Broker Export</button>
         </div>
       </div>
       <div class="suite-hero-card">
@@ -38,58 +158,109 @@
       </div>
     </section>
 
-    <section class="suite-kpis" id="benefits-kpis"></section>
+    <div class="benefits-toolbar">
+      <select id="benefits-view" class="form-control form-select" onchange="showBenefitsView(this.value)">
+        <option value="plans">Plan overview</option>
+        <option value="events">Change events</option>
+        <option value="deductions">Deductions</option>
+        <option value="exports">Broker export</option>
+      </select>
+      <select id="plan-filter" class="form-control form-select" onchange="renderActiveView()">
+        <option value="">All plans</option>
+      </select>
+      <select id="status-filter" class="form-control form-select" onchange="renderActiveView()">
+        <option value="">All statuses</option>
+        <option value="Active">Active</option>
+        <option value="Review">Review</option>
+        <option value="Pending approval">Pending approval</option>
+        <option value="Ready for payroll sync">Ready for payroll sync</option>
+        <option value="Needs document">Needs document</option>
+      </select>
+      <button class="btn btn-outline" type="button" onclick="clearBenefitsFilters()">Clear</button>
+      <button class="btn btn-primary" type="button" onclick="exportBenefitsCsv()">Export CSV</button>
+    </div>
 
-    <section class="suite-grid" id="plans">
+    <section class="suite-kpis" id="benefits-kpis">
+      <article class="suite-kpi"><span>Loading</span><div><strong>--</strong><small>Fetching benefits data</small></div></article>
+    </section>
+
+    <section class="benefits-grid-wide">
       <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
-            <h3>Benefit Plans</h3>
-            <span>Enrollment and renewal readiness</span>
+            <h3 id="active-view-title">Plan Overview</h3>
+            <span id="active-view-meta">Enrollment and renewal readiness</span>
           </div>
-          <a href="reports.html" class="btn btn-outline btn-sm">Benefits Report</a>
+          <a href="reports.html" class="btn btn-outline btn-sm">Reports</a>
         </div>
-        <div class="suite-panel-body" id="plan-list"></div>
+        <div class="suite-panel-body" id="active-view-body"></div>
       </article>
 
       <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
+            <h3>Benefits Readiness</h3>
+            <span>Coverage, pending changes, payroll sync, and renewals</span>
+          </div>
+        </div>
+        <div class="suite-panel-body">
+          <div class="benefits-score">
+            <div class="benefits-ring" id="benefits-ring" style="--score:0"><span id="benefits-score">--</span></div>
+            <div>
+              <strong id="benefits-score-label">Loading</strong>
+              <p class="text-muted text-sm" id="benefits-score-detail" style="margin-top:6px">Collecting plan data...</p>
+            </div>
+          </div>
+          <div class="renewal-list" id="renewal-list"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="suite-grid">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
             <h3>Deductions Mix</h3>
-            <span>Monthly employer and employee deductions</span>
+            <span>Plan cost share and payroll deductions</span>
           </div>
         </div>
         <div class="suite-panel-body">
           <div class="suite-chart" id="deduction-chart"></div>
         </div>
       </article>
-    </section>
 
-    <section class="suite-grid" id="events">
       <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
-            <h3>Enrollment Change Events</h3>
-            <span>Updates waiting for approval, documents, or payroll sync</span>
+            <h3>Department Eligibility</h3>
+            <span>Active employees by department</span>
           </div>
         </div>
-        <div class="suite-panel-body" id="event-list"></div>
+        <div class="suite-panel-body">
+          <div class="suite-chart" id="department-chart"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="suite-grid">
+      <article class="suite-panel">
+        <div class="suite-panel-header">
+          <div>
+            <h3>Enrollment Actions</h3>
+            <span>Follow-up work for HR and payroll</span>
+          </div>
+        </div>
+        <div class="suite-panel-body" id="action-list"></div>
       </article>
 
       <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
             <h3>Broker Export</h3>
-            <span>Clean plan data ready for external partners</span>
+            <span>Files prepared for external partners</span>
           </div>
         </div>
-        <div class="suite-panel-body">
-          <div class="suite-list">
-            <div class="suite-row"><div><strong>Enrollment census</strong><span>Employees, dependents, plan elections, and eligibility.</span></div><span class="suite-pill good">Ready</span></div>
-            <div class="suite-row"><div><strong>Deduction file</strong><span>Payroll-ready deductions by plan and employee.</span></div><span class="suite-pill warn">2 pending</span></div>
-            <div class="suite-row"><div><strong>Renewal packet</strong><span>Current coverage and renewal dates for plan review.</span></div><span class="suite-pill">Draft</span></div>
-          </div>
-        </div>
+        <div class="suite-panel-body" id="broker-export-list"></div>
       </article>
     </section>
   </main>
@@ -103,74 +274,404 @@ if (!user) throw new Error('redirect');
 buildSidebar('benefits');
 loadNotifCount();
 
-const data = window.hrSuiteData.benefits;
+const baseBenefits = window.hrSuiteData?.benefits || { plans: [], events: [], deductions: [] };
+const state = {
+  stats: {},
+  employees: [],
+  departments: [],
+  payrollSummary: [],
+  activeView: 'plans',
+  currentRows: [],
+  currentColumns: []
+};
 
-function bootBenefits() {
-  const eligible = data.plans.reduce((max, plan) => Math.max(max, plan.eligible), 0);
-  const enrolledAverage = Math.round(data.plans.reduce((sum, plan) => sum + (plan.enrolled / plan.eligible), 0) / data.plans.length * 100);
-  const totalDeductions = data.deductions.reduce((sum, row) => sum + row.value, 0);
-  const pending = data.events.filter((event) => event.status !== 'Ready for payroll sync').length;
-  document.getElementById('hero-coverage').textContent = `${enrolledAverage}%`;
-  document.getElementById('hero-deductions').textContent = fmt.currency(totalDeductions);
-  document.getElementById('hero-pending').textContent = pending;
-  renderKpis(eligible, enrolledAverage, totalDeductions, pending);
-  renderPlans();
-  renderDeductions(totalDeductions);
-  renderEvents();
+bootBenefits();
+
+async function bootBenefits() {
+  try {
+    await loadBenefitsData();
+    populatePlanFilter();
+    renderBenefitsShell();
+    showBenefitsView('plans');
+  } catch (err) {
+    toast(err.message || 'Could not load benefits', 'error');
+    document.getElementById('active-view-body').innerHTML = `<div class="benefits-empty">${escapeHtml(err.message || 'Could not load benefits')}</div>`;
+  }
 }
 
-function renderKpis(eligible, enrolledAverage, totalDeductions, pending) {
-  document.getElementById('benefits-kpis').innerHTML = [
-    ['Eligible employees', eligible, 'across active plans'],
-    ['Enrollment coverage', `${enrolledAverage}%`, 'average plan participation'],
-    ['Monthly deductions', fmt.currency(totalDeductions), 'all active plans'],
-    ['Pending events', pending, 'needs HR review']
-  ].map(([label, value, note]) => `
+async function loadBenefitsData() {
+  const [stats, employeesPage, departments] = await Promise.all([
+    api.get('/employees/dashboard'),
+    api.get('/employees?limit=1000'),
+    api.get('/employees/departments')
+  ]);
+  state.stats = stats || {};
+  state.employees = employeesPage?.employees || [];
+  state.departments = departments || [];
+
+  if (user.role === 'admin') {
+    try {
+      state.payrollSummary = await api.get('/payroll/summary');
+    } catch (err) {
+      state.payrollSummary = [];
+    }
+  }
+}
+
+function renderBenefitsShell() {
+  const summary = benefitsSummary();
+  setText('hero-coverage', `${summary.coverage}%`);
+  setText('hero-deductions', fmt.currency(summary.totalDeductions));
+  setText('hero-pending', summary.pendingEvents);
+  setText('benefits-title', `${summary.coverage}% benefits coverage across ${baseBenefits.plans.length} plans`);
+  setText('benefits-subtitle', `${summary.eligible} eligible employees, ${summary.pendingEvents} pending change event${summary.pendingEvents === 1 ? '' : 's'}, ${summary.renewalsSoon} renewal${summary.renewalsSoon === 1 ? '' : 's'} in the next 90 days.`);
+  renderKpis(summary);
+  renderReadiness(summary);
+  renderDeductions(summary.totalDeductions);
+  renderDepartmentChart();
+  renderActions(summary);
+  renderBrokerExports(summary);
+}
+
+function benefitsSummary() {
+  const eligible = Number(state.stats.total_employees || state.employees.length || 0) || Math.max(...baseBenefits.plans.map((plan) => Number(plan.eligible || 0)), 0);
+  const plans = normalizedPlans(eligible);
+  const coverage = plans.length
+    ? Math.round(plans.reduce((sum, plan) => sum + plan.coverage, 0) / plans.length)
+    : 0;
+  const totalDeductions = baseBenefits.deductions.reduce((sum, row) => sum + Number(row.value || 0), 0);
+  const payrollDeductions = Number(state.payrollSummary[0]?.total_deductions || 0);
+  const pendingEvents = baseBenefits.events.filter((event) => event.status !== 'Ready for payroll sync').length;
+  const renewalsSoon = plans.filter((plan) => daysUntil(plan.renewal) <= 90).length;
+  const readyForPayroll = baseBenefits.events.filter((event) => event.status === 'Ready for payroll sync').length;
+  return { eligible, plans, coverage, totalDeductions, payrollDeductions, pendingEvents, renewalsSoon, readyForPayroll };
+}
+
+function normalizedPlans(eligible) {
+  return baseBenefits.plans.map((plan) => {
+    const planEligible = Math.max(Number(plan.eligible || eligible || 0), eligible || 0, 1);
+    const enrolled = Math.min(Number(plan.enrolled || 0), planEligible);
+    return {
+      ...plan,
+      eligible: planEligible,
+      enrolled,
+      coverage: Math.round((enrolled / planEligible) * 100)
+    };
+  });
+}
+
+function renderKpis(summary) {
+  const latestPayroll = state.payrollSummary[0];
+  const payrollNote = user.role === 'admin' && latestPayroll
+    ? `${fmt.currency(summary.payrollDeductions)} payroll deductions`
+    : user.role === 'admin' ? 'No payroll summary yet' : 'Payroll restricted';
+  const metrics = [
+    ['Eligible employees', summary.eligible, 'active employee records'],
+    ['Enrollment coverage', `${summary.coverage}%`, 'average plan participation'],
+    ['Plan deductions', fmt.currency(summary.totalDeductions), 'benefits plan estimate'],
+    ['Payroll deductions', latestPayroll ? fmt.currency(summary.payrollDeductions) : '--', payrollNote],
+    ['Pending events', summary.pendingEvents, 'needs HR review'],
+    ['Payroll-ready events', summary.readyForPayroll, 'ready to sync'],
+    ['Renewals soon', summary.renewalsSoon, 'within 90 days'],
+    ['Active plans', baseBenefits.plans.length, 'configured benefits']
+  ];
+
+  document.getElementById('benefits-kpis').innerHTML = metrics.map(([label, value, note]) => `
     <article class="suite-kpi"><span>${escapeHtml(label)}</span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div></article>
   `).join('');
 }
 
-function renderPlans() {
-  document.getElementById('plan-list').innerHTML = data.plans.map((plan) => {
-    const percent = Math.round((plan.enrolled / plan.eligible) * 100);
-    return `
-      <div class="suite-row">
-        <div>
-          <strong>${escapeHtml(plan.type)} - ${escapeHtml(plan.provider)}</strong>
-          <span>${plan.enrolled}/${plan.eligible} enrolled - renews ${fmt.date(plan.renewal)}</span>
-          <div class="suite-progress"><span style="width:${percent}%"></span></div>
-        </div>
-        <div class="suite-meta">
-          <span class="suite-pill ${plan.status === 'Review' ? 'warn' : 'good'}">${escapeHtml(plan.status)}</span>
-          <small>${fmt.currency(plan.monthlyCost)}/mo</small>
-        </div>
+function renderReadiness(summary) {
+  const eventScore = Math.max(0, 100 - summary.pendingEvents * 15);
+  const renewalScore = Math.max(0, 100 - summary.renewalsSoon * 8);
+  const payrollScore = user.role === 'admin'
+    ? (summary.payrollDeductions ? 100 : 55)
+    : 80;
+  const score = Math.round(summary.coverage * .45 + eventScore * .25 + renewalScore * .15 + payrollScore * .15);
+  document.getElementById('benefits-ring').style.setProperty('--score', score);
+  setText('benefits-score', `${score}%`);
+  setText('benefits-score-label', score >= 85 ? 'Ready for leadership' : score >= 70 ? 'Needs follow-up' : 'Action needed');
+  setText('benefits-score-detail', `${summary.coverage}% coverage, ${summary.pendingEvents} pending event${summary.pendingEvents === 1 ? '' : 's'}, ${summary.renewalsSoon} renewal${summary.renewalsSoon === 1 ? '' : 's'} inside 90 days.`);
+
+  const renewals = summary.plans
+    .slice()
+    .sort((a, b) => new Date(a.renewal) - new Date(b.renewal))
+    .map((plan) => `
+      <div class="renewal-item">
+        <strong>${escapeHtml(plan.type)} renewal</strong>
+        <span>${escapeHtml(plan.provider)} - ${fmt.date(plan.renewal)} - ${daysUntil(plan.renewal)} days</span>
       </div>
-    `;
-  }).join('');
+    `).join('');
+  document.getElementById('renewal-list').innerHTML = renewals || '<div class="benefits-empty">No renewal dates configured.</div>';
+}
+
+function showBenefitsView(view) {
+  state.activeView = view;
+  document.getElementById('benefits-view').value = view;
+  renderActiveView();
+}
+
+function renderActiveView() {
+  const view = state.activeView;
+  if (view === 'events') return renderEventsView();
+  if (view === 'deductions') return renderDeductionsView();
+  if (view === 'exports') return renderExportsView();
+  return renderPlansView();
+}
+
+function renderPlansView() {
+  const rows = filteredPlans();
+  state.currentRows = rows.map((plan) => ({
+    plan: plan.type,
+    provider: plan.provider,
+    enrolled: `${plan.enrolled}/${plan.eligible}`,
+    coverage: `${plan.coverage}%`,
+    monthly_cost: fmt.currency(plan.monthlyCost),
+    renewal: fmt.date(plan.renewal),
+    status: plan.status
+  }));
+  state.currentColumns = ['plan', 'provider', 'enrolled', 'coverage', 'monthly_cost', 'renewal', 'status'];
+  setText('active-view-title', 'Benefit Plans');
+  setText('active-view-meta', 'Enrollment and renewal readiness');
+
+  document.getElementById('active-view-body').innerHTML = rows.length ? `
+    <div class="benefit-card-list">
+      ${rows.map((plan) => `
+        <div class="benefit-card">
+          <div class="benefit-card-top">
+            <div>
+              <h4>${escapeHtml(plan.type)} - ${escapeHtml(plan.provider)}</h4>
+              <p>${plan.enrolled}/${plan.eligible} enrolled - renews ${fmt.date(plan.renewal)}</p>
+            </div>
+            <span class="suite-pill ${plan.status === 'Review' ? 'warn' : 'good'}">${escapeHtml(plan.status)}</span>
+          </div>
+          <div class="suite-progress"><span style="width:${plan.coverage}%"></span></div>
+          <div class="benefit-card-actions">
+            <button class="btn btn-outline btn-sm" type="button" onclick="toast('${escapeJs(plan.type)} plan review opened', 'info')">Review</button>
+            <button class="btn btn-outline btn-sm" type="button" onclick="showBenefitsView('events')">Events</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '<div class="benefits-empty">No benefit plans match the current filters.</div>';
+}
+
+function renderEventsView() {
+  const rows = filteredEvents();
+  state.currentRows = rows.map((event) => ({
+    employee: event.employee,
+    event: event.event,
+    plan: event.plan,
+    due: fmt.date(event.due),
+    status: event.status
+  }));
+  state.currentColumns = ['employee', 'event', 'plan', 'due', 'status'];
+  setText('active-view-title', 'Enrollment Change Events');
+  setText('active-view-meta', 'Updates waiting for approval, documents, or payroll sync');
+  document.getElementById('active-view-body').innerHTML = renderTable(state.currentColumns, state.currentRows);
+}
+
+function renderDeductionsView() {
+  const total = benefitsSummary().totalDeductions;
+  const rows = baseBenefits.deductions
+    .filter((row) => !document.getElementById('plan-filter').value || row.label === document.getElementById('plan-filter').value)
+    .map((row) => ({
+      plan: row.label,
+      monthly_value: fmt.currency(row.value),
+      share: `${Math.round((Number(row.value || 0) / Math.max(total, 1)) * 100)}%`,
+      payroll_status: user.role === 'admin' && state.payrollSummary[0] ? 'Payroll summary available' : user.role === 'admin' ? 'Needs payroll cycle' : 'Admin only'
+    }));
+  state.currentRows = rows;
+  state.currentColumns = ['plan', 'monthly_value', 'share', 'payroll_status'];
+  setText('active-view-title', 'Deductions');
+  setText('active-view-meta', 'Benefits deduction mix and payroll sync status');
+  document.getElementById('active-view-body').innerHTML = renderTable(state.currentColumns, rows);
+}
+
+function renderExportsView() {
+  const summary = benefitsSummary();
+  const rows = brokerExportRows(summary);
+  state.currentRows = rows;
+  state.currentColumns = ['file', 'detail', 'status', 'owner'];
+  setText('active-view-title', 'Broker Export');
+  setText('active-view-meta', 'Files prepared for external partners and payroll');
+  document.getElementById('active-view-body').innerHTML = renderTable(state.currentColumns, rows);
+}
+
+function renderTable(columns, rows) {
+  if (!rows.length) return '<div class="benefits-empty">No rows match the current filters.</div>';
+  return `
+    <div class="benefits-table-wrap">
+      <table>
+        <thead><tr>${columns.map((column) => `<th>${escapeHtml(titleCase(column))}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column] ?? '--')}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>`;
 }
 
 function renderDeductions(total) {
-  document.getElementById('deduction-chart').innerHTML = data.deductions.map((row) => `
+  document.getElementById('deduction-chart').innerHTML = baseBenefits.deductions.map((row) => `
     <div class="suite-chart-row">
       <span>${escapeHtml(row.label)}</span>
-      <div class="suite-bar"><span style="width:${Math.round((row.value / total) * 100)}%"></span></div>
+      <div class="suite-bar"><span style="width:${Math.max(4, Math.round((row.value / Math.max(total, 1)) * 100))}%"></span></div>
       <strong>${fmt.currency(row.value)}</strong>
+    </div>
+  `).join('') || '<div class="suite-empty">No deduction data available.</div>';
+}
+
+function renderDepartmentChart() {
+  const max = Math.max(...state.departments.map((dept) => Number(dept.employee_count || 0)), 1);
+  document.getElementById('department-chart').innerHTML = state.departments.map((dept) => {
+    const count = Number(dept.employee_count || 0);
+    return `
+      <div class="suite-chart-row">
+        <span>${escapeHtml(dept.name)}</span>
+        <div class="suite-bar"><span style="width:${Math.max(4, Math.round((count / max) * 100))}%"></span></div>
+        <strong>${count}</strong>
+      </div>`;
+  }).join('') || '<div class="suite-empty">No departments found.</div>';
+}
+
+function renderActions(summary) {
+  const actions = [
+    {
+      title: summary.pendingEvents ? 'Resolve pending benefit events' : 'Benefit events are clear',
+      detail: summary.pendingEvents ? `${summary.pendingEvents} event${summary.pendingEvents === 1 ? '' : 's'} need HR review.` : 'No pending approvals or missing documents.',
+      status: summary.pendingEvents ? 'Review' : 'Clear',
+      tone: summary.pendingEvents ? 'warn' : 'good',
+      action: 'events'
+    },
+    {
+      title: summary.readyForPayroll ? 'Sync ready changes to payroll' : 'No payroll sync waiting',
+      detail: summary.readyForPayroll ? `${summary.readyForPayroll} change${summary.readyForPayroll === 1 ? '' : 's'} ready for payroll.` : 'No ready-for-sync events right now.',
+      status: summary.readyForPayroll ? 'Sync' : 'Clear',
+      tone: summary.readyForPayroll ? 'warn' : 'good',
+      action: 'events'
+    },
+    {
+      title: summary.renewalsSoon ? 'Prepare renewal packet' : 'Renewals are not urgent',
+      detail: summary.renewalsSoon ? `${summary.renewalsSoon} plan${summary.renewalsSoon === 1 ? '' : 's'} renew within 90 days.` : 'No plan renewal within the next 90 days.',
+      status: summary.renewalsSoon ? 'Prepare' : 'Clear',
+      tone: summary.renewalsSoon ? 'warn' : 'good',
+      action: 'exports'
+    }
+  ];
+
+  document.getElementById('action-list').innerHTML = actions.map((item) => `
+    <div class="suite-row">
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <span>${escapeHtml(item.detail)}</span>
+      </div>
+      <div class="suite-meta">
+        <span class="suite-pill ${item.tone}">${escapeHtml(item.status)}</span>
+        <button class="btn btn-outline btn-sm" type="button" onclick="showBenefitsView('${item.action}')">Open</button>
+      </div>
     </div>
   `).join('');
 }
 
-function renderEvents() {
-  document.getElementById('event-list').innerHTML = data.events.map((event) => `
+function renderBrokerExports(summary) {
+  document.getElementById('broker-export-list').innerHTML = brokerExportRows(summary).map((row) => `
     <div class="suite-row">
       <div>
-        <strong>${escapeHtml(event.employee)}</strong>
-        <span>${escapeHtml(event.event)} - ${escapeHtml(event.plan)} - due ${fmt.date(event.due)}</span>
+        <strong>${escapeHtml(row.file)}</strong>
+        <span>${escapeHtml(row.detail)}</span>
       </div>
       <div class="suite-meta">
-        <span class="suite-pill ${event.status.includes('Pending') || event.status.includes('Needs') ? 'warn' : 'good'}">${escapeHtml(event.status)}</span>
+        <span class="suite-pill ${row.status === 'Ready' ? 'good' : row.status.includes('pending') ? 'warn' : ''}">${escapeHtml(row.status)}</span>
       </div>
     </div>
   `).join('');
+}
+
+function brokerExportRows(summary) {
+  return [
+    { file: 'Enrollment census', detail: `${summary.eligible} eligible employees across ${baseBenefits.plans.length} plans`, status: 'Ready', owner: 'HR/Admin' },
+    { file: 'Deduction file', detail: `${fmt.currency(summary.totalDeductions)} estimated monthly plan deductions`, status: summary.pendingEvents ? `${summary.pendingEvents} pending` : 'Ready', owner: 'Payroll' },
+    { file: 'Renewal packet', detail: `${summary.renewalsSoon} renewal${summary.renewalsSoon === 1 ? '' : 's'} inside 90 days`, status: summary.renewalsSoon ? 'Draft' : 'Ready', owner: 'Broker' },
+    { file: 'Payroll reconciliation', detail: user.role === 'admin' && summary.payrollDeductions ? `${fmt.currency(summary.payrollDeductions)} latest payroll deductions` : 'Payroll summary unavailable', status: summary.payrollDeductions ? 'Ready' : 'Restricted', owner: 'Account Department' }
+  ];
+}
+
+function filteredPlans() {
+  const planValue = document.getElementById('plan-filter').value;
+  const statusValue = document.getElementById('status-filter').value;
+  return benefitsSummary().plans.filter((plan) => (
+    (!planValue || plan.type === planValue) &&
+    (!statusValue || plan.status === statusValue)
+  ));
+}
+
+function filteredEvents() {
+  const planValue = document.getElementById('plan-filter').value;
+  const statusValue = document.getElementById('status-filter').value;
+  return baseBenefits.events.filter((event) => (
+    (!planValue || event.plan === planValue) &&
+    (!statusValue || event.status === statusValue)
+  ));
+}
+
+function populatePlanFilter() {
+  const plans = [...new Set(baseBenefits.plans.map((plan) => plan.type))];
+  document.getElementById('plan-filter').innerHTML = '<option value="">All plans</option>' + plans
+    .map((plan) => `<option value="${escapeHtml(plan)}">${escapeHtml(plan)}</option>`)
+    .join('');
+}
+
+function clearBenefitsFilters() {
+  document.getElementById('plan-filter').value = '';
+  document.getElementById('status-filter').value = '';
+  renderActiveView();
+}
+
+function draftEnrollmentCycle() {
+  showBenefitsView('events');
+  toast('Open enrollment cycle drafted', 'success');
+}
+
+function exportBenefitsCsv() {
+  if (!state.currentRows.length) {
+    toast('No benefits rows to export', 'warning');
+    return;
+  }
+  const lines = [
+    state.currentColumns.map(csvCell).join(','),
+    ...state.currentRows.map((row) => state.currentColumns.map((column) => csvCell(row[column])).join(','))
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `benefits-${state.activeView}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast('Benefits CSV export prepared', 'success');
+}
+
+function daysUntil(dateValue) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(dateValue);
+  date.setHours(0, 0, 0, 0);
+  return Math.ceil((date - today) / 86400000);
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function csvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function titleCase(value) {
+  return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function escapeJs(value) {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 function escapeHtml(value) {
@@ -178,8 +679,6 @@ function escapeHtml(value) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
 }
-
-bootBenefits();
 </script>
 </body>
 </html>

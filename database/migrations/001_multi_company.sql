@@ -1,5 +1,5 @@
 -- ============================================================
--- HRConnect migration: add multi-company support
+-- KenadHR migration: add multi-company support
 -- Run this against an existing single-company database.
 -- ============================================================
 
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS companies (
 );
 
 INSERT INTO companies (id, name, slug, email)
-VALUES (1, 'HRConnect Demo Company', 'hrconnect-demo', 'admin@company.com')
+VALUES (1, 'KenadHR Demo Company', 'kenad-hr-demo', 'admin@company.com')
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval(pg_get_serial_sequence('companies', 'id'), GREATEST((SELECT MAX(id) FROM companies), 1));

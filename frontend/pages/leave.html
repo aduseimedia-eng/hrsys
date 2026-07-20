@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Leave Management — HRConnect</title>
+  <title>Leave Management — KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
   <style>
@@ -45,6 +45,76 @@
     .cal-day.on-leave.today { background: var(--amber-500); color: var(--navy-950); }
     .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .cal-nav h4 { font-size: 1rem; }
+    .leave-person-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text-primary);
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+    .leave-person-button:hover span { color: var(--navy-800); text-decoration: underline; }
+    .leave-balance-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 68px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--mint-100);
+      color: var(--navy-950);
+      font-size: .74rem;
+      font-weight: 800;
+    }
+    .leave-balance-pill.low {
+      background: var(--amber-100);
+      color: #92400e;
+    }
+    .leave-balance-pill.empty {
+      background: var(--rose-100);
+      color: var(--rose-600);
+    }
+    .leave-balance-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .leave-balance-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--bg-page);
+      padding: 12px;
+    }
+    .leave-balance-card span {
+      display: block;
+      color: var(--text-muted);
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .leave-balance-card strong {
+      display: block;
+      color: var(--text-primary);
+      font-size: 1.35rem;
+      margin-top: 4px;
+    }
+    .leave-request-detail {
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      color: var(--text-secondary);
+      font-size: .88rem;
+      line-height: 1.55;
+    }
+    @media (max-width: 720px) {
+      .leave-balance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -113,8 +183,8 @@
       </div>
       <div class="table-container">
         <table>
-          <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="all-leave-tbody"><tr><td colspan="7"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+          <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Leave Left</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="all-leave-tbody"><tr><td colspan="8"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -174,6 +244,18 @@ if (['admin','manager'].includes(user.role)) {
   document.getElementById('hr-tab').style.display = '';
 }
 
+let hrLeaveRows = [];
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+function typeLabel(value) {
+  return String(value || '').replace(/[_-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function switchTab(tab) {
   ['my','calendar','all'].forEach(t => {
     document.getElementById(`tab-${t}`).style.display = t === tab ? '' : 'none';
@@ -212,29 +294,91 @@ async function loadAllLeaves() {
   const status = document.getElementById('hr-status-filter')?.value || '';
   let qs = status ? `?status=${status}` : '';
   const rows = await api.get(`/leave${qs}`);
+  hrLeaveRows = rows;
   const tbody = document.getElementById('all-leave-tbody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>No requests found</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><p>No requests found</p></div></td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map(r => {
     const days = Math.ceil((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1;
+    const remaining = Number(r.annual_remaining_days ?? 20);
+    const remainingAfterRequest = r.leave_type === 'annual' && r.status !== 'rejected'
+      ? Math.max(0, remaining - (r.status === 'approved' ? 0 : days))
+      : remaining;
+    const balanceClass = remainingAfterRequest <= 0 ? 'empty' : remainingAfterRequest <= 5 ? 'low' : '';
     const actions = r.status === 'pending' ? `
       <button class="btn btn-success btn-sm" onclick="updateLeave(${r.id},'approved')">Approve</button>
       <button class="btn btn-danger btn-sm" onclick="updateLeave(${r.id},'rejected')">Reject</button>
-    ` : `<span class="text-muted text-sm">${r.approver_name ? `By ${r.approver_name}` : '—'}</span>`;
+    ` : `<span class="text-muted text-sm">${r.approver_name ? `By ${r.approver_name}` : '--'}</span>`;
     return `<tr>
-      <td><div style="display:flex;align-items:center;gap:10px">${initialsAvatar(r.employee_name?.split(' ')[0]||'?',r.employee_name?.split(' ')[1]||'','sm')}<span style="font-weight:500">${r.employee_name}</span></div></td>
+      <td><button class="leave-person-button" type="button" onclick="showLeaveBalance(${r.id})">${leaveEmployeeAvatar(r, 'sm')}<span>${r.employee_name}</span></button></td>
       <td><span class="badge badge-info">${r.leave_type}</span></td>
       <td>${fmt.date(r.start_date)}</td>
       <td>${fmt.date(r.end_date)}</td>
       <td>${days}</td>
+      <td><button class="leave-balance-pill ${balanceClass}" type="button" onclick="showLeaveBalance(${r.id})">${remainingAfterRequest} left</button></td>
       <td>${fmt.statusBadge(r.status)}</td>
       <td style="display:flex;gap:6px">${actions}</td>
     </tr>`;
   }).join('');
 }
 
+function showLeaveBalance(id) {
+  const row = hrLeaveRows.find((leave) => Number(leave.id) === Number(id));
+  if (!row) return;
+
+  const days = Math.ceil((new Date(row.end_date) - new Date(row.start_date)) / 86400000) + 1;
+  const entitlement = Number(row.annual_entitlement ?? 20);
+  const used = Number(row.annual_used_days ?? 0);
+  const pending = Number(row.annual_pending_days ?? 0);
+  const remaining = Number(row.annual_remaining_days ?? Math.max(0, entitlement - used));
+  const remainingAfterRequest = row.leave_type === 'annual' && row.status !== 'rejected'
+    ? Math.max(0, remaining - (row.status === 'approved' ? 0 : days))
+    : remaining;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${leaveEmployeeAvatar(row, 'sm')}
+          <div>
+          <h3>${escapeHtml(row.employee_name || 'Staff Leave')}</h3>
+          <span style="display:block;color:var(--text-muted);font-size:.82rem;margin-top:3px">${escapeHtml(row.department_name || 'No department')}</span>
+          </div>
+        </div>
+        <button class="modal-close" type="button" onclick="this.closest('.modal-overlay').remove()">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="leave-balance-grid">
+          <div class="leave-balance-card"><span>Entitlement</span><strong>${entitlement}</strong></div>
+          <div class="leave-balance-card"><span>Used</span><strong>${used}</strong></div>
+          <div class="leave-balance-card"><span>Pending</span><strong>${pending}</strong></div>
+          <div class="leave-balance-card"><span>Left</span><strong>${remainingAfterRequest}</strong></div>
+        </div>
+        <div class="leave-request-detail">
+          <strong style="color:var(--text-primary)">Current request</strong><br>
+          ${escapeHtml(typeLabel(row.leave_type))} leave, ${days} day${days === 1 ? '' : 's'} from ${fmt.date(row.start_date)} to ${fmt.date(row.end_date)}.
+          ${row.reason ? `<br><span>Reason: ${escapeHtml(row.reason)}</span>` : ''}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" type="button" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function leaveEmployeeAvatar(row, size = 'sm') {
+  const parts = String(row.employee_name || '').trim().split(/\s+/);
+  return avatarEl({
+    first_name: parts[0] || '?',
+    last_name: parts.slice(1).join(' '),
+    photo_url: row.photo_url || null
+  }, size);
+}
 async function updateLeave(id, status) {
   try {
     await api.patch(`/leave/${id}/status`, { status });

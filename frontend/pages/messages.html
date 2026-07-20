@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Messages — HRConnect</title>
+  <title>Messages — KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
   <style>
@@ -64,6 +64,7 @@
       background: var(--bg-surface);
     }
     .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .chat-date-separator { align-self: center; margin: 2px 0; padding: 5px 10px; border: 1px solid #d7e3f5; border-radius: 999px; background: #eef5ff; color: #61708a; font-size: .72rem; font-weight: 750; box-shadow: 0 2px 6px rgba(36,56,103,.05); }
     .chat-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-direction: column; gap: 12px; }
     .chat-empty svg { width: 48px; height: 48px; opacity: .25; }
     .msg-bubble {
@@ -104,6 +105,123 @@
       justify-content: center;
     }
 
+    .staff-message-back { display: none; }
+    .messages-notif-btn {
+      width: auto;
+      min-width: 42px;
+      padding: 0 12px;
+      gap: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      font-size: .82rem;
+      font-weight: 700;
+    }
+    .messages-notif-btn .dot { right: 4px; top: 4px; }
+    body.staff-message-view .sidebar { display: none; }
+    .staff-message-menu { display: none; }
+    body.staff-message-view { background: #eef4ff; }
+    body.staff-message-view .app-shell {
+      display: grid;
+      grid-template-columns: 244px minmax(0, 1fr);
+      min-height: 100vh;
+      background: radial-gradient(circle at 9% 0%, #dce9ff 0, transparent 28%), #eef4ff;
+    }
+    body.staff-message-view .staff-message-menu {
+      display: flex;
+      grid-row: 1 / span 2;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 22px 14px 18px;
+      background: rgba(255,255,255,.94);
+      border-right: 1px solid #dce6f4;
+    }
+    .staff-message-brand { display: flex; align-items: center; gap: 10px; padding: 4px 9px 22px; color: #203458; font-size: 1.06rem; font-weight: 850; }
+    .staff-message-brand-mark { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: #3977ee; color: #fff; font-size: .74rem; font-weight: 850; }
+    .staff-message-brand > strong span { color: #3977ee; }
+    .staff-message-nav { display: grid; gap: 4px; }
+    .staff-message-nav-label { padding: 8px 10px 4px; color: #8995aa; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .staff-message-nav a, .staff-message-signout {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 11px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #647189;
+      font: inherit;
+      font-size: .86rem;
+      font-weight: 700;
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .staff-message-nav a:hover, .staff-message-signout:hover { background: #f1f6ff; color: #2865d9; }
+    .staff-message-nav a.active { background: #e7f0ff; color: #2865d9; }
+    .staff-message-nav svg, .staff-message-signout svg { width: 18px; height: 18px; flex: 0 0 auto; }
+    .staff-message-signout { margin-top: auto; color: #8b5f67; }
+    body.staff-message-view .topbar {
+      grid-column: 2;
+      position: relative;
+      height: 76px;
+      padding: 0 max(28px, calc((100vw - 1180px) / 2));
+      background: rgba(255,255,255,.86);
+      border-bottom: 1px solid #dbe5f5;
+      backdrop-filter: blur(16px);
+    }
+    body.staff-message-view .main-content {
+      grid-column: 2;
+      box-sizing: border-box;
+      width: min(1180px, 100%);
+      min-height: calc(100vh - 76px);
+      margin: 0 auto;
+      padding: 24px !important;
+    }
+    body.staff-message-view .messages-layout {
+      height: min(760px, calc(100vh - 124px));
+      border: 1px solid #d7e3f5;
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(42, 80, 143, .12);
+    }
+    body.staff-message-view .inbox-panel { background: #fbfdff; border-right-color: #e1e9f5; }
+    body.staff-message-view .inbox-header { padding: 20px; border-bottom-color: #e1e9f5; }
+    body.staff-message-view .inbox-header strong { color: #203458; font-size: 1rem; }
+    body.staff-message-view .inbox-search { padding: 12px 14px; border-bottom-color: #e1e9f5; }
+    body.staff-message-view .inbox-item { border-bottom-color: #edf1f7; padding: 14px 16px; }
+    body.staff-message-view .inbox-item:hover,
+    body.staff-message-view .inbox-item.active,
+    body.staff-message-view .inbox-item.unread { background: #eaf2ff; }
+    body.staff-message-view .chat-panel { background: linear-gradient(150deg, #fff 0%, #f6f9ff 100%); }
+    body.staff-message-view .chat-header { padding: 16px 22px; border-bottom-color: #e1e9f5; background: rgba(255,255,255,.72); }
+    body.staff-message-view .chat-empty svg { padding: 16px; width: 38px; height: 38px; border-radius: 16px; color: #3977ee; background: #e8f0ff; opacity: 1; }
+    body.staff-message-view .chat-empty p { font-weight: 650; color: #65738c; }
+    body.staff-message-view .msg-text { box-shadow: 0 4px 12px rgba(36, 56, 103, .06); }
+    body.staff-message-view .msg-bubble.mine .msg-text { background: linear-gradient(135deg, #3977ee, #2865d9); }
+    body.staff-message-view .chat-input-area { padding: 16px 20px; border-top-color: #e1e9f5; background: rgba(255,255,255,.8); }
+    body.staff-message-view .chat-input-area textarea { border-color: #d5e2f5; background: #fff; }
+    body.staff-message-view .staff-message-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--navy-700);
+      font-size: .875rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    body.staff-message-view .staff-message-back:hover { color: var(--navy-950); }
+
+    @media (max-width: 900px) {
+      body.staff-message-view .app-shell { display: block; }
+      body.staff-message-view .staff-message-menu { display: none; }
+      body.staff-message-view .topbar { height: 66px; padding: 0 16px; }
+      body.staff-message-view .topbar-title { display: none; }
+      body.staff-message-view .main-content { min-height: calc(100vh - 66px); padding: 14px !important; }
+      body.staff-message-view .messages-layout { height: calc(100vh - 94px); border-radius: 14px; }
+      .messages-notif-label { display: none; }
+      .messages-notif-btn { width: 40px; padding: 0; }
+    }
+
     @media (max-width: 768px) {
       .messages-layout { grid-template-columns: 1fr; }
       .chat-panel { display: none; }
@@ -114,11 +232,25 @@
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar"></aside>
+  <aside class="staff-message-menu" aria-label="Staff navigation">
+    <div class="staff-message-brand"><span class="staff-message-brand-mark">HR</span><strong>Kenad<span>HR</span></strong></div>
+    <nav class="staff-message-nav">
+      <div class="staff-message-nav-label">Staff portal</div>
+      <a href="staff-portal.html#overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Overview</a>
+      <a href="staff-portal.html#announcements"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11v2a2 2 0 002 2h2l4 4v-4h3l6 3V6l-6 3H5a2 2 0 00-2 2z"/></svg>HR updates</a>
+      <a class="active" href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Messages</a>
+      <a href="staff-portal.html#documents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Documents</a>
+      <a href="staff-portal.html#settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4"/></svg>Settings</a>
+    </nav>
+    <button class="staff-message-signout" type="button" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
+  </aside>
   <header class="topbar">
+    <a class="staff-message-back" href="staff-portal.html#overview" aria-label="Return to staff portal">← Staff portal</a>
     <div class="topbar-title">Messages</div>
     <div class="topbar-actions">
-      <button class="icon-btn">
+      <button class="icon-btn messages-notif-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="messages-notif-label">Notifications</span>
         <span class="dot hidden" id="notif-badge"></span>
       </button>
     </div>
@@ -187,8 +319,13 @@
 
 <script src="../js/api.js"></script>
 <script>
-const user = requireAuth();
-if (!user) throw new Error('redirect');
+// Messages are available to both HR and staff. Route-level API authorization
+// still protects every request; this only keeps staff out of the HR-only guard.
+const user = api.getUser();
+if (!api.getToken() || !user) {
+  window.location.href = appUrl('/pages/login.html');
+  throw new Error('redirect');
+}
 buildSidebar('messages');
 loadNotifCount();
 
@@ -267,9 +404,13 @@ async function loadMessages() {
   if (!activePerson) return;
   const msgs = await api.get(`/messages/conversation/${activePerson.id}`);
   const container = document.getElementById('chat-messages');
+  let lastDateKey = '';
   container.innerHTML = msgs.map(m => {
+    const dateKey = chatDateKey(m.sent_at);
+    const dateSeparator = dateKey !== lastDateKey ? `<div class="chat-date-separator">${formatChatDate(m.sent_at)}</div>` : '';
+    lastDateKey = dateKey;
     const isMine = m.sender_id === user.id;
-    return `<div class="msg-bubble ${isMine ? 'mine' : ''}">
+    return `${dateSeparator}<div class="msg-bubble ${isMine ? 'mine' : ''}">
       ${!isMine ? (activePerson.photoUrl
         ? `<img src="${assetUrl(activePerson.photoUrl)}" class="avatar avatar-sm" alt="">`
         : initialsAvatar(activePerson.name.split(' ')[0], activePerson.name.split(' ')[1], 'sm')) : ''}
@@ -284,6 +425,24 @@ async function loadMessages() {
   // Refresh inbox
   allConversations = await api.get('/messages/inbox');
   renderInbox(allConversations);
+}
+
+function chatDateKey(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value || '') : [date.getFullYear(), date.getMonth(), date.getDate()].join('-');
+}
+
+function formatChatDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Messages';
+  const today = new Date();
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startMessage = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayDiff = Math.round((startToday - startMessage) / 86400000);
+  if (dayDiff === 0) return 'Today';
+  if (dayDiff === 1) return 'Yesterday';
+  if (dayDiff > 1 && dayDiff < 7) return date.toLocaleDateString('en-GB', { weekday: 'long' });
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
 }
 
 async function sendMessage() {

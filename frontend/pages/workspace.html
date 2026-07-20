@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HRConnect Workspace</title>
+  <title>KenadHR Workspace</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
     body {
@@ -72,7 +72,7 @@
 
   <main class="main-content workspace-content">
     <div class="workspace-loading" id="workspace-loading">Loading workspace...</div>
-    <iframe class="workspace-frame hidden" id="workspace-frame" title="HRConnect page"></iframe>
+    <iframe class="workspace-frame hidden" id="workspace-frame" title="KenadHR page"></iframe>
   </main>
 </div>
 
@@ -98,6 +98,7 @@ const WORKSPACE_PAGES = {
   onboarding: { title: 'Onboarding', nav: 'onboarding' },
   reports: { title: 'Reports & Workflows', nav: 'reports' },
   employees: { title: 'Employees', nav: 'employees' },
+  departments: { title: 'Departments', nav: 'departments' },
   orgchart: { title: 'Organization Chart', nav: 'orgchart' },
   settings: { title: 'Settings', nav: 'settings' },
   'employee-profile': { title: 'Employee Profile', nav: 'employees' }
@@ -112,6 +113,25 @@ loadNotifCount();
 loadWorkspaceRoute();
 window.addEventListener('hashchange', () => {
   if (!syncingFromFrame) loadWorkspaceRoute();
+});
+
+function navigateWorkspace(route) {
+  const cleanRoute = String(route || WORKSPACE_DEFAULT).trim() || WORKSPACE_DEFAULT;
+  const page = cleanRoute.split('?')[0];
+  if (!Object.prototype.hasOwnProperty.call(WORKSPACE_PAGES, page)) return;
+
+  if (window.location.hash.slice(1) === cleanRoute) {
+    loadWorkspaceRoute();
+    return;
+  }
+  window.location.hash = cleanRoute;
+}
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== window.location.origin && event.source !== workspaceFrame.contentWindow) return;
+  const data = event.data || {};
+  if (data.type !== 'hrconnect:navigate') return;
+  navigateWorkspace(data.route);
 });
 
 workspaceFrame.addEventListener('load', () => {
@@ -142,7 +162,7 @@ function loadWorkspaceRoute() {
   const src = appUrl(`/pages/${route.page}.html${route.query}`);
 
   document.getElementById('workspace-title').textContent = pageMeta.title;
-  document.title = `${pageMeta.title} - HRConnect`;
+  document.title = `${pageMeta.title} - KenadHR`;
   buildSidebar(pageMeta.nav);
   loadNotifCount();
 
@@ -167,7 +187,7 @@ function syncRouteFromFrame() {
     window.history.replaceState(null, '', `#${route}`);
     const pageMeta = WORKSPACE_PAGES[page];
     document.getElementById('workspace-title').textContent = pageMeta.title;
-    document.title = `${pageMeta.title} - HRConnect`;
+    document.title = `${pageMeta.title} - KenadHR`;
     buildSidebar(pageMeta.nav);
     loadNotifCount();
     syncingFromFrame = false;

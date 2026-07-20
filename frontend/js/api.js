@@ -1,6 +1,12 @@
 // frontend/js/api.js — Centralized API client
-const API_BASE = 'http://localhost:5000/api';
-const USE_MOCK_API = true;
+// Use the local API while developing and the same origin when deployed.
+// A page can opt into the mock API explicitly with `window.__HR_USE_MOCK_API__ = true`.
+const API_BASE = window.__HR_API_BASE__ || (
+  ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:5000/api'
+    : `${window.location.origin}/api`
+);
+const USE_MOCK_API = window.__HR_USE_MOCK_API__ === true;
 let mockApiLoadPromise = null;
 
 const APP_BASE = (() => {
@@ -118,8 +124,7 @@ const api = {
 
     if (res.status === 401) {
       this.clearAuth();
-      const staffPath = window.location.pathname.includes('staff-');
-      window.location.href = appUrl(staffPath ? '/pages/staff-login.html' : '/pages/login.html');
+      window.location.href = appUrl('/pages/login.html');
       return;
     }
 
@@ -154,7 +159,7 @@ function requireStaffAuth() {
   const user  = api.getUser();
   if (!token || !user || user.role === 'admin') {
     api.clearAuth();
-    window.location.href = appUrl('/pages/staff-login.html');
+    window.location.href = appUrl('/pages/login.html');
     return null;
   }
   return user;
@@ -255,10 +260,12 @@ const fmt = {
 // ─── Avatar helper ──────────────────────────────────────────
 function avatarEl(employee, size = 'md') {
   if (employee.photo_url) {
-    return `<img src="${assetUrl(employee.photo_url)}" 
-                 alt="${employee.first_name}" 
+    return `<img src="${assetUrl(employee.photo_url)}"
+                 alt="${escapeAvatarText(employee.first_name)}"
                  class="avatar avatar-${size}"
-                 onerror="this.outerHTML=initialsAvatar('${employee.first_name}','${employee.last_name}','${size}')">`;
+                 data-first-name="${escapeAvatarText(employee.first_name)}"
+                 data-last-name="${escapeAvatarText(employee.last_name)}"
+                 onerror="replaceAvatarWithInitials(this)">`;
   }
   return initialsAvatar(employee.first_name, employee.last_name, size);
 }
@@ -272,7 +279,23 @@ function assetUrl(url) {
   if (url === '#') return '#';
   if (/^(https?:|data:|blob:)/.test(url)) return url;
   if (USE_MOCK_API) return appUrl(url);
-  return `http://localhost:5000${url}`;
+  // API_BASE is same-origin on Railway and localhost only during development.
+  // Uploaded files live beside the API, not beneath its /api route.
+  const assetBase = API_BASE.replace(/\/api\/?$/, '');
+  return `${assetBase}${url.startsWith('/') ? url : `/${url}`}`;
+}
+
+function escapeAvatarText(value) {
+  return String(value || '').replace(/[&<>\"]/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+  })[char]);
+}
+
+function replaceAvatarWithInitials(image) {
+  const fallback = document.createElement('div');
+  fallback.className = image.className || 'avatar avatar-md';
+  fallback.textContent = fmt.initials(image.dataset.firstName, image.dataset.lastName) || '?';
+  image.replaceWith(fallback);
 }
 
 // ─── Build sidebar navigation ───────────────────────────────
@@ -285,15 +308,15 @@ function buildSidebar(activePage) {
 
   const navItems = [
     { page: 'dashboard',   icon: gridIcon(),       label: 'Dashboard',    roles: ['admin','manager','employee'] },
-    { page: 'announcements', icon: chatIcon(),      label: 'Announcements', roles: ['admin'] },
+    { page: 'announcements', icon: chatIcon(),      label: 'Announcements', roles: ['admin','employee'] },
     { section: 'People Suite', roles: ['admin','manager'] },
-    { page: 'hiring',      icon: briefcaseIcon(),  label: 'Hiring',       roles: ['admin','manager'] },
+    { page: 'hiring',      icon: briefcaseIcon(),   label: 'Hiring & ATS', roles: ['admin','manager'] },
     { page: 'onboarding',  icon: checkIcon(),      label: 'Onboarding',   roles: ['admin','manager'] },
     { page: 'reports',     icon: chartIcon(),      label: 'Reports',      roles: ['admin','manager'] },
     { section: 'Workforce', roles: ['admin','manager','employee'] },
-    { page: 'attendance',  icon: clockIcon(),      label: 'Attendance',   roles: ['admin'] },
+    { page: 'attendance',  icon: clockIcon(),      label: 'Attendance',   roles: ['admin','employee'] },
     { page: 'todos',       icon: checkIcon(),      label: 'To Do List',    roles: ['admin','manager','employee'] },
-    { page: 'tickets',     icon: chatIcon(),       label: 'Tickets',       roles: ['admin','manager'] },
+    { page: 'tickets',     icon: chatIcon(),       label: 'Tickets',       roles: ['admin','manager','employee'] },
     { page: 'leave',       icon: calendarIcon(),   label: 'Leave',        roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager'] },
@@ -302,12 +325,15 @@ function buildSidebar(activePage) {
     { page: 'performance', icon: starIcon(),       label: 'Performance',  roles: ['admin','manager','employee'] },
     { section: 'HR Tools', roles: ['admin','manager'] },
     { page: 'employees',   icon: usersIcon(),      label: 'Employees',    roles: ['admin','manager'] },
-    { page: 'orgchart',    icon: orgIcon(),        label: 'Org Chart',    roles: ['admin','manager'] },
-    { page: 'settings',    icon: settingsIcon(),   label: 'Settings',     roles: ['admin'] },
+    { page: 'departments', icon: orgIcon(),        label: 'Departments',  roles: ['admin'] },
+    { page: 'orgchart',    icon: orgIcon(),        label: 'Org Chart',    roles: ['admin','manager','employee'] },
+    { page: 'settings',    icon: settingsIcon(),   label: 'Settings',     roles: ['admin','employee'] },
   ];
 
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
+  const previousNav = sidebar.querySelector('.sidebar-nav');
+  const previousScrollTop = previousNav ? previousNav.scrollTop : getSidebarScrollTop();
 
   const navHtml = navItems.map(item => {
     if (!item.roles.includes(user.role) && !(item.roles.includes('manager') && isManager)) return '';
@@ -317,7 +343,16 @@ function buildSidebar(activePage) {
       return `<div class="nav-section-label">${item.section}</div>`;
     }
     const active = activePage === item.page ? 'active' : '';
-    const href = isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page);
+    const staffRoutes = {
+      dashboard: 'overview', announcements: 'announcements', attendance: 'attendance',
+      todos: 'todos', tickets: 'tickets', leave: 'leave', payroll: 'payroll',
+      documents: 'documents', performance: 'performance', orgchart: 'orgchart', settings: 'settings'
+    };
+    const href = user.role === 'employee'
+      ? (item.page === 'messages'
+        ? appUrl('/pages/messages.html')
+        : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
+      : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page));
     return `<a href="${href}" class="nav-item ${active}">
       ${item.icon}
       <span>${item.label}</span>
@@ -327,7 +362,7 @@ function buildSidebar(activePage) {
   sidebar.innerHTML = `
     <div class="sidebar-logo">
       <div class="logo-mark">HR</div>
-      <span class="logo-text">HR<span>Connect</span></span>
+      <span class="logo-text">Kenad<span>HR</span></span>
       <button class="sidebar-close-btn" type="button" aria-label="Close menu">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -335,7 +370,7 @@ function buildSidebar(activePage) {
     <nav class="sidebar-nav">${navHtml}</nav>
     <div class="sidebar-user">
       ${user.photo_url
-        ? `<img src="${assetUrl(user.photo_url)}" class="user-avatar" alt="">`
+        ? avatarEl(user, 'sm').replace('class="avatar avatar-sm"', 'class="user-avatar"')
         : `<div class="avatar avatar-sm">${fmt.initials(user.first_name, user.last_name)}</div>`
       }
       <div class="user-info">
@@ -347,7 +382,42 @@ function buildSidebar(activePage) {
       </button>
     </div>
   `;
+  setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
+}
+
+const SIDEBAR_SCROLL_KEY = 'hrconnect.sidebar.scrollTop';
+
+function getSidebarScrollTop() {
+  try {
+    return Number(sessionStorage.getItem(SIDEBAR_SCROLL_KEY) || 0);
+  } catch (err) {
+    return 0;
+  }
+}
+
+function setSidebarScrollTop(value) {
+  try {
+    sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(Math.max(0, Math.round(value || 0))));
+  } catch (err) {}
+}
+
+function setupSidebarScrollMemory(sidebar, scrollTop) {
+  const nav = sidebar.querySelector('.sidebar-nav');
+  if (!nav) return;
+
+  const restore = () => {
+    const maxScroll = Math.max(0, nav.scrollHeight - nav.clientHeight);
+    nav.scrollTop = Math.min(Math.max(0, scrollTop || 0), maxScroll);
+  };
+
+  restore();
+  requestAnimationFrame(restore);
+
+  nav.addEventListener('scroll', () => setSidebarScrollTop(nav.scrollTop), { passive: true });
+  nav.querySelectorAll('.nav-item').forEach((link) => {
+    link.addEventListener('click', () => setSidebarScrollTop(nav.scrollTop));
+  });
 }
 
 function setupMobileSidebar(sidebar) {

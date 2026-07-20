@@ -1,7 +1,7 @@
 .suite-hero {
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--text-primary);
   padding: 22px;
   margin-bottom: 18px;
