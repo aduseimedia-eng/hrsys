@@ -192,7 +192,10 @@ async function loadBilling() {
 async function startCheckout(planKey) {
   try {
     const result = await api.post('/billing/checkout', { plan_key: planKey });
-    window.location.assign(result.authorization_url);
+    // Paystack Checkout must run in the top-level browser window, not inside
+    // the HR workspace iframe.
+    if (window.top !== window.self) window.top.location.assign(result.authorization_url);
+    else window.location.assign(result.authorization_url);
   } catch (error) {
     toast(error.message || 'Could not start checkout', 'error');
   }
