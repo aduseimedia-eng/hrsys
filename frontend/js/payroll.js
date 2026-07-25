@@ -91,7 +91,9 @@ async function viewPayslip(id) {
 
       <div class="detail-section">
         <h4>Deductions</h4>
-        <div class="detail-row"><span>Total Deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
+        <div class="detail-row"><span>Tax</span><span class="negative">-${fmt.currency(s.tax ?? s.deductions)}</span></div>
+        <div class="detail-row"><span>Other deductions</span><span class="negative">-${fmt.currency(s.other_deductions || 0)}</span></div>
+        <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
 
       <div class="net-salary-box">
@@ -174,7 +176,9 @@ function payslipHtml(s) {
       </div>
       <div class="detail-section">
         <h4>Deductions</h4>
-        <div class="detail-row"><span>Total Deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
+        <div class="detail-row"><span>Tax</span><span class="negative">-${fmt.currency(s.tax ?? s.deductions)}</span></div>
+        <div class="detail-row"><span>Other deductions</span><span class="negative">-${fmt.currency(s.other_deductions || 0)}</span></div>
+        <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
       <div class="net-salary-box">
         <div>
@@ -242,7 +246,7 @@ async function loadAllPayroll() {
       <td>${fmt.statusBadge(r.status)}</td>
       <td style="display:flex;gap:6px">
         <button class="btn btn-outline btn-sm" onclick="viewPayslip(${r.id})">View</button>
-        <button class="btn btn-outline btn-sm" onclick="showAmountModal(${r.id})">Set</button>
+        <button class="btn btn-primary btn-sm" onclick="showAmountModal(${r.id})">Edit payroll</button>
         ${r.status === 'processed' ? `<button class="btn btn-success btn-sm" onclick="markPaid(${r.id})">Mark Paid</button>` : ''}
       </td>
     </tr>`).join('');
@@ -251,22 +255,26 @@ async function loadAllPayroll() {
 function showAmountModal(id) {
   api.get(`/payroll/${id}`).then((row) => {
     const gross = Number(row.base_salary || 0) + Number(row.allowances || 0);
+    const tax = Number(row.tax ?? row.deductions ?? 0);
+    const otherDeductions = Number(row.other_deductions || 0);
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
       <div class="modal">
         <div class="modal-header">
-          <h3>Set Payroll Amounts</h3>
+          <h3>Edit payroll</h3>
           <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">x</button>
         </div>
         <div class="modal-body">
           <p style="color:var(--text-secondary);margin-bottom:16px">${row.first_name} ${row.last_name} - ${months[row.month - 1]} ${row.year}</p>
+          <p style="font-size:.82rem;color:var(--text-muted);margin:-8px 0 16px">HR controls each payroll component. Gross pay and net pay are calculated automatically.</p>
           <div class="form-grid">
-            <div class="form-group"><label class="form-label">Base Salary</label><input type="number" id="pay-base" class="form-control" step="0.01" value="${Number(row.base_salary || 0)}"></div>
-            <div class="form-group"><label class="form-label">Allowances</label><input type="number" id="pay-allowances" class="form-control" step="0.01" value="${Number(row.allowances || 0)}"></div>
-            <div class="form-group"><label class="form-label">Gross</label><input type="number" id="pay-gross" class="form-control" step="0.01" value="${gross}"></div>
-            <div class="form-group"><label class="form-label">Deductions</label><input type="number" id="pay-deductions" class="form-control" step="0.01" value="${Number(row.deductions || 0)}"></div>
-            <div class="form-group"><label class="form-label">Net</label><input type="number" id="pay-net" class="form-control" step="0.01" value="${Number(row.net_salary || 0)}"></div>
+            <div class="form-group"><label class="form-label">Base salary</label><input type="number" min="0" id="pay-base" class="form-control" step="0.01" value="${Number(row.base_salary || 0)}"></div>
+            <div class="form-group"><label class="form-label">Allowances</label><input type="number" min="0" id="pay-allowances" class="form-control" step="0.01" value="${Number(row.allowances || 0)}"></div>
+            <div class="form-group"><label class="form-label">Tax</label><input type="number" min="0" id="pay-tax" class="form-control" step="0.01" value="${tax}"></div>
+            <div class="form-group"><label class="form-label">Other deductions</label><input type="number" min="0" id="pay-other-deductions" class="form-control" step="0.01" value="${otherDeductions}"></div>
+            <div class="form-group"><label class="form-label">Gross pay</label><input type="number" id="pay-gross" class="form-control" readonly value="${gross.toFixed(2)}"></div>
+            <div class="form-group"><label class="form-label">Net pay</label><input type="number" id="pay-net" class="form-control" readonly value="${Number(row.net_salary || 0).toFixed(2)}"></div>
             <div class="form-group"><label class="form-label">Status</label><select id="pay-status" class="form-control form-select">
               <option value="pending" ${row.status === 'pending' ? 'selected' : ''}>Pending</option>
               <option value="processed" ${row.status === 'processed' ? 'selected' : ''}>Processed</option>
@@ -280,32 +288,27 @@ function showAmountModal(id) {
         </div>
       </div>`;
     document.body.appendChild(overlay);
-    const syncNet = () => {
-      const grossValue = Number(document.getElementById('pay-gross').value || 0);
-      const deductionValue = Number(document.getElementById('pay-deductions').value || 0);
-      document.getElementById('pay-net').value = Math.max(0, grossValue - deductionValue).toFixed(2);
+    const syncTotals = () => {
+      const baseValue = Number(document.getElementById('pay-base').value || 0);
+      const allowanceValue = Number(document.getElementById('pay-allowances').value || 0);
+      const taxValue = Number(document.getElementById('pay-tax').value || 0);
+      const otherValue = Number(document.getElementById('pay-other-deductions').value || 0);
+      const grossValue = Math.max(0, baseValue + allowanceValue);
+      document.getElementById('pay-gross').value = grossValue.toFixed(2);
+      document.getElementById('pay-net').value = Math.max(0, grossValue - taxValue - otherValue).toFixed(2);
     };
-    const syncDeductions = () => {
-      const grossValue = Number(document.getElementById('pay-gross').value || 0);
-      const netValue = Number(document.getElementById('pay-net').value || 0);
-      document.getElementById('pay-deductions').value = Math.max(0, grossValue - netValue).toFixed(2);
-    };
-    document.getElementById('pay-gross').addEventListener('input', syncNet);
-    document.getElementById('pay-deductions').addEventListener('input', syncNet);
-    document.getElementById('pay-net').addEventListener('input', syncDeductions);
+    ['pay-base', 'pay-allowances', 'pay-tax', 'pay-other-deductions'].forEach((field) => document.getElementById(field).addEventListener('input', syncTotals));
   }).catch((e) => toast(e.message, 'error'));
 }
 
 async function savePayrollAmounts(id) {
   try {
     const base = Number(document.getElementById('pay-base').value || 0);
-    const gross = Number(document.getElementById('pay-gross').value || 0);
-    const net = Number(document.getElementById('pay-net').value || 0);
-    const deductions = Math.max(0, gross - net);
     await api.put(`/payroll/${id}`, {
       base_salary: base,
-      allowances: Math.max(0, gross - base),
-      deductions,
+      allowances: Number(document.getElementById('pay-allowances').value || 0),
+      tax: Number(document.getElementById('pay-tax').value || 0),
+      other_deductions: Number(document.getElementById('pay-other-deductions').value || 0),
       status: document.getElementById('pay-status').value
     });
     document.querySelector('.modal-overlay')?.remove();
@@ -341,12 +344,47 @@ async function loadSummary() {
 }
 
 function showProcessModal() {
-  const m = now.getMonth() + 1;
-  const y = now.getFullYear();
-  if (!confirm(`Process payroll for ${months[m-1]} ${y}? This will generate payslips for all active employees.`)) return;
-  api.post('/payroll/process', { month: m, year: y })
-    .then(r => { toast(`Payroll processed for ${r.count} employees`, 'success'); switchTab('all'); })
-    .catch(e => toast(e.message, 'error'));
+  const monthSelect = document.getElementById('process-payroll-month');
+  const yearSelect = document.getElementById('process-payroll-year');
+  if (!monthSelect.options.length) {
+    months.forEach((month, index) => { monthSelect.innerHTML += `<option value="${index + 1}">${month}</option>`; });
+    for (let year = now.getFullYear() + 1; year >= now.getFullYear() - 3; year--) {
+      yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+    }
+  }
+  monthSelect.value = String(now.getMonth() + 1);
+  yearSelect.value = String(now.getFullYear());
+  document.getElementById('process-payroll-confirm').checked = false;
+  toggleProcessPayrollButton();
+  document.getElementById('process-payroll-modal').style.display = 'flex';
+}
+
+function closeProcessPayrollModal() {
+  document.getElementById('process-payroll-modal').style.display = 'none';
+}
+
+function toggleProcessPayrollButton() {
+  document.getElementById('process-payroll-submit').disabled = !document.getElementById('process-payroll-confirm').checked;
+}
+
+async function submitPayrollProcess() {
+  const submit = document.getElementById('process-payroll-submit');
+  const month = Number(document.getElementById('process-payroll-month').value);
+  const year = Number(document.getElementById('process-payroll-year').value);
+  if (!month || !year || !document.getElementById('process-payroll-confirm').checked) return;
+  submit.disabled = true;
+  submit.textContent = 'Processing…';
+  try {
+    const result = await api.post('/payroll/process', { month, year });
+    closeProcessPayrollModal();
+    toast(`Payroll processed for ${result.count} employees`, 'success');
+    switchTab('all');
+  } catch (error) {
+    toast(error.message || 'Could not process payroll', 'error');
+    submit.disabled = false;
+  } finally {
+    submit.textContent = 'Process payroll';
+  }
 }
 
 loadMyPayslips();

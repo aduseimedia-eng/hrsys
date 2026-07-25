@@ -9,6 +9,7 @@ const documentsController = require('../controllers/documents.controller');
 const leaveController = require('../controllers/leave.controller');
 const attendanceController = require('../controllers/attendance.controller');
 const payrollController = require('../controllers/payroll.controller');
+const messagesController = require('../controllers/messages.controller');
 const rbac = require('../middleware/rbac');
 const originalGetClient = db.getClient;
 
@@ -119,6 +120,44 @@ test('document upload saves the supplied document title', async () => {
   assert.equal(res.body.title, 'Signed employment contract');
   assert.match(calls[0].text, /title, file_path/i);
   assert.equal(calls[0].params[3], 'Signed employment contract');
+});
+
+test('message edits are restricted to the sender in the same company', async () => {
+  const calls = mockQueries([{ rows: [{ id: 21, sender_id: 7, body: 'Updated note' }] }]);
+  const res = response();
+  await messagesController.update({
+    body: { body: 'Updated note' },
+    params: { id: 21 },
+    user: { id: 7, company_id: 3 }
+  }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.body, 'Updated note');
+  assert.match(calls[0].text, /sender_id=\$4/i);
+  assert.deepEqual(calls[0].params, ['Updated note', 21, 3, 7]);
+});
+
+test('message deletion only removes a sent message owned by the user', async () => {
+  const calls = mockQueries([{ rows: [{ id: 21 }] }]);
+  const res = response();
+  await messagesController.remove({ params: { id: 21 }, user: { id: 7, company_id: 3 } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.id, 21);
+  assert.match(calls[0].text, /DELETE FROM messages/i);
+  assert.match(calls[0].text, /sender_id=\$3/i);
+});
+
+test('HR payroll updates keep tax and other deductions as separate inputs', async () => {
+  const calls = mockQueries([{ rows: [{ id: 9, tax: '120.00', other_deductions: '30.00', deductions: '150.00' }] }]);
+  const res = response();
+  await payrollController.updatePayroll({
+    params: { id: 9 },
+    body: { base_salary: 1200, allowances: 80, tax: 120, other_deductions: 30, status: 'processed' },
+    user: { company_id: 3 }
+  }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.deductions, '150.00');
+  assert.match(calls[0].text, /tax=\$3/i);
+  assert.deepEqual(calls[0].params, [1200, 80, 120, 30, 150, 'processed', 9, 3]);
 });
 
 test('leave approval rejects self-approval before modifying data', async () => {

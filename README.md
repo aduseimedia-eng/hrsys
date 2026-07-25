@@ -122,6 +122,25 @@ python3 -m http.server 3000 --directory frontend
 # Or VS Code Live Server extension
 ```
 
+### Paystack annual billing
+
+Clients select an annual plan from **Settings → Billing & annual plan**. The server
+creates the Paystack checkout session, verifies successful payments server-side,
+and stores the plan access period for the company. Set these production variables:
+
+```bash
+PAYSTACK_SECRET_KEY=sk_live_...
+PAYSTACK_CURRENCY=GHS
+PUBLIC_APP_URL=https://your-domain.example
+BILLING_PLANS=[{"key":"starter","name":"Starter","amount":120000,"description":"For small teams"}]
+```
+
+Amounts use Paystack's smallest currency unit (for example, `120000` is GHS 1,200).
+Replace the sample plans with your actual yearly prices. In the Paystack Dashboard,
+set the webhook URL to `https://your-domain.example/api/billing/webhook`. The endpoint
+validates Paystack's HMAC signature, while the return page verifies the transaction
+again before activating access.
+
 ### 5. Access the app
 
 - Frontend: http://localhost:3000/pages/login.html

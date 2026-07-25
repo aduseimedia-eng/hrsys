@@ -131,7 +131,7 @@
   </header>
   <main class="main-content">
     <div class="page-header">
-      <div><h1>Leave Management</h1><p>Request, track, and manage leave</p></div>
+      <div><h1 id="leave-page-title">Leave Management</h1><p id="leave-page-subtitle">Request, track, and manage leave</p></div>
       <button class="btn btn-primary" onclick="showRequestModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Request Leave
@@ -173,6 +173,12 @@
 
     <!-- All requests (HR) -->
     <div id="tab-all" style="display:none">
+      <div id="selected-employee-context" class="card" style="display:none;margin-bottom:16px">
+        <div class="card-body" style="padding:14px 16px">
+          <strong id="selected-employee-name"></strong>
+          <span style="color:var(--text-secondary);font-size:.86rem"> — leave history</span>
+        </div>
+      </div>
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
         <select id="hr-status-filter" class="form-control form-select" style="max-width:160px" onchange="loadAllLeaves()">
           <option value="">All Status</option>
@@ -245,6 +251,16 @@ if (['admin','manager'].includes(user.role)) {
 }
 
 let hrLeaveRows = [];
+const selectedEmployeeId = new URLSearchParams(window.location.search).get('employee_id');
+const selectedEmployeeName = new URLSearchParams(window.location.search).get('employee_name');
+
+if (selectedEmployeeId && selectedEmployeeName) {
+  document.getElementById('leave-page-title').textContent = 'Staff Leave History';
+  document.getElementById('leave-page-subtitle').textContent = `Viewing leave requests for ${selectedEmployeeName}`;
+  document.getElementById('selected-employee-name').textContent = selectedEmployeeName;
+  document.getElementById('selected-employee-context').style.display = '';
+  document.getElementById('hr-tab').textContent = 'Staff History';
+}
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -292,7 +308,10 @@ async function loadMyLeaves() {
 // All leave (HR)
 async function loadAllLeaves() {
   const status = document.getElementById('hr-status-filter')?.value || '';
-  let qs = status ? `?status=${status}` : '';
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (selectedEmployeeId) params.set('employee_id', selectedEmployeeId);
+  const qs = params.size ? `?${params.toString()}` : '';
   const rows = await api.get(`/leave${qs}`);
   hrLeaveRows = rows;
   const tbody = document.getElementById('all-leave-tbody');
@@ -488,7 +507,11 @@ async function submitRequest() {
   } catch(e) { toast(e.message, 'error'); }
 }
 
-loadMyLeaves();
+if (selectedEmployeeId && ['admin', 'manager'].includes(user.role)) {
+  switchTab('all');
+} else {
+  loadMyLeaves();
+}
 </script>
 </body>
 </html>

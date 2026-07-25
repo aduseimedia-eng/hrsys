@@ -840,6 +840,38 @@ tbody tr:hover { background: var(--bg-page); }
   .notif-panel { width: 100%; }
 }
 
+/* Phone ergonomics: keep every common control and overlay reachable on narrow screens. */
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  body { overflow-x: hidden; }
+  .topbar { min-height: var(--topbar-h); }
+  .topbar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; }
+  .topbar-actions { gap: 2px; }
+  .topbar-actions .icon-btn { width: 36px; height: 36px; }
+  .main-content { padding: 14px 12px; }
+  .page-header { margin-bottom: 18px; gap: 12px; }
+  .page-header h1 { font-size: 1.35rem; }
+  .card-header { align-items: flex-start; flex-wrap: wrap; padding: 15px 16px; }
+  .card-body { padding: 16px; }
+  .stat-grid { grid-template-columns: 1fr; gap: 12px; }
+  .stat-card { padding: 16px; }
+  .form-control, select, textarea { font-size: 16px; }
+  .tabs { overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { flex: 0 0 auto; padding: 10px 14px; }
+  .table-container { border-radius: 10px; }
+  .table-container table { min-width: 620px; }
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal { max-height: min(88vh, 760px); border-radius: 16px 16px 0 0; }
+  .modal-header { padding: 16px; }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1 1 130px; justify-content: center; }
+  .toast-container { left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); }
+  .toast { max-width: none; width: 100%; }
+  .clock-time { font-size: 2.35rem; }
+}
+
 /* KenadHR application theme — aligned with the sign-in experience */
 :root {
   --navy-950: #172442; --navy-900: #1d2b4d; --navy-800: #2865d9;
@@ -863,6 +895,7 @@ body { background: var(--bg-page); }
 .sidebar { background: #fff; border-right: 1px solid var(--border); box-shadow: none; }
 .sidebar-logo { border-bottom-color: var(--border); padding: 0 18px; }
 .sidebar-logo .logo-mark { width: 42px; height: 42px; border-radius: 10px; background: #3977ee; color: #fff; }
+.sidebar-logo .brand-logo { width: 158px; height: 42px; object-fit: contain; object-position: center; mix-blend-mode: multiply; }
 .sidebar-logo .logo-text { color: #1d2b4d; font-size: 1.12rem; font-weight: 800; }
 .sidebar-logo .logo-text span { color: #3977ee; }
 .nav-section-label { color: #97a2b7; padding: 16px 18px 7px; }
@@ -899,3 +932,21 @@ tbody tr:hover { background: #f7faff; }
 .tab-btn.active { color: #3977ee; border-bottom-color: #3977ee; }
 .empty-state, .loading-state { border-radius: 12px; }
 @media (max-width: 768px) { .main-content { padding: 20px 16px; } .sidebar { box-shadow: 18px 0 48px rgba(29,43,77,.14); } }
+
+/* On phones, the navigation becomes a branded blue drawer and uses the white logo asset. */
+@media (max-width: 768px) {
+  .sidebar { background:#174FAE; border-right:0; box-shadow:18px 0 48px rgba(23,79,174,.28); }
+  .sidebar-logo { border-bottom-color:rgba(255,255,255,.16); }
+  .sidebar-logo .brand-logo { mix-blend-mode:normal; }
+  .sidebar-close-btn { color:rgba(255,255,255,.85); }
+  .sidebar-close-btn:hover { background:rgba(255,255,255,.12); color:#fff; }
+  .nav-section-label { color:rgba(255,255,255,.52); }
+  .nav-item { color:rgba(255,255,255,.78); }
+  .nav-item:hover { color:#fff; background:rgba(255,255,255,.12); }
+  .nav-item.active { color:#fff; background:rgba(255,255,255,.18); }
+  .nav-badge { background:#fff; color:#174FAE; }
+  .sidebar-user { border-top-color:rgba(255,255,255,.16); }
+  .sidebar-user .user-avatar { background:rgba(255,255,255,.18); color:#fff; }
+  .sidebar-user .user-name, .sidebar-user .user-role { color:#fff; }
+  .sidebar-user .logout-btn { color:rgba(255,255,255,.78); }
+}

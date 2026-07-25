@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KenadHR - HR/Admin Sign In</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    body { min-height:100vh; display:grid; place-items:center; padding:24px; background:#f4f7fd; }
+    .auth-card { width:min(100%, 440px); background:#fff; border:1px solid #dfe7f5; border-radius:18px; box-shadow:0 22px 60px rgba(23,79,174,.13); overflow:hidden; }
+    .auth-head { padding:26px 30px; color:#fff; background:#174FAE; text-align:center; }
+    .auth-logo { width:190px; height:58px; object-fit:contain; filter:none; }
+    .auth-body { padding:28px 30px 30px; }
+    .auth-body h2 { font-size:1.22rem; margin-bottom:20px; text-align:center; }
+    .auth-body > p { display:none; }
+    .form-control { min-height:46px; font-size:16px; }
+    .password-field { position:relative; }.password-field .form-control { padding-right:64px; }
+    .password-toggle { position:absolute; right:9px; top:50%; transform:translateY(-50%); padding:7px; color:#174FAE; font-size:.76rem; font-weight:800; }
+    .error-alert { display:none; margin-bottom:16px; padding:10px 12px; color:#a52640; background:#fff1f3; border-radius:8px; font-size:.84rem; }
+    .setup-fields { display:none; }.setup-fields.visible { display:block; }
+    .auth-actions { display:grid; gap:12px; margin-top:20px; }.auth-actions .btn { justify-content:center; min-height:46px; }
+    .setup-link, .back-link { display:block; width:100%; color:#174FAE; font-size:.82rem; font-weight:700; text-align:center; }
+    .back-link { margin-top:18px; color:#68758d; }
+    @media (max-width:560px) { body { padding:0; place-items:stretch; }.auth-card { width:100%; min-height:100vh; border:0; border-radius:0; box-shadow:none; }.auth-head { padding:24px 22px 40px; }.auth-body { margin-top:-16px; min-height:calc(100vh - 130px); padding:28px 20px calc(30px + env(safe-area-inset-bottom)); border-radius:18px 18px 0 0; background:#fff; }.auth-logo { width:174px; height:52px; } }
+  </style>
+</head>
+<body>
+  <main class="auth-card">
+    <header class="auth-head">
+      <img class="auth-logo" src="../assets/logo white.png" alt="KenadHR">
+    </header>
+    <section class="auth-body">
+      <h2 id="form-title">HR/Admin sign in</h2>
+      <p id="form-copy"></p>
+      <div class="error-alert" id="form-error"></div>
+      <form id="hr-login-form">
+        <div class="setup-fields" id="setup-fields">
+          <div class="form-group"><label class="form-label required" for="company-name">Company name</label><input class="form-control" id="company-name" autocomplete="organization"></div>
+          <div class="form-group"><label class="form-label required" for="full-name">Your full name</label><input class="form-control" id="full-name" autocomplete="name"></div>
+        </div>
+        <div class="form-group"><label class="form-label required" for="email">Work email</label><input type="email" class="form-control" id="email" required autocomplete="email"></div>
+        <div class="form-group"><label class="form-label required" for="password">Password</label><div class="password-field"><input type="password" class="form-control" id="password" required autocomplete="current-password"><button class="password-toggle" type="button" id="password-toggle">Show</button></div></div>
+        <div class="auth-actions"><button class="btn btn-primary" id="submit-btn" type="submit">Sign in</button><button class="setup-link" id="setup-link" type="button">New company? Create account</button></div>
+      </form>
+      <a class="back-link" href="login.html">← Back</a>
+    </section>
+  </main>
+  <script src="../js/api.js"></script>
+  <script>
+    if (api.getToken() && ['admin', 'manager'].includes(api.getUser()?.role)) window.location.href = adminWorkspaceUrl('dashboard');
+    else if (api.getToken()) api.clearAuth();
+    let setupMode = false;
+    const errorEl = document.getElementById('form-error');
+    document.getElementById('password-toggle').addEventListener('click', () => { const input=document.getElementById('password'); const show=input.type==='password'; input.type=show?'text':'password'; document.getElementById('password-toggle').textContent=show?'Hide':'Show'; });
+    document.getElementById('setup-link').addEventListener('click', () => { setupMode=true; document.getElementById('setup-fields').classList.add('visible'); document.getElementById('company-name').required=true; document.getElementById('full-name').required=true; document.getElementById('form-title').textContent='Create HR account'; document.getElementById('submit-btn').textContent='Create account'; document.getElementById('setup-link').style.display='none'; document.getElementById('company-name').focus(); });
+    document.getElementById('hr-login-form').addEventListener('submit', async (event) => { event.preventDefault(); const button=document.getElementById('submit-btn'); errorEl.style.display='none'; button.disabled=true; button.textContent=setupMode?'Creating account...':'Signing in...'; try { const data=await api.post(setupMode?'/auth/setup':'/auth/login', setupMode?{company_name:document.getElementById('company-name').value,full_name:document.getElementById('full-name').value,email:document.getElementById('email').value,password:document.getElementById('password').value}:{email:document.getElementById('email').value,password:document.getElementById('password').value}); if (!setupMode && !['admin','manager'].includes(data.user?.role)) throw new Error('Only HR/Admin or manager accounts can access this portal'); api.setToken(data.token); api.setUser(data.user); window.location.href=adminWorkspaceUrl('dashboard'); } catch (err) { errorEl.textContent=err.message||'Could not sign in'; errorEl.style.display='block'; button.disabled=false; button.textContent=setupMode?'Create HR account':'Sign in'; } });
+    if (new URLSearchParams(window.location.search).get('setup') === '1') document.getElementById('setup-link').click();
+  </script>
+</body>
+</html>

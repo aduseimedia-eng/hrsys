@@ -1256,6 +1256,7 @@
       box-shadow: none;
     }
     .staff-brand-mark { background: #3977ee; color: #fff; border-radius: 10px; }
+    .staff-brand-logo { width: 164px; height: 42px; object-fit: contain; object-position: center; mix-blend-mode: multiply; }
     .staff-brand-name { color: #1d2b4d; font-size: 1.08rem; }
     .staff-brand-name span { color: #3977ee; }
     .staff-nav a, .staff-logout { color: #6f7c91; font-weight: 600; border-radius: 9px; }
@@ -1291,8 +1292,7 @@
     <aside class="staff-sidebar">
       <div class="staff-sidebar-header">
         <div class="staff-brand">
-          <div class="staff-brand-mark">HR</div>
-          <div class="staff-brand-name">Kenad<span>HR</span></div>
+          <img class="staff-brand-logo" src="../assets/logo.png" alt="KenadHR">
         </div>
       </div>
 
@@ -2817,7 +2817,7 @@
           <div class="row-meta">
             <small>${fmt.date(doc.uploaded_at)}</small>
             <a class="btn btn-outline btn-sm" href="${assetUrl(doc.file_path)}" target="_blank" rel="noopener">View</a>
-            ${Number(doc.employee_id) === Number(portalState.profile?.id) ? `<button class="btn btn-outline btn-sm" type="button" onclick="deleteStaffDocument(${doc.id})">Delete</button>` : ''}
+            ${Number(doc.employee_id) === Number(portalState.profile?.id) ? `<button class="btn btn-outline btn-sm" type="button" onclick="showStaffDocumentDeleteModal(${doc.id}, '${String(doc.title || doc.original_name || 'Document').replace(/'/g, '&#39;')}')">Delete</button>` : ''}
           </div>
         </div>
       `).join('');
@@ -3320,14 +3320,34 @@
       if (file && title && !title.value.trim()) title.value = file.name.replace(/\.[^.]+$/, '');
     }
 
-    async function deleteStaffDocument(id) {
-      if (!confirm('Delete this document? This cannot be undone.')) return;
+    function showStaffDocumentDeleteModal(id, name) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal" style="max-width:420px">
+          <div class="modal-header"><h3>Delete document?</h3><button class="modal-close" type="button" onclick="this.closest('.modal-overlay').remove()">×</button></div>
+          <div class="modal-body">
+            <div style="width:48px;height:48px;display:grid;place-items:center;margin-bottom:14px;border-radius:14px;background:#fff0f2;color:var(--rose-600);font-size:1.35rem;font-weight:800">!</div>
+            <p style="color:var(--text-secondary);line-height:1.55">This permanently removes the document and its stored file. This action cannot be undone.</p>
+            <strong style="display:block;overflow:hidden;margin-top:12px;padding:10px 12px;border:1px solid #ffd6df;border-radius:8px;background:#fff7f8;color:var(--text-primary);font-size:.84rem;text-overflow:ellipsis;white-space:nowrap">${safe(name)}</strong>
+          </div>
+          <div class="modal-footer"><button class="btn btn-outline" type="button" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-danger" type="button" onclick="deleteStaffDocument(${id}, this)">Delete Document</button></div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function deleteStaffDocument(id, button) {
+      button.disabled = true;
+      button.textContent = 'Deleting...';
       try {
         await api.delete(`/documents/${id}`);
+        button.closest('.modal-overlay').remove();
         toast('Document deleted', 'success');
         await loadPortal();
       } catch (err) {
         toast(err.message || 'Could not delete document', 'error');
+        button.disabled = false;
+        button.textContent = 'Delete Document';
       }
     }
 

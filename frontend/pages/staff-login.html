@@ -41,29 +41,6 @@
       overflow: hidden;
     }
 
-    .staff-login-story::before,
-    .staff-login-story::after {
-      content: "";
-      position: absolute;
-      border-radius: 999px;
-      pointer-events: none;
-    }
-
-    .staff-login-story::before {
-      width: 380px;
-      height: 380px;
-      right: -150px;
-      top: -140px;
-      border: 1px solid rgba(221,245,230,.18);
-    }
-
-    .staff-login-story::after {
-      width: 230px;
-      height: 230px;
-      left: -90px;
-      bottom: -80px;
-      background: rgba(221,245,230,.08);
-    }
 
     .staff-brand {
       display: flex;
@@ -83,6 +60,7 @@
       place-items: center;
       font-weight: 800;
     }
+    .staff-brand-logo { width: 160px; height: 42px; object-fit: contain; object-position: center; mix-blend-mode: normal; }
 
     .staff-brand-name {
       color: #fff;
@@ -238,6 +216,8 @@
       font-weight: 700;
       white-space: nowrap;
     }
+    .staff-back-link { display:block; margin-top:14px; color:#68758d; font-size:.8rem; font-weight:700; text-align:center; }
+    .staff-back-link:hover { color:#174FAE; }
 
     .new-staff-help {
       margin-top: 16px;
@@ -251,6 +231,7 @@
     }
 
     .new-staff-help strong { color: var(--text-primary); }
+    #staff-otp-fields { display: none !important; }
 
     @media (max-width: 960px) {
       .staff-login-shell {
@@ -266,7 +247,7 @@
     }
 
     @media (max-width: 560px) {
-      body { background: var(--bg-page); }
+      body { background: var(--bg-page); overflow-y: auto; }
       .staff-login-shell {
         width: 100%;
         min-height: 100vh;
@@ -275,18 +256,48 @@
         border: 0;
       }
       .staff-login-story {
-        padding: 28px 22px;
+        min-height: 0;
+        padding: 24px 22px 40px;
+        gap: 0;
+        background: #174FAE;
       }
-      .staff-story-copy h1 {
-        font-size: 2rem;
-      }
+      .staff-story-copy, .staff-feature-grid { display:none; }
+      .staff-brand { justify-content:center; }
+      .staff-brand-logo { width:174px; height:52px; mix-blend-mode:normal; filter:none; }
       .staff-login-panel {
-        padding: 32px 22px;
+        margin-top:-16px;
+        padding: 28px 20px calc(28px + env(safe-area-inset-bottom));
+        border-radius:18px 18px 0 0;
       }
       .portal-switch {
         align-items: flex-start;
         flex-direction: column;
       }
+      .new-staff-help { display:none; }
+    }
+    @media (max-width: 380px) {
+      .staff-login-story { min-height: 250px; }
+      .staff-feature-grid { display: none; }
+      .staff-brand-logo { width: 135px; }
+    }
+
+    /* Keep the staff sign-in visually aligned with the HR/Admin sign-in page. */
+    body { min-height:100vh; display:grid; place-items:center; padding:24px; background:#f4f7fd; }
+    .staff-login-shell { width:min(100%, 440px); min-height:0; margin:0; display:block; border:1px solid #dfe7f5; border-radius:18px; background:#fff; box-shadow:0 22px 60px rgba(23,79,174,.13); }
+    .staff-login-story { min-height:0; padding:26px 30px; justify-content:center; background:#174FAE; }
+    .staff-brand { justify-content:center; }
+    .staff-brand-logo { width:190px; height:58px; mix-blend-mode:normal; }
+    .staff-story-copy, .staff-feature-grid { display:none; }
+    .staff-login-panel { display:block; padding:28px 30px 30px; background:#fff; }
+    .staff-access-badge, .staff-login-panel .subtitle, .new-staff-help { display:none; }
+    .staff-login-panel h2 { margin:0 0 20px; font-size:1.22rem; text-align:center; }
+    .portal-switch { justify-content:center; margin-top:18px; padding-top:0; border-top:0; font-size:.8rem; }
+    @media (max-width:560px) {
+      body { padding:0; place-items:stretch; }
+      .staff-login-shell { width:100%; min-height:100vh; border:0; border-radius:0; box-shadow:none; }
+      .staff-login-story { padding:24px 22px 40px; }
+      .staff-brand-logo { width:174px; height:52px; }
+      .staff-login-panel { min-height:calc(100vh - 130px); margin-top:-16px; padding:28px 20px calc(30px + env(safe-area-inset-bottom)); border-radius:18px 18px 0 0; }
     }
   </style>
 </head>
@@ -294,8 +305,7 @@
   <div class="staff-login-shell">
     <section class="staff-login-story" aria-label="Staff self-service overview">
       <div class="staff-brand">
-        <div class="staff-brand-mark">KH</div>
-        <div class="staff-brand-name">Kenad<span>HR</span></div>
+        <img class="staff-brand-logo" src="../assets/logo white.png?v=3" alt="KenadHR">
       </div>
 
       <div class="staff-story-copy">
@@ -331,16 +341,25 @@
       <div class="error-alert" id="login-error"></div>
 
       <form id="staff-login-form">
-        <div class="form-group">
-          <label class="form-label required" for="email">Email address</label>
-          <input type="email" id="email" class="form-control" placeholder="name@company.com" required autocomplete="email">
-        </div>
-        <div class="form-group">
-          <label class="form-label required" for="password">Password</label>
-          <div class="password-field">
-            <input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
-            <button class="password-toggle" type="button" id="password-toggle" aria-label="Show password">Show</button>
+        <div id="staff-credentials-fields">
+          <div class="form-group">
+            <label class="form-label required" for="email">Email address</label>
+            <input type="email" id="email" class="form-control" placeholder="name@company.com" required autocomplete="email">
           </div>
+          <div class="form-group">
+            <label class="form-label required" for="password">Password</label>
+            <div class="password-field">
+              <input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+              <button class="password-toggle" type="button" id="password-toggle" aria-label="Show password">Show</button>
+            </div>
+          </div>
+        </div>
+        <div id="staff-otp-fields" style="display:none">
+          <div class="form-group">
+            <label class="form-label required" for="staff-otp-code">Verification code</label>
+            <input type="text" inputmode="numeric" maxlength="6" id="staff-otp-code" class="form-control" placeholder="Enter the 6-digit SMS code" autocomplete="one-time-code">
+          </div>
+          <p style="margin:-4px 0 18px;color:var(--text-secondary);font-size:.84rem">We sent a verification code to your registered phone number. It expires in 5 minutes.</p>
         </div>
         <button type="submit" class="btn btn-primary btn-lg w-full" id="login-btn" style="justify-content:center;">
           Staff Sign In
@@ -351,6 +370,7 @@
         <span>Signing in as HR/Admin?</span>
         <a href="login.html">Use admin sign in</a>
       </div>
+      <a class="staff-back-link" href="login.html">← Back to portal</a>
 
       <div class="new-staff-help">
         <strong>New to KenadHR?</strong><br>
@@ -369,19 +389,36 @@
       api.clearAuth();
     }
 
+    let staffVerificationId = null;
+
     document.getElementById('staff-login-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const button = document.getElementById('login-btn');
       const error = document.getElementById('login-error');
       error.style.display = 'none';
       button.disabled = true;
-      button.textContent = 'Signing in...';
+      button.textContent = staffVerificationId ? 'Verifying...' : 'Signing in...';
 
       try {
-        const data = await api.post('/auth/staff-login', {
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value,
-        });
+        const data = staffVerificationId
+          ? await api.post('/auth/staff-login/otp/verify', {
+              verification_id: staffVerificationId,
+              code: document.getElementById('staff-otp-code').value,
+            })
+          : await api.post('/auth/staff-login', {
+              email: document.getElementById('email').value,
+              password: document.getElementById('password').value,
+            });
+
+        if (data.requires_otp) {
+          staffVerificationId = data.verification_id;
+          document.getElementById('staff-credentials-fields').style.display = 'none';
+          document.getElementById('staff-otp-fields').style.display = '';
+          button.disabled = false;
+          button.textContent = 'Verify and sign in';
+          document.getElementById('staff-otp-code').focus();
+          return;
+        }
 
         if (data.user?.role === 'admin') {
           api.clearAuth();
@@ -395,7 +432,7 @@
         error.textContent = err.message || 'Invalid credentials';
         error.style.display = 'block';
         button.disabled = false;
-        button.textContent = 'Staff Sign In';
+        button.textContent = staffVerificationId ? 'Verify and sign in' : 'Staff Sign In';
       }
     });
 

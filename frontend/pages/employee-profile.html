@@ -36,21 +36,26 @@
     }
 
     .profile-hero {
-      background: linear-gradient(135deg, var(--navy-800), var(--navy-950));
-      border-radius: var(--radius-xl);
-      padding: 32px;
+      background: linear-gradient(120deg, #1d2b4d 0%, #2865d9 100%);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 18px;
+      padding: 28px 30px;
       color: #fff;
       display: flex;
       align-items: center;
       gap: 24px;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 18px 44px rgba(35,70,150,.18);
     }
+    .profile-hero::after { content: ''; position: absolute; width: 320px; height: 320px; right: -120px; top: -200px; border-radius: 50%; background: rgba(255,255,255,.08); }
     .profile-hero .avatar-wrap {
       position: relative;
       flex-shrink: 0;
+      z-index: 1;
     }
+    .profile-hero .avatar { border: 4px solid rgba(255,255,255,.22); box-shadow: 0 12px 28px rgba(15,31,77,.24); }
     .profile-hero .avatar-wrap .edit-photo-btn {
       position: absolute;
       bottom: 0; right: 0;
@@ -63,13 +68,15 @@
       transition: background var(--duration);
     }
     .profile-hero .avatar-wrap .edit-photo-btn:hover { background: var(--amber-400); }
-    .profile-hero h2 { font-size: 1.6rem; color: #fff; margin-bottom: 4px; }
+    .profile-hero h2 { font-size: 1.72rem; color: #fff; margin: 3px 0 4px; letter-spacing: -.03em; }
+    .profile-hero > div:not(.avatar-wrap):not(.profile-actions) { position: relative; z-index: 1; }
+    .profile-eyebrow { color: rgba(255,255,255,.66); font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
     .profile-hero .role-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(255,255,255,.1); font-size: .8rem; margin-top: 6px; }
-    .profile-meta { display: flex; gap: 20px; margin-top: 14px; flex-wrap: wrap; }
-    .profile-meta-item { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: rgba(255,255,255,.6); }
+    .profile-meta { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+    .profile-meta-item { display: flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid rgba(255,255,255,.13); border-radius: 8px; background: rgba(10,23,66,.14); font-size: .76rem; color: rgba(255,255,255,.8); }
     .profile-meta-item svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-    .profile-actions { margin-left: auto; display: flex; gap: 10px; flex-shrink: 0; align-self: flex-start; }
+    .profile-actions { position:relative;z-index:1;margin-left:auto;display:flex;gap:8px;flex-shrink:0;align-self:flex-start; }
     .profile-actions .btn { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.15); }
     .profile-actions .btn:hover { background: rgba(255,255,255,.18); }
     .profile-actions .btn-primary { background: var(--mint-100); color: var(--navy-950); border-color: transparent; }
@@ -105,27 +112,45 @@
 
     .profile-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, .82fr);
+      gap: 16px;
+      align-items: start;
     }
+    .profile-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .profile-overview-item { min-width:0;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface);box-shadow:var(--shadow-sm); }
+    .profile-overview-item span { display:block;color:var(--text-muted);font-size:.66rem;font-weight:750;letter-spacing:.07em;text-transform:uppercase; }
+    .profile-overview-item strong { display:block;overflow:hidden;margin-top:5px;color:var(--text-primary);font-size:.9rem;text-overflow:ellipsis;white-space:nowrap; }
+    .profile-grid .card { overflow:hidden;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm); }
+    .profile-grid .card-header { padding:15px 18px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,#fbfcff,#f6f8ff); }
+    .profile-grid .card-header h3 { color:var(--text-primary);font-size:.82rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase; }
+    .profile-grid .card-body { padding:8px 18px; }
     .info-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 0;
+      padding: 11px 0;
       border-bottom: 1px solid var(--border);
       font-size: .875rem;
     }
     .info-row:last-child { border-bottom: none; }
-    .info-row .label { color: var(--text-muted); }
-    .info-row .value { font-weight: 500; text-align: right; }
+    .info-row .label { color: var(--text-muted);font-size:.78rem; }
+    .info-row .value { max-width:58%;color:var(--text-primary);font-size:.82rem;font-weight:650;text-align:right; }
+    .quick-access-panel { display: none; width: 100%; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+    .quick-access-panel.open { display: block; }
+    .quick-access-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .quick-access-panel-head h4 { font-size: 1rem; }
+    .quick-access-panel .table-container { max-height: 360px; overflow: auto; }
+    .quick-access-actions { display:flex;gap:10px;flex-wrap:wrap;padding:10px 0 2px; }
+    .quick-access-actions .btn { min-height:38px;border-radius:9px;font-size:.78rem; }
 
     @media (max-width: 768px) {
       .profile-hero { flex-direction: column; text-align: center; }
       .profile-meta { justify-content: center; }
       .profile-actions { margin-left: 0; }
       .profile-grid { grid-template-columns: 1fr; }
+      .profile-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+    @media (max-width: 500px) { .profile-hero { padding:24px 18px; }.profile-overview { grid-template-columns:1fr; }.profile-actions { width:100%;justify-content:center;flex-wrap:wrap; } }
   </style>
 </head>
 <body>
@@ -234,6 +259,7 @@ async function loadProfile() {
           </label>` : ''}
         </div>
         <div style="flex:1">
+          <div class="profile-eyebrow">Employee profile</div>
           <h2>${emp.first_name} ${emp.last_name}</h2>
           <p style="color:rgba(255,255,255,.6);font-size:.9rem">${emp.job_title || '—'}</p>
           <div style="margin-top:8px">${fmt.statusBadge(emp.role)} ${emp.department_name ? `<span class="badge badge-info" style="margin-left:6px">${emp.department_name}</span>` : ''}</div>
@@ -251,6 +277,13 @@ async function loadProfile() {
           <button class="btn btn-sm" style="background:rgba(225,29,72,.2);border-color:rgba(225,29,72,.3)" onclick="showDeleteEmployeeModal(${emp.id})">Delete Staff</button>` : ''}` : ''}
         </div>
       </div>
+
+      <section class="profile-overview">
+        <div class="profile-overview-item"><span>Employee ID</span><strong>EMP-${String(emp.id).padStart(4, '0')}</strong></div>
+        <div class="profile-overview-item"><span>Department</span><strong>${emp.department_name || 'Not assigned'}</strong></div>
+        <div class="profile-overview-item"><span>Employment</span><strong>${employmentTypeLabel(emp.employment_type)}</strong></div>
+        <div class="profile-overview-item"><span>Started</span><strong>${emp.hire_date ? fmt.date(emp.hire_date) : 'Not recorded'}</strong></div>
+      </section>
 
       <!-- Details grid -->
       <div class="profile-grid">
@@ -328,11 +361,14 @@ async function loadProfile() {
         <!-- Quick links -->
         <div class="card" style="grid-column:1/-1">
           <div class="card-header"><h3>Quick Access</h3></div>
-          <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
-            <a href="leave.html" class="btn btn-outline">Leave History</a>
-            <a href="payroll.html" class="btn btn-outline">Payslips</a>
-            <a href="documents.html" class="btn btn-outline">Documents</a>
-            <a href="performance.html" class="btn btn-outline">Performance</a>
+          <div class="card-body">
+            <div class="quick-access-actions">
+              <button type="button" class="btn btn-outline" onclick="showEmployeeLeaveHistory(${emp.id})">Leave History</button>
+              <button type="button" class="btn btn-outline" onclick="showEmployeePayslips(${emp.id})">Payslips</button>
+              <button type="button" class="btn btn-outline" onclick="showEmployeeDocuments(${emp.id})">Documents</button>
+              <button type="button" class="btn btn-outline" onclick="showEmployeePerformance(${emp.id})">Performance</button>
+            </div>
+            <section id="quick-access-panel" class="quick-access-panel" aria-live="polite"></section>
           </div>
         </div>
       </div>
@@ -344,6 +380,111 @@ async function loadProfile() {
     document.getElementById('profile-content').innerHTML =
       `<div class="empty-state"><h4>Profile not found</h4><p>${e.message}</p></div>`;
   }
+}
+
+async function showEmployeeLeaveHistory(employeeId) {
+  const panel = document.getElementById('quick-access-panel');
+  const employee = window._emp;
+  if (!panel || !employee) return;
+
+  panel.classList.add('open');
+  panel.innerHTML = `<div class="loading-state" style="min-height:130px"><div class="spinner"></div></div>`;
+
+  try {
+    const rows = currentUser.role === 'employee'
+      ? await api.get('/leave/mine')
+      : await api.get(`/leave?employee_id=${encodeURIComponent(employeeId)}`);
+    const name = safe(`${employee.first_name} ${employee.last_name}`);
+    const content = rows.length ? `
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th></tr></thead>
+          <tbody>${rows.map((row) => {
+            const days = Math.ceil((new Date(row.end_date) - new Date(row.start_date)) / 86400000) + 1;
+            return `<tr><td><span class="badge badge-info">${safe(row.leave_type)}</span></td><td>${fmt.date(row.start_date)}</td><td>${fmt.date(row.end_date)}</td><td>${days}</td><td>${safe(row.reason || '—')}</td><td>${fmt.statusBadge(row.status)}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`
+      : `<div class="empty-state"><p>No leave requests recorded for ${name}.</p></div>`;
+    panel.innerHTML = `
+      <div class="quick-access-panel-head">
+        <h4>Leave History — ${name}</h4>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeQuickAccessPanel()">Close</button>
+      </div>
+      ${content}`;
+  } catch (error) {
+    panel.innerHTML = `<div class="empty-state"><p>${safe(error.message || 'Could not load leave history.')}</p></div>`;
+  }
+}
+
+function closeQuickAccessPanel() {
+  const panel = document.getElementById('quick-access-panel');
+  if (panel) {
+    panel.classList.remove('open');
+    panel.innerHTML = '';
+  }
+}
+
+function openQuickAccessPanel(title) {
+  const panel = document.getElementById('quick-access-panel');
+  if (!panel) return null;
+  panel.classList.add('open');
+  panel.innerHTML = `
+    <div class="quick-access-panel-head">
+      <h4>${safe(title)}</h4>
+      <button type="button" class="btn btn-outline btn-sm" onclick="closeQuickAccessPanel()">Close</button>
+    </div>
+    <div class="loading-state" style="min-height:130px"><div class="spinner"></div></div>`;
+  return panel;
+}
+
+function quickAccessError(panel, error) {
+  panel.innerHTML = `<div class="quick-access-panel-head"><h4>Quick Access</h4><button type="button" class="btn btn-outline btn-sm" onclick="closeQuickAccessPanel()">Close</button></div><div class="empty-state"><p>${safe(error.message || 'Could not load this staff information.')}</p></div>`;
+}
+
+async function showEmployeePayslips(employeeId) {
+  const employee = window._emp;
+  const panel = openQuickAccessPanel(`Payslips — ${employee.first_name} ${employee.last_name}`);
+  if (!panel) return;
+  try {
+    const rows = currentUser.role === 'employee'
+      ? await api.get('/payroll/mine')
+      : await api.get(`/payroll?employee_id=${encodeURIComponent(employeeId)}`);
+    const content = rows.length ? `<div class="table-container"><table><thead><tr><th>Period</th><th>Base Salary</th><th>Allowances</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `
+      <tr><td>${safe(`${new Date(2000, Number(row.month) - 1).toLocaleString('en', { month: 'long' })} ${row.year}`)}</td><td>${fmt.currency(row.base_salary)}</td><td>${fmt.currency(row.allowances)}</td><td>${fmt.currency(row.deductions)}</td><td><strong>${fmt.currency(row.net_salary)}</strong></td><td>${fmt.statusBadge(row.status)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><p>No payslips recorded for this employee.</p></div>`;
+    panel.innerHTML = `<div class="quick-access-panel-head"><h4>Payslips — ${safe(`${employee.first_name} ${employee.last_name}`)}</h4><button type="button" class="btn btn-outline btn-sm" onclick="closeQuickAccessPanel()">Close</button></div>${content}`;
+  } catch (error) { quickAccessError(panel, error); }
+}
+
+async function showEmployeeDocuments(employeeId) {
+  const employee = window._emp;
+  const panel = openQuickAccessPanel(`Documents — ${employee.first_name} ${employee.last_name}`);
+  if (!panel) return;
+  try {
+    const rows = currentUser.role === 'employee'
+      ? await api.get('/documents/mine')
+      : await api.get(`/documents/employee/${encodeURIComponent(employeeId)}`);
+    const content = rows.length ? `<div class="table-container"><table><thead><tr><th>Document</th><th>Type</th><th>Uploaded</th><th></th></tr></thead><tbody>${rows.map((row) => `
+      <tr><td>${safe(row.title || row.original_name)}</td><td><span class="badge badge-info">${safe(row.doc_type)}</span></td><td>${fmt.date(row.uploaded_at)}</td><td><a class="btn btn-outline btn-sm" href="${assetUrl(row.file_path)}" target="_blank" rel="noopener">Open</a></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><p>No documents recorded for this employee.</p></div>`;
+    panel.innerHTML = `<div class="quick-access-panel-head"><h4>Documents — ${safe(`${employee.first_name} ${employee.last_name}`)}</h4><button type="button" class="btn btn-outline btn-sm" onclick="closeQuickAccessPanel()">Close</button></div>${content}`;
+  } catch (error) { quickAccessError(panel, error); }
+}
+
+async function showEmployeePerformance(employeeId) {
+  const employee = window._emp;
+  const panel = openQuickAccessPanel(`Performance — ${employee.first_name} ${employee.last_name}`);
+  if (!panel) return;
+  try {
+    const rows = await api.get(`/performance/employee/${encodeURIComponent(employeeId)}`);
+    const content = rows.length ? `<div style="display:grid;gap:10px">${rows.map((row) => `
+      <article style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-md)">
+        <div style="display:flex;justify-content:space-between;gap:12px"><strong>${'★'.repeat(Number(row.rating))}${'☆'.repeat(5 - Number(row.rating))}</strong><span class="text-muted text-sm">${fmt.date(row.review_date)}</span></div>
+        ${row.period ? `<div class="text-muted text-sm" style="margin-top:4px">${safe(row.period)}</div>` : ''}
+        ${row.comments ? `<p style="margin-top:8px">${safe(row.comments)}</p>` : ''}
+        <div class="text-muted text-sm" style="margin-top:8px">Reviewed by ${safe(row.reviewer_name || 'HR')}</div>
+      </article>`).join('')}</div>` : `<div class="empty-state"><p>No performance reviews recorded for this employee.</p></div>`;
+    panel.innerHTML = `<div class="quick-access-panel-head"><h4>Performance — ${safe(`${employee.first_name} ${employee.last_name}`)}</h4><button type="button" class="btn btn-outline btn-sm" onclick="closeQuickAccessPanel()">Close</button></div>${content}`;
+  } catch (error) { quickAccessError(panel, error); }
 }
 
 async function uploadPhoto(file) {

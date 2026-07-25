@@ -68,6 +68,10 @@
     }
     .doc-toolbar h3 { margin: 0; }
     .doc-toolbar .form-control { max-width: 240px; }
+    .document-delete-modal { max-width: 420px; }
+    .document-delete-icon { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: 14px; border-radius: 14px; background: #fff0f2; color: var(--rose-600); font-size: 1.35rem; font-weight: 800; }
+    .document-delete-copy { color: var(--text-secondary); line-height: 1.55; }
+    .document-delete-name { display: block; overflow: hidden; margin-top: 12px; padding: 10px 12px; border: 1px solid #ffd6df; border-radius: 8px; background: #fff7f8; color: var(--text-primary); font-size: .84rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -120,6 +124,25 @@
       </div>
     </div>
   </main>
+</div>
+
+<!-- Delete confirmation -->
+<div id="delete-doc-modal" class="modal-overlay" style="display:none">
+  <div class="modal document-delete-modal">
+    <div class="modal-header">
+      <h3>Delete document?</h3>
+      <button class="modal-close" type="button" onclick="closeDeleteDocumentModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="document-delete-icon">!</div>
+      <p class="document-delete-copy">This permanently removes the document and its stored file. This action cannot be undone.</p>
+      <span class="document-delete-name" id="delete-doc-name"></span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" onclick="closeDeleteDocumentModal()">Cancel</button>
+      <button class="btn btn-danger" type="button" id="delete-doc-confirm-btn" onclick="confirmDeleteDocument()">Delete Document</button>
+    </div>
+  </div>
 </div>
 
 <!-- Upload Modal -->
@@ -209,10 +232,10 @@ async function initDocumentPage() {
       if (employee.id !== user.id) share.innerHTML += `<option value="${employee.id}">${label}</option>`;
       filter.innerHTML += `<option value="${employee.id}">${label}</option>`;
     });
-    if (user.role === 'admin') {
+    if (['admin', 'manager'].includes(user.role)) {
       document.getElementById('doc-scope').style.display = '';
       document.getElementById('doc-owner-filter').style.display = '';
-      document.getElementById('owner-field').style.display = '';
+      if (user.role === 'admin') document.getElementById('owner-field').style.display = '';
     }
   } catch (e) {
     directory = [];
@@ -221,7 +244,7 @@ async function initDocumentPage() {
 }
 
 async function loadDocs() {
-  const adminScope = user.role === 'admin' && document.getElementById('doc-scope').value === 'all';
+  const adminScope = ['admin', 'manager'].includes(user.role) && document.getElementById('doc-scope').value === 'all';
   const docs = await api.get(adminScope ? '/documents/all' : '/documents/mine');
   window._docs = docs;
   document.getElementById('doc-list-title').textContent = adminScope ? 'All Staff Documents' : 'My Documents';
@@ -256,8 +279,8 @@ function renderDocs(docs) {
         </div>
       </div>
       <div class="doc-actions">
-        <a href="${assetUrl(d.file_path)}" target="_blank" class="btn btn-outline btn-sm">View</a>
-        <button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id}, this)">Delete</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadDocument(${d.id}, '${String(d.original_name || d.title || 'document').replace(/'/g, '&#39;')}')">Download</button>
+        <button class="btn btn-danger btn-sm" onclick="showDeleteDocumentModal(${d.id}, '${String(d.title || d.original_name || 'Document').replace(/'/g, '&#39;')}')">Delete</button>
       </div>
     </div>`;
   }).join('');
@@ -308,13 +331,62 @@ function suggestDocumentTitle(file) {
   if (!title.value.trim()) title.value = file.name.replace(/\.[^.]+$/, '');
 }
 
-async function deleteDoc(id, btn) {
-  if (!confirm('Delete this document? This cannot be undone.')) return;
+let documentPendingDeletion = null;
+
+function showDeleteDocumentModal(id, name) {
+  documentPendingDeletion = id;
+  document.getElementById('delete-doc-name').textContent = name;
+  document.getElementById('delete-doc-modal').style.display = 'flex';
+}
+
+function closeDeleteDocumentModal() {
+  documentPendingDeletion = null;
+  document.getElementById('delete-doc-modal').style.display = 'none';
+}
+
+async function confirmDeleteDocument() {
+  if (!documentPendingDeletion) return;
+  const id = documentPendingDeletion;
+  const confirmButton = document.getElementById('delete-doc-confirm-btn');
+  confirmButton.disabled = true;
+  confirmButton.textContent = 'Deleting…';
   try {
     await api.delete(`/documents/${id}`);
+    closeDeleteDocumentModal();
     toast('Document deleted', 'success');
     loadDocs();
   } catch(e) { toast(e.message, 'error'); }
+  finally {
+    confirmButton.disabled = false;
+    confirmButton.textContent = 'Delete Document';
+  }
+}
+
+async function downloadDocument(id, filename) {
+  try {
+    if (window.__HR_USE_MOCK_API__ === true) {
+      toast('Downloads are available when connected to the live server.', 'info');
+      return;
+    }
+    const response = await fetch(`${API_BASE}/documents/${id}/download`, {
+      headers: { Authorization: `Bearer ${api.getToken()}` }
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'Could not download document');
+    }
+    const file = await response.blob();
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'document';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    toast(error.message, 'error');
+  }
 }
 
 // Drag & drop

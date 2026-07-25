@@ -37,23 +37,34 @@
 
     .emp-card {
       background: var(--bg-surface);
-      border: 1.5px solid var(--border);
+      border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 20px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      text-align: center;
+      align-items: stretch;
+      text-align: left;
       transition: all var(--duration);
       cursor: pointer;
       position: relative;
       overflow: hidden;
     }
     .emp-card:hover { box-shadow: var(--shadow-md); border-color: var(--navy-200); transform: translateY(-2px); }
-    .emp-card .emp-name { font-weight: 600; font-size: .95rem; margin-top: 12px; }
-    .emp-card .emp-title { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
-    .emp-card .emp-dept  { font-size: .78rem; margin-top: 6px; }
-    .emp-card .emp-meta  { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+    .emp-card::before { content: ''; position: absolute; top: 15px; left: 15px; width: 6px; height: 6px; border-radius: 50%; background: var(--type-accent); }
+    .emp-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-left: 4px; }
+    .emp-person { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .emp-person .avatar { flex: 0 0 auto; }
+    .emp-card .emp-name { overflow: hidden; color: var(--text-primary); font-weight: 750; font-size: .92rem; text-overflow: ellipsis; white-space: nowrap; }
+    .emp-card .emp-title { overflow: hidden; color: var(--text-secondary); font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+    .emp-card .emp-dept  { margin-top: 16px; color: var(--text-muted); font-size: .73rem; }
+    .emp-card .emp-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .emp-meta-item { min-width: 0; }
+    .emp-meta-label { display: block; color: var(--text-muted); font-size: .61rem; font-weight: 750; letter-spacing: .035em; text-transform: uppercase; }
+    .emp-meta-value { display: block; overflow: hidden; margin-top: 2px; color: var(--text-secondary); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+    .emp-contact { display: grid; gap: 5px; margin: 13px 0 14px; padding: 10px; border-radius: 8px; background: var(--navy-50); color: var(--text-secondary); font-size: .71rem; }
+    .emp-contact span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .emp-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+    .emp-card-actions .btn { justify-content: center; min-height: 31px; padding: 6px 10px; font-size: .72rem; }
     .employment-summary {
       display: grid;
       grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -101,7 +112,7 @@
     .type-contractual { --type-accent: var(--amber-500); --type-bg: var(--amber-100); --type-fg: #92400e; }
     .type-national-service { --type-accent: var(--mint-500); --type-bg: var(--mint-100); --type-fg: var(--navy-950); }
     .type-internship { --type-accent: var(--rose-600); --type-bg: var(--rose-100); --type-fg: var(--rose-600); }
-    .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
     .filters-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
     .filters-bar .form-control { max-width: 200px; }
     @media (max-width: 900px) {
@@ -188,7 +199,7 @@
         <div class="form-group"><label class="form-label">Salary (GHS)</label><input type="number" id="f-salary" class="form-control" step="0.01"></div>
         <div class="form-group"><label class="form-label">Hire Date</label><input type="date" id="f-hire" class="form-control"></div>
         <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="f-dob" class="form-control"></div>
-        <div class="form-group"><label class="form-label">Phone</label><input type="text" id="f-phone" class="form-control"></div>
+        <div class="form-group"><label class="form-label required">Phone</label><input type="tel" id="f-phone" class="form-control" placeholder="024 123 4567" required></div>
         <div class="form-group span-2"><label class="form-label">Address</label><textarea id="f-address" class="form-control" rows="2"></textarea></div>
       </div>
     </div>
@@ -314,16 +325,28 @@ async function loadEmployees() {
   }
   grid.innerHTML = data.employees.map((e) => {
     const type = employmentTypeMeta(e.employment_type || 'staff');
+    const employeeName = `${e.first_name} ${e.last_name}`;
     return `
     <div class="emp-card ${type.className}" onclick="window.location.href='employee-profile.html?id=${e.id}'">
-      ${avatarEl(e, 'lg')}
-      <div class="emp-name">${e.first_name} ${e.last_name}</div>
-      <div class="emp-title">${e.job_title || '—'}</div>
-      <div class="emp-dept">${e.department_name ? `<span class="badge badge-info">${e.department_name}</span>` : ''}</div>
-      <div class="emp-meta">
+      <div class="emp-card-top">
+        <div class="emp-person">
+          ${avatarEl(e, 'md')}
+          <div>
+            <div class="emp-name">${employeeName}</div>
+            <div class="emp-title">${e.job_title || 'No job title'}</div>
+          </div>
+        </div>
         <span class="employment-chip">${type.label}</span>
-        ${fmt.statusBadge(e.role)}
-        ${e.hire_date ? `<span class="text-xs text-muted">Since ${fmt.date(e.hire_date)}</span>` : ''}
+      </div>
+      <div class="emp-dept">${e.department_name || 'No department assigned'}</div>
+      <div class="emp-meta">
+        <div class="emp-meta-item"><span class="emp-meta-label">Role</span><span class="emp-meta-value">${e.role || 'Employee'}</span></div>
+        <div class="emp-meta-item"><span class="emp-meta-label">Joined</span><span class="emp-meta-value">${e.hire_date ? fmt.date(e.hire_date) : 'Not recorded'}</span></div>
+      </div>
+      <div class="emp-contact"><span>${e.email || 'No email address'}</span><span>${e.phone || 'No phone number'}</span></div>
+      <div class="emp-card-actions">
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}'">View</button>
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}'">Manage</button>
       </div>
     </div>`;
   }).join('');

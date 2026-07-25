@@ -36,6 +36,95 @@ exports.send = async (req, res) => {
   }
 };
 
+// ─── Team chat ────────────────────────────────────────────────
+exports.sendTeam = async (req, res) => {
+  try {
+    const body = String(req.body.body || '').trim();
+    if (!body) return res.status(400).json({ error: 'Message body required' });
+    const { rows } = await db.query(
+      'INSERT INTO team_messages (company_id,sender_id,body) VALUES ($1,$2,$3) RETURNING *',
+      [req.user.company_id, req.user.id, body]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not send team message' });
+  }
+};
+
+exports.getTeam = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT tm.*, CONCAT(e.first_name,' ',e.last_name) AS sender_name, e.photo_url AS sender_photo
+       FROM team_messages tm
+       JOIN employees e ON e.id = tm.sender_id
+       WHERE tm.company_id=$1
+       ORDER BY tm.sent_at ASC`,
+      [req.user.company_id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not fetch team messages' });
+  }
+};
+
+const editedBody = (body) => String(body || '').trim();
+
+exports.update = async (req, res) => {
+  try {
+    const body = editedBody(req.body.body);
+    if (!body) return res.status(400).json({ error: 'Message body required' });
+    const { rows } = await db.query(
+      'UPDATE messages SET body=$1, edited_at=NOW() WHERE id=$2 AND company_id=$3 AND sender_id=$4 RETURNING *',
+      [body, req.params.id, req.user.company_id, req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Sent message not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not update message' });
+  }
+};
+
+exports.remove = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'DELETE FROM messages WHERE id=$1 AND company_id=$2 AND sender_id=$3 RETURNING id',
+      [req.params.id, req.user.company_id, req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Sent message not found' });
+    res.json({ message: 'Message deleted', id: rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not delete message' });
+  }
+};
+
+exports.updateTeam = async (req, res) => {
+  try {
+    const body = editedBody(req.body.body);
+    if (!body) return res.status(400).json({ error: 'Message body required' });
+    const { rows } = await db.query(
+      'UPDATE team_messages SET body=$1, edited_at=NOW() WHERE id=$2 AND company_id=$3 AND sender_id=$4 RETURNING *',
+      [body, req.params.id, req.user.company_id, req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Sent team message not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not update team message' });
+  }
+};
+
+exports.removeTeam = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'DELETE FROM team_messages WHERE id=$1 AND company_id=$2 AND sender_id=$3 RETURNING id',
+      [req.params.id, req.user.company_id, req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Sent team message not found' });
+    res.json({ message: 'Team message deleted', id: rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not delete team message' });
+  }
+};
+
 // ─── Get conversation with a specific person ──────────────────
 exports.getConversation = async (req, res) => {
   try {

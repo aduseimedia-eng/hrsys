@@ -93,7 +93,6 @@
         <select id="hr-status" class="form-control form-select" style="max-width:160px">
           <option value="">All Status</option>
           <option value="present">Present</option>
-          <option value="late">Late</option>
           <option value="absent">Absent</option>
           <option value="on-leave">On Leave</option>
         </select>
@@ -202,7 +201,6 @@ async function loadHrReport() {
   const s = summary.summary;
   document.getElementById('att-summary').innerHTML = `
     <div class="stat-card"><div class="stat-icon green"></div><div><div class="stat-value">${s.present||0}</div><div class="stat-label">Present</div></div></div>
-    <div class="stat-card"><div class="stat-icon amber"></div><div><div class="stat-value">${s.late||0}</div><div class="stat-label">Late</div></div></div>
     <div class="stat-card"><div class="stat-icon rose"></div><div><div class="stat-value">${s.absent||0}</div><div class="stat-label">Absent</div></div></div>
     <div class="stat-card"><div class="stat-icon blue"></div><div><div class="stat-value">${s['on-leave']||0}</div><div class="stat-label">On Leave</div></div></div>
   `;

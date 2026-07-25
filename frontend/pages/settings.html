@@ -10,6 +10,16 @@
     .settings-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 18px; }
     .settings-profile { display: flex; align-items: center; gap: 16px; }
     .settings-profile .avatar { width: 76px; height: 76px; font-size: 1.45rem; }
+    .billing-card { margin-top:18px; }
+    .billing-status { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px; background:#f5f8ff; border:1px solid #dfe7f5; border-radius:10px; margin-bottom:16px; }
+    .billing-plans { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .billing-plan { padding:16px; border:1px solid #dfe7f5; border-radius:12px; background:#fff; display:flex; flex-direction:column; gap:10px; }
+    .billing-plan.current { border-color:#174FAE; box-shadow:0 0 0 2px rgba(23,79,174,.1); }
+    .billing-plan h4, .billing-plan p { margin:0; }
+    .billing-plan p { min-height:36px; color:var(--text-muted); font-size:.82rem; }
+    .billing-price { color:#174FAE; font-size:1.3rem; font-weight:800; }
+    .billing-plan .btn { margin-top:auto; justify-content:center; }
+    @media (max-width:700px) { .billing-plans { grid-template-columns:1fr; } }
     @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -24,6 +34,14 @@
         <span class="dot hidden" id="notif-badge"></span>
       </button>
     </div>
+
+    <article class="card billing-card">
+      <div class="card-header"><h3>Billing &amp; annual plan</h3></div>
+      <div class="card-body">
+        <div class="billing-status" id="billing-status"><span>Loading billing details…</span></div>
+        <div class="billing-plans" id="billing-plans"></div>
+      </div>
+    </article>
   </header>
   <main class="main-content">
     <div class="page-header">
@@ -79,6 +97,7 @@ buildSidebar('settings');
 loadNotifCount();
 let profile = user;
 loadSettings();
+loadBilling();
 
 async function loadSettings() {
   profile = await api.get('/auth/me');
@@ -131,6 +150,65 @@ async function savePassword() {
     toast(e.message || 'Could not update password', 'error');
   }
 }
+
+function money(amount, currency) {
+  return new Intl.NumberFormat('en-GH', { style: 'currency', currency }).format(Number(amount || 0) / 100);
+}
+
+function billingStatus(subscription, enabled) {
+  if (!enabled) return 'Online payments are not configured yet. Please contact KenadHR.';
+  if (!subscription) return 'Choose an annual plan to start your KenadHR subscription.';
+  if (subscription.status === 'active' && subscription.ends_at) {
+    return `Your ${subscription.plan_key} plan is active until ${fmt.date(subscription.ends_at)}.`;
+  }
+  if (subscription.status === 'pending') return 'You have a payment waiting to be completed.';
+  return `Subscription status: ${subscription.status}.`;
+}
+
+async function loadBilling() {
+  const status = document.getElementById('billing-status');
+  const plansEl = document.getElementById('billing-plans');
+  try {
+    const [plansResult, current] = await Promise.all([api.get('/billing/plans'), api.get('/billing/current')]);
+    const subscription = current.subscription;
+    status.innerHTML = `<span>${escapeUi(billingStatus(subscription, plansResult.billing_enabled))}</span>${subscription?.status === 'active' ? '<span class="badge badge-success">Active</span>' : ''}`;
+    plansEl.innerHTML = plansResult.plans.map((plan) => `
+      <section class="billing-plan ${subscription?.plan_key === plan.key ? 'current' : ''}">
+        <h4>${escapeUi(plan.name)}</h4>
+        <p>${escapeUi(plan.description || 'Annual KenadHR access.')}</p>
+        <div class="billing-price">${escapeUi(money(plan.amount, plan.currency))}<small style="font-size:.75rem;color:var(--text-muted);font-weight:600"> / year</small></div>
+        <button class="btn ${subscription?.plan_key === plan.key && subscription?.status === 'active' ? 'btn-outline' : 'btn-primary'} btn-sm" type="button" ${plansResult.billing_enabled ? '' : 'disabled'} onclick="startCheckout('${escapeUi(plan.key)}')">${subscription?.plan_key === plan.key && subscription?.status === 'active' ? 'Current plan' : 'Choose plan'}</button>
+      </section>`).join('');
+  } catch (error) {
+    status.textContent = error.message || 'Could not load billing details.';
+    plansEl.innerHTML = '';
+  }
+}
+
+async function startCheckout(planKey) {
+  try {
+    const result = await api.post('/billing/checkout', { plan_key: planKey });
+    window.location.assign(result.authorization_url);
+  } catch (error) {
+    toast(error.message || 'Could not start checkout', 'error');
+  }
+}
+
+async function verifyReturnedPayment() {
+  const params = new URLSearchParams(window.location.search);
+  const reference = params.get('reference');
+  if (!reference) return;
+  try {
+    const result = await api.get(`/billing/verify/${encodeURIComponent(reference)}`);
+    toast(`Payment confirmed. Your plan is active until ${fmt.date(result.subscription.ends_at)}.`, 'success', 6000);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    await loadBilling();
+  } catch (error) {
+    toast(error.message || 'We could not confirm the payment yet. Please refresh shortly.', 'error', 6000);
+  }
+}
+
+verifyReturnedPayment();
 
 </script>
 </body>

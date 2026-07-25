@@ -259,17 +259,7 @@
       padding: 32px 20px;
       box-sizing: border-box;
     }
-    body::before, body::after {
-      content: '';
-      position: fixed;
-      width: 250px; height: 250px;
-      border-radius: 50%;
-      background: rgba(58, 115, 240, .07);
-      filter: blur(4px);
-      pointer-events: none;
-    }
-    body::before { top: -95px; left: -75px; }
-    body::after { right: -90px; bottom: -110px; }
+    body::before, body::after { display: none; }
     .login-shell {
       grid-template-columns: minmax(0, 1fr) 450px;
       height: min(690px, calc(100vh - 64px));
@@ -288,13 +278,10 @@
       position: relative;
       overflow: hidden;
     }
-    .login-story::before, .login-story::after {
-      content: ''; position: absolute; border: 1px solid rgba(61, 114, 240, .12); border-radius: 50%;
-    }
-    .login-story::before { width: 300px; height: 300px; left: -160px; bottom: -160px; }
-    .login-story::after { width: 180px; height: 180px; right: -95px; top: -95px; }
+    .login-story::before, .login-story::after { display: none; }
     .login-brand { position: relative; z-index: 1; margin-top: 82px; }
     .login-brand .mark { width: 50px; height: 50px; border-radius: 12px; background: #3977ee; color: #fff; font-size: .9rem; }
+    .login-brand-logo { width: min(340px, 100%); height: 105px; object-fit: contain; object-position: center; mix-blend-mode: multiply; }
     .login-brand .name { color: #1d2b4d; font-size: 1.35rem; letter-spacing: -.025em; }
     .login-brand .name span { color: #3977ee; }
     .login-copy { position: relative; z-index: 1; margin: auto 0; }
@@ -328,6 +315,8 @@
     .access-option small { display: block; color: #77839a; font-size: .77rem; line-height: 1.35; }
     .access-option-arrow { margin-left: auto; color: #3977ee; font-size: 1.25rem; }
     .access-note { margin: 18px 2px 0; color: #8490a2; font-size: .78rem; line-height: 1.45; }
+    .company-signup { display:block; margin-top:14px; color:#3977ee; font-size:.82rem; font-weight:800; text-align:center; }
+    .company-signup:hover { text-decoration:underline; }
     .form-label { color: #48546a; font-size: .79rem; font-weight: 700; }
     .form-control { min-height: 46px; border: 1px solid #e2e6ee; border-radius: 8px; box-shadow: none; }
     .form-control:focus { border-color: #3977ee; box-shadow: 0 0 0 3px rgba(57,119,238,.12); }
@@ -343,7 +332,7 @@
     .sign-in-modal { position: fixed; inset: 0; z-index: 20; display: none; place-items: center; padding: 20px; background: rgba(23, 36, 66, .42); backdrop-filter: blur(5px); }
     .sign-in-modal.is-open { display: grid; }
     .sign-in-dialog { position: relative; width: min(100%, 430px); padding: 34px; border-radius: 16px; background: #fff; box-shadow: 0 28px 70px rgba(17, 28, 55, .3); }
-    .modal-close { position: absolute; top: 13px; right: 13px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: #69758a; font-size: 1.25rem; }
+    .modal-close { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: #69758a; font-size: 1.4rem; }
     .modal-close:hover { background: #f0f3f8; color: #24304a; }
     .modal-eyebrow { color: #3977ee; font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
     .sign-in-dialog h2 { margin: 7px 0 6px; color: #202a3d; font-size: 1.65rem; }
@@ -356,22 +345,84 @@
     .password-field .form-control { padding-right: 64px; }
     .password-toggle { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); padding: 5px 7px; border-radius: 5px; color: #3977ee; font-size: .76rem; font-weight: 800; }
     .password-toggle:hover { background: #eef3ff; }
-    @media (max-width: 960px) { .login-shell { height: auto; min-height: 0; } .login-story { min-height: 430px; } .login-illustration { max-width: 300px; } }
-    @media (max-width: 560px) { body { height: auto; min-height: 100vh; overflow-y: auto; padding: 0; } .login-shell { min-height: 100vh; } .login-panel { padding: 36px 24px; } .login-story { padding: 28px 24px; min-height: 360px; } .login-copy h1 { font-size: 1.8rem; } }
+    @media (max-width: 960px) {
+      .login-shell { height: auto; min-height: 0; }
+      .login-story { min-height: 430px; background: #174FAE; }
+      .login-story .login-copy h1 { color: #fff; }
+      .login-story .login-copy p { color: rgba(255,255,255,.7); }
+      .login-brand-logo { mix-blend-mode: normal; filter: none; }
+      .login-illustration { max-width: 300px; }
+    }
+    @media (max-width: 560px) {
+      body { height: auto; min-height: 100vh; overflow-y: auto; padding: 0; background: #f4f3f5; }
+      .login-shell { display: block; min-height: 100vh; background: transparent; box-shadow: none; }
+      .login-story {
+        min-height: 0;
+        padding: 24px 22px 40px;
+        gap: 0;
+        color: #fff;
+        background-color: #174FAE;
+        background-image:
+          linear-gradient(45deg, transparent 46%, rgba(255,255,255,.055) 47% 53%, transparent 54%),
+          linear-gradient(-45deg, transparent 46%, rgba(255,255,255,.045) 47% 53%, transparent 54%);
+        background-size: 54px 54px;
+      }
+      .login-story::before { display: none; }
+      .login-story::after { display: none; }
+      .login-brand { justify-content: center; margin: 0; }
+      .login-brand-logo { width: min(176px, 100%); height: 52px; mix-blend-mode: normal; filter: none; }
+      .login-copy { margin: 14px auto 0; text-align: center; }
+      .login-copy .eyebrow { display: none; }
+      .login-copy h1 { max-width: none; color: #fff; font-size: 1.32rem; line-height: 1.2; margin: 0 0 8px; }
+      .login-copy p { max-width: 270px; margin: 0 auto; color: rgba(255,255,255,.62); font-size: .8rem; line-height: 1.5; }
+      .login-illustration, .login-features { display: none; }
+      .login-panel {
+        position: relative;
+        z-index: 1;
+        margin-top: -22px;
+        min-height: calc(100vh - 212px);
+        padding: 30px 20px calc(34px + env(safe-area-inset-bottom));
+        border-radius: 28px 28px 0 0;
+        box-shadow: 0 -3px 0 rgba(255,255,255,.10);
+      }
+      .login-panel::before { display: none; }
+      .login-panel h2 { font-size: 1.28rem; font-weight: 600; margin-bottom: 5px; text-align: center; }
+      .login-panel h2::after { content: ''; display: block; width: 34px; height: 3px; margin: 10px auto 0; border-radius: 999px; background: #151515; }
+      .login-panel .subtitle { font-size: .8rem; margin-bottom: 24px; text-align: center; }
+      .access-options { gap: 12px; }
+      .access-option { min-height: 70px; padding: 13px; border: 1px solid #e7e5e8; border-radius: 10px; box-shadow: none; }
+      .access-option:active { background: #f6f5f6; transform: scale(.99); }
+      .access-option-icon { flex-basis: 40px; width: 40px; height: 40px; border-radius: 8px; background: #e8f0ff; color: #174FAE; }
+      .access-option-arrow { color: #174FAE; }
+      .access-option strong { font-size: .88rem; }
+      .access-option small { font-size: .73rem; }
+      .access-note { margin-top: 18px; font-size: .72rem; text-align: center; }
+      .sign-in-modal { align-items: flex-end; padding: 0; }
+      .sign-in-dialog { width: 100%; max-height: 88vh; overflow-y: auto; padding: 28px 20px calc(24px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }
+      .modal-subtitle { margin-bottom: 18px; }
+    }
+    @media (max-width: 380px) {
+      .login-story { padding-top: 20px; padding-bottom: 28px; }
+      .login-copy { margin-top: 14px; }
+      .login-copy h1 { font-size: 1.25rem; }
+      .access-option { min-height: 70px; padding: 12px; }
+    }
   </style>
 </head>
 <body>
   <div class="login-shell">
     <section class="login-story" aria-label="HR workspace overview">
       <div class="login-brand">
-        <div class="mark">HR</div>
-        <div class="name">Kenad<span>HR</span></div>
+        <picture>
+          <source media="(max-width: 960px)" srcset="../assets/logo white.png?v=2">
+          <img class="login-brand-logo" src="../assets/logo.png" alt="KenadHR">
+        </picture>
       </div>
 
       <div class="login-copy">
-        <span class="eyebrow">HR/Admin workspace</span>
-        <h1>People operations, beautifully connected.</h1>
-        <p>One calm workspace for your team, your data, and everything that keeps work moving.</p>
+        <span class="eyebrow">KenadHR portal</span>
+        <h1>Welcome to KenadHR</h1>
+        <p>Securely access the HR workspace assigned to you.</p>
       </div>
 
       <div class="login-illustration" aria-hidden="true">
@@ -414,22 +465,23 @@
     </section>
 
     <section class="login-panel" aria-label="HR admin login form">
-      <h2>Welcome to KenadHR</h2>
-      <p class="subtitle">Choose the workspace you need, then sign in securely.</p>
+      <h2>Select a portal</h2>
+      <p class="subtitle">Choose how you would like to sign in.</p>
 
       <div class="access-options">
-        <button class="access-option" type="button" onclick="openSignIn('staff')">
+        <a class="access-option" href="staff-login.html">
           <span class="access-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg></span>
           <span><strong>Staff portal</strong><small>Leave, payslips, documents, and your profile.</small></span>
           <span class="access-option-arrow">›</span>
-        </button>
-        <button class="access-option" type="button" onclick="openSignIn('hr')">
+        </a>
+        <a class="access-option" href="hr-login.html">
           <span class="access-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 15h3"/></svg></span>
           <span><strong>HR/Admin workspace</strong><small>People operations, approvals, and reporting.</small></span>
           <span class="access-option-arrow">›</span>
-        </button>
+        </a>
       </div>
       <p class="access-note">New staff members receive their sign-in details from the HR team.</p>
+      <a class="company-signup" href="hr-login.html?setup=1">New company? Create account</a>
 
     </section>
   </div>
@@ -445,9 +497,20 @@
         <div class="setup-fields" id="setup-fields">
           <div class="form-group"><label class="form-label required" for="company-name">Company name</label><input type="text" id="company-name" class="form-control" placeholder="Your organization" autocomplete="organization"></div>
           <div class="form-group"><label class="form-label required" for="full-name">Your full name</label><input type="text" id="full-name" class="form-control" placeholder="First and last name" autocomplete="name"></div>
+          <div class="form-group"><label class="form-label required" for="signup-phone">Phone number</label><input type="tel" id="signup-phone" class="form-control" placeholder="024 123 4567" autocomplete="tel"></div>
         </div>
-        <div class="form-group"><label class="form-label required" for="email">Work email</label><input type="email" id="email" class="form-control" placeholder="name@company.com" required autocomplete="email"></div>
-        <div class="form-group"><label class="form-label required" for="password">Password</label><div class="password-field"><input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password"><button class="password-toggle" type="button" id="password-toggle">Show</button></div></div>
+        <div id="credentials-fields">
+          <div class="form-group"><label class="form-label required" for="email">Work email</label><input type="email" id="email" class="form-control" placeholder="name@company.com" required autocomplete="email"></div>
+          <div class="form-group"><label class="form-label required" for="password">Password</label><div class="password-field"><input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password"><button class="password-toggle" type="button" id="password-toggle">Show</button></div></div>
+        </div>
+        <div class="setup-fields" id="setup-otp-fields">
+          <div class="form-group"><label class="form-label required" for="setup-otp-code">Verification code</label><input type="text" inputmode="numeric" maxlength="6" id="setup-otp-code" class="form-control" placeholder="Enter the 6-digit SMS code" autocomplete="one-time-code"></div>
+          <p style="margin:-4px 0 14px;color:#7d899c;font-size:.8rem">We sent a verification code to your phone. It expires in 5 minutes.</p>
+        </div>
+        <div class="setup-fields" id="staff-otp-fields">
+          <div class="form-group"><label class="form-label required" for="staff-otp-code">Verification code</label><input type="text" inputmode="numeric" maxlength="6" id="staff-otp-code" class="form-control" placeholder="Enter the 6-digit SMS code" autocomplete="one-time-code"></div>
+          <p style="margin:-4px 0 14px;color:#7d899c;font-size:.8rem">We sent a verification code to your registered phone. It expires in 5 minutes.</p>
+        </div>
         <button type="submit" class="btn btn-primary w-full btn-lg" id="login-btn" style="justify-content:center; margin-top:8px;">Sign in</button>
       </form>
       <button type="button" class="setup-link" id="setup-link">First time using KenadHR? Create your HR account</button>
@@ -465,20 +528,29 @@
 
     let signInMode = 'staff';
     let setupMode = false;
+    let setupOtpId = null;
+    let staffOtpId = null;
+    const OTP_ENABLED = false;
     const modal = document.getElementById('sign-in-modal');
 
     function openSignIn(mode) {
       signInMode = mode;
       const isStaff = mode === 'staff';
       setupMode = false;
+      setupOtpId = null;
+      staffOtpId = null;
       document.getElementById('modal-eyebrow').textContent = isStaff ? 'Staff portal' : 'HR/Admin workspace';
       document.getElementById('sign-in-title').textContent = isStaff ? 'Staff sign in' : 'HR/Admin sign in';
       document.getElementById('modal-subtitle').textContent = isStaff ? 'Use your work email and password to continue.' : 'For authorized HR administrators and managers.';
       document.getElementById('login-btn').textContent = isStaff ? 'Sign in to staff portal' : 'Sign in to HR workspace';
       document.getElementById('setup-fields').classList.remove('is-visible');
+      document.getElementById('setup-otp-fields').classList.remove('is-visible');
+      document.getElementById('staff-otp-fields').classList.remove('is-visible');
+      document.getElementById('credentials-fields').style.display = '';
       document.getElementById('setup-link').style.display = isStaff ? 'none' : 'block';
       document.getElementById('company-name').required = false;
       document.getElementById('full-name').required = false;
+      document.getElementById('signup-phone').required = false;
       document.getElementById('login-error').style.display = 'none';
       modal.classList.add('is-open');
       document.getElementById('email').focus();
@@ -488,14 +560,22 @@
 
     document.getElementById('setup-link').addEventListener('click', () => {
       setupMode = true;
+      setupOtpId = null;
+      staffOtpId = null;
       document.getElementById('modal-eyebrow').textContent = 'First-time setup';
       document.getElementById('sign-in-title').textContent = 'Create your HR account';
       document.getElementById('modal-subtitle').textContent = 'Set up your organization and become its first HR administrator.';
-      document.getElementById('login-btn').textContent = 'Create HR account';
+      document.getElementById('login-btn').textContent = 'Send verification code';
       document.getElementById('setup-fields').classList.add('is-visible');
+      document.getElementById('setup-otp-fields').classList.remove('is-visible');
+      document.getElementById('staff-otp-fields').classList.remove('is-visible');
+      document.getElementById('credentials-fields').style.display = '';
       document.getElementById('setup-link').style.display = 'none';
       document.getElementById('company-name').required = true;
       document.getElementById('full-name').required = true;
+      document.getElementById('signup-phone').required = OTP_ENABLED;
+      document.getElementById('signup-phone').closest('.form-group').style.display = OTP_ENABLED ? '' : 'none';
+      document.getElementById('login-btn').textContent = OTP_ENABLED ? 'Send verification code' : 'Create HR account';
       document.getElementById('company-name').focus();
     });
 
@@ -516,18 +596,53 @@
       const errorEl = document.getElementById('login-error');
       errorEl.style.display = 'none';
       btn.disabled = true;
-      btn.textContent = 'Signing in...';
+      btn.textContent = setupMode ? (OTP_ENABLED && setupOtpId ? 'Verifying...' : (OTP_ENABLED ? 'Sending code...' : 'Creating account...')) : 'Signing in...';
 
       try {
-        const data = await api.post(setupMode ? '/auth/setup' : (signInMode === 'staff' ? '/auth/staff-login' : '/auth/login'), setupMode ? {
-          company_name: document.getElementById('company-name').value,
-          full_name: document.getElementById('full-name').value,
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value,
-        } : {
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value,
-        });
+        if (setupMode && OTP_ENABLED && !setupOtpId) {
+          const result = await api.post('/auth/setup/otp/request', {
+            company_name: document.getElementById('company-name').value,
+            full_name: document.getElementById('full-name').value,
+            phone: document.getElementById('signup-phone').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          });
+          setupOtpId = result.signup_id;
+          document.getElementById('setup-fields').classList.remove('is-visible');
+          document.getElementById('credentials-fields').style.display = 'none';
+          document.getElementById('setup-otp-fields').classList.add('is-visible');
+          document.getElementById('login-btn').textContent = 'Verify and create HR account';
+          document.getElementById('login-btn').disabled = false;
+          document.getElementById('setup-otp-code').focus();
+          return;
+        }
+        const data = await api.post(
+          setupMode ? (OTP_ENABLED ? '/auth/setup/otp/verify' : '/auth/setup') : (signInMode === 'staff' ? '/auth/staff-login' : '/auth/login'),
+          setupMode ? (OTP_ENABLED ? {
+            signup_id: setupOtpId,
+            code: document.getElementById('setup-otp-code').value,
+          } : {
+            company_name: document.getElementById('company-name').value,
+            full_name: document.getElementById('full-name').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          }) : staffOtpId ? {
+            verification_id: staffOtpId,
+            code: document.getElementById('staff-otp-code').value,
+          } : {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          }
+        );
+        if (OTP_ENABLED && !setupMode && signInMode === 'staff' && data.requires_otp) {
+          staffOtpId = data.verification_id;
+          document.getElementById('credentials-fields').style.display = 'none';
+          document.getElementById('staff-otp-fields').classList.add('is-visible');
+          btn.textContent = 'Verify and sign in';
+          btn.disabled = false;
+          document.getElementById('staff-otp-code').focus();
+          return;
+        }
         if (!setupMode && signInMode === 'hr' && !['admin', 'manager'].includes(data.user?.role)) {
           api.clearAuth();
           throw new Error('Only HR/Admin or manager accounts can access this workspace');
@@ -541,7 +656,7 @@
         errorEl.textContent = err.message || 'Invalid credentials';
         errorEl.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = setupMode ? 'Create HR account' : (signInMode === 'staff' ? 'Sign in to staff portal' : 'Sign in to HR workspace');
+        btn.textContent = setupMode ? (OTP_ENABLED && setupOtpId ? 'Verify and create HR account' : (OTP_ENABLED ? 'Send verification code' : 'Create HR account')) : (signInMode === 'staff' ? 'Sign in to staff portal' : 'Sign in to HR workspace');
       }
     });
 

@@ -43,7 +43,7 @@ exports.getPayslip = async (req, res) => {
 // ─── Admin: All payroll ───────────────────────────────────────
 exports.getAll = async (req, res) => {
   try {
-    const { month, year, status, department_id } = req.query;
+    const { month, year, status, department_id, employee_id } = req.query;
     const params = [req.user.company_id];
     let where = 'WHERE p.company_id = $1';
 
@@ -51,6 +51,7 @@ exports.getAll = async (req, res) => {
     if (year)          { params.push(year);          where += ` AND p.year = $${params.length}`; }
     if (status)        { params.push(status);        where += ` AND p.status = $${params.length}`; }
     if (department_id) { params.push(department_id); where += ` AND e.department_id = $${params.length}`; }
+    if (employee_id)   { params.push(employee_id);   where += ` AND p.employee_id = $${params.length}`; }
 
     const { rows } = await db.query(
       `SELECT p.*, CONCAT(e.first_name,' ',e.last_name) AS employee_name,
@@ -87,16 +88,18 @@ exports.processMonth = async (req, res) => {
 
     if (!emps.length) return res.status(409).json({ error: 'Payroll already processed for this period' });
 
-    const deductionRate = parseFloat(process.env.DEDUCTION_RATE || 0.1);
+    const taxRate = parseFloat(process.env.TAX_RATE || process.env.DEDUCTION_RATE || 0.1);
     const allowanceRate = parseFloat(process.env.ALLOWANCE_RATE || 0.05);
 
     for (const emp of emps) {
-      const deductions = (emp.salary * deductionRate).toFixed(2);
+      const tax = (emp.salary * taxRate).toFixed(2);
+      const otherDeductions = 0;
+      const deductions = tax;
       const allowances = (emp.salary * allowanceRate).toFixed(2);
       await db.query(
-        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, deductions, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'processed')`,
-        [req.user.company_id, emp.id, month, year, emp.salary, allowances, deductions]
+        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, tax, other_deductions, deductions, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'processed')`,
+        [req.user.company_id, emp.id, month, year, emp.salary, allowances, tax, otherDeductions, deductions]
       );
       // Notify employee
       await db.query(
@@ -131,25 +134,29 @@ exports.markPaid = async (req, res) => {
 exports.updatePayroll = async (req, res) => {
   try {
     const { id } = req.params;
-    const baseSalary = Number(req.body.base_salary || 0);
-    const allowances = Number(req.body.allowances || 0);
-    const deductions = Number(req.body.deductions || 0);
+    const baseSalary = Number(req.body.base_salary);
+    const allowances = Number(req.body.allowances);
+    const tax = Number(req.body.tax);
+    const otherDeductions = Number(req.body.other_deductions);
     const status = req.body.status || 'processed';
 
-    if (!['pending', 'processed', 'paid'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid payroll status' });
+    if (!['pending', 'processed', 'paid'].includes(status) || [baseSalary, allowances, tax, otherDeductions].some(value => !Number.isFinite(value) || value < 0)) {
+      return res.status(400).json({ error: 'Enter valid non-negative payroll amounts and status' });
     }
+    const deductions = tax + otherDeductions;
 
     const { rows } = await db.query(
       `UPDATE payroll
        SET base_salary=$1,
            allowances=$2,
-           deductions=$3,
-           status=$4,
-           paid_at=CASE WHEN $4='paid' THEN COALESCE(paid_at, NOW()) ELSE NULL END
-       WHERE id=$5 AND company_id=$6
+           tax=$3,
+           other_deductions=$4,
+           deductions=$5,
+           status=$6,
+           paid_at=CASE WHEN $6='paid' THEN COALESCE(paid_at, NOW()) ELSE NULL END
+       WHERE id=$7 AND company_id=$8
        RETURNING *`,
-      [baseSalary, allowances, deductions, status, id, req.user.company_id]
+      [baseSalary, allowances, tax, otherDeductions, deductions, status, id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Payroll record not found' });
     res.json(rows[0]);

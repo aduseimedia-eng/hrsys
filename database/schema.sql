@@ -44,6 +44,7 @@ CREATE TABLE employees (
   salary         NUMERIC(12,2) DEFAULT 0,
   hire_date      DATE,
   phone          VARCHAR(30),
+  phone_verified_at TIMESTAMPTZ,
   address        TEXT,
   date_of_birth  DATE,
   education_information TEXT,
@@ -72,6 +73,28 @@ CREATE TABLE employees (
   updated_at     TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (email),
   UNIQUE (company_id, email)
+);
+
+-- Pending first-time HR registrations. The password is stored only as a bcrypt hash
+-- until the phone number has been verified through the OTP provider.
+CREATE TABLE hr_signup_otps (
+  id            VARCHAR(64) PRIMARY KEY,
+  company_name  VARCHAR(120) NOT NULL,
+  full_name     VARCHAR(160) NOT NULL,
+  email         VARCHAR(160) NOT NULL,
+  phone         VARCHAR(20) NOT NULL,
+  password_hash TEXT NOT NULL,
+  expires_at    TIMESTAMPTZ NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Pending codes used when an HR-created staff account signs in for the first time.
+CREATE TABLE staff_login_otps (
+  id            VARCHAR(64) PRIMARY KEY,
+  employee_id   INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  phone         VARCHAR(20) NOT NULL,
+  expires_at    TIMESTAMPTZ NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE departments
@@ -115,6 +138,8 @@ CREATE TABLE payroll (
   year          SMALLINT NOT NULL,
   base_salary   NUMERIC(12,2) NOT NULL,
   allowances    NUMERIC(12,2) DEFAULT 0,
+  tax           NUMERIC(12,2) DEFAULT 0,
+  other_deductions NUMERIC(12,2) DEFAULT 0,
   deductions    NUMERIC(12,2) DEFAULT 0,
   net_salary    NUMERIC(12,2) GENERATED ALWAYS AS (base_salary + allowances - deductions) STORED,
   status        VARCHAR(20) DEFAULT 'pending'
@@ -134,6 +159,8 @@ CREATE TABLE documents (
   file_path     VARCHAR(400) NOT NULL,
   original_name VARCHAR(200) NOT NULL,
   file_size     INT,
+  mime_type     VARCHAR(150),
+  file_data     BYTEA,
   share_with_hr BOOLEAN DEFAULT TRUE,
   shared_with   INT REFERENCES employees(id) ON DELETE SET NULL,
   uploaded_at   TIMESTAMPTZ DEFAULT NOW()
@@ -179,7 +206,17 @@ CREATE TABLE messages (
   receiver_id  INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   body         TEXT NOT NULL,
   is_read      BOOLEAN DEFAULT FALSE,
-  sent_at      TIMESTAMPTZ DEFAULT NOW()
+  sent_at      TIMESTAMPTZ DEFAULT NOW(),
+  edited_at    TIMESTAMPTZ
+);
+
+CREATE TABLE team_messages (
+  id           SERIAL PRIMARY KEY,
+  company_id   INT NOT NULL DEFAULT 1 REFERENCES companies(id) ON DELETE CASCADE,
+  sender_id    INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  body         TEXT NOT NULL,
+  sent_at      TIMESTAMPTZ DEFAULT NOW(),
+  edited_at    TIMESTAMPTZ
 );
 
 CREATE TABLE todos (
@@ -220,6 +257,34 @@ CREATE TABLE it_tickets (
   resolved_at   TIMESTAMPTZ
 );
 
+CREATE TABLE company_subscriptions (
+  company_id              INT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  plan_key                VARCHAR(80) NOT NULL,
+  status                  VARCHAR(20) NOT NULL DEFAULT 'pending'
+                           CHECK (status IN ('pending','active','expired','cancelled')),
+  payment_reference       VARCHAR(140) UNIQUE,
+  amount                  BIGINT NOT NULL CHECK (amount > 0),
+  currency                VARCHAR(10) NOT NULL,
+  paystack_customer_code  VARCHAR(100),
+  starts_at               TIMESTAMPTZ,
+  ends_at                 TIMESTAMPTZ,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE billing_payments (
+  id            BIGSERIAL PRIMARY KEY,
+  company_id    INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  reference     VARCHAR(140) NOT NULL UNIQUE,
+  plan_key      VARCHAR(80) NOT NULL,
+  amount        BIGINT NOT NULL CHECK (amount > 0),
+  currency      VARCHAR(10) NOT NULL,
+  status        VARCHAR(30) NOT NULL,
+  paid_at       TIMESTAMPTZ,
+  provider_data JSONB,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX idx_departments_company   ON departments(company_id);
 CREATE INDEX idx_employees_company     ON employees(company_id, is_active);
 CREATE INDEX idx_employees_department  ON employees(department_id);
@@ -243,6 +308,7 @@ CREATE INDEX idx_it_tickets_status     ON it_tickets(status, priority);
 CREATE INDEX idx_it_tickets_number     ON it_tickets(ticket_number);
 CREATE INDEX idx_it_tickets_employee   ON it_tickets(employee_id, created_at);
 CREATE INDEX idx_it_tickets_company    ON it_tickets(company_id, status, created_at);
+CREATE INDEX idx_billing_payments_company ON billing_payments(company_id, created_at DESC);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -258,6 +324,10 @@ CREATE TRIGGER trg_companies_updated_at
 
 CREATE TRIGGER trg_employees_updated_at
   BEFORE UPDATE ON employees
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_company_subscriptions_updated_at
+  BEFORE UPDATE ON company_subscriptions
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE OR REPLACE FUNCTION set_company_from_employee()

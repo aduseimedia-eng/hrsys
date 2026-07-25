@@ -232,4 +232,31 @@ thead th {
   .filters-bar .form-control {
     max-width: none !important;
   }
+
+  .filters-bar,
+  .toolbar-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filters-bar .btn,
+  .toolbar-row .btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-header,
+  .suite-panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-header .btn,
+  .card-header .btn,
+  .suite-panel-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

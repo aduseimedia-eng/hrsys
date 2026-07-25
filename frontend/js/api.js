@@ -361,8 +361,10 @@ function buildSidebar(activePage) {
 
   sidebar.innerHTML = `
     <div class="sidebar-logo">
-      <div class="logo-mark">HR</div>
-      <span class="logo-text">Kenad<span>HR</span></span>
+      <picture>
+        <source media="(max-width: 768px)" srcset="${appUrl('/assets/logo white.png?v=3')}">
+        <img class="brand-logo" src="${appUrl('/assets/logo.png')}" alt="KenadHR">
+      </picture>
       <button class="sidebar-close-btn" type="button" aria-label="Close menu">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>

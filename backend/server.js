@@ -34,7 +34,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({ verify: (req, res, buffer) => { req.rawBody = Buffer.from(buffer); } }));
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Static file serving (uploads) ───────────────────────────
@@ -53,11 +53,21 @@ app.use('/api/messages',      require('./routes/messages.routes'));
 app.use('/api/orgchart',      require('./routes/orgchart.routes'));
 app.use('/api/todos',         require('./routes/todos.routes'));
 app.use('/api/tickets',       require('./routes/tickets.routes'));
+app.use('/api/billing',       require('./routes/billing.routes'));
 
 // Serve the browser application from the same Railway service in production.
 const frontendDir = path.join(__dirname, '..', 'frontend');
+app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
+// The mock client contains development-only sample profiles and credentials.
+// It is never exposed unless a local developer explicitly enables it.
+app.get('/js/mock-api.js', (req, res, next) => {
+  if (process.env.ALLOW_MOCK_API === 'true') return next();
+  return res.status(404).json({ error: 'Route not found' });
+});
+// The public landing page lives at the project root; the app itself remains
+// served from /pages and the other frontend static paths.
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
 app.use(express.static(frontendDir));
-app.get('/', (req, res) => res.sendFile(path.join(frontendDir, 'index.html')));
 // Keep older message notifications working after the staff messages page moved.
 app.get('/messages', (req, res) => res.redirect('/pages/messages.html'));
 

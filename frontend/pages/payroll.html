@@ -69,6 +69,11 @@
       margin-top: 8px;
     }
     .net-amount { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--navy-800); }
+    .process-payroll-period { display:flex; align-items:center; gap:12px; padding:15px; border:1px solid #cfe0ff; border-radius:12px; background:#f4f8ff; margin-bottom:18px; }
+    .process-payroll-period-icon { width:40px; height:40px; flex:0 0 auto; display:grid; place-items:center; border-radius:10px; background:var(--navy-800); color:#fff; font-weight:800; }
+    .process-payroll-note { margin:14px 0 0; padding:11px 12px; border-radius:9px; background:#fff8e8; color:#76541a; font-size:.82rem; line-height:1.45; }
+    .process-confirm { display:flex; gap:9px; align-items:flex-start; margin-top:18px; color:var(--text-secondary); font-size:.85rem; line-height:1.4; cursor:pointer; }
+    .process-confirm input { margin-top:3px; accent-color:var(--navy-800); }
   </style>
 </head>
 <body>
@@ -133,6 +138,32 @@
       </div>
     </div>
   </main>
+</div>
+
+<!-- Process Payroll Modal -->
+<div id="process-payroll-modal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:530px">
+    <div class="modal-header">
+      <h3>Process payroll</h3>
+      <button class="modal-close" type="button" onclick="closeProcessPayrollModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="process-payroll-period">
+        <div class="process-payroll-period-icon">₵</div>
+        <div><strong style="display:block;color:var(--text-primary)">Create payroll for a selected period</strong><span style="font-size:.8rem;color:var(--text-muted)">Only staff without an existing payslip for that period will be included.</span></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label" for="process-payroll-month">Pay month</label><select id="process-payroll-month" class="form-control form-select"></select></div>
+        <div class="form-group"><label class="form-label" for="process-payroll-year">Pay year</label><select id="process-payroll-year" class="form-control form-select"></select></div>
+      </div>
+      <p class="process-payroll-note">This creates draft payslips using each employee’s current salary. You can use <strong>Edit payroll</strong> afterwards to set allowances, tax, and other deductions before payment.</p>
+      <label class="process-confirm"><input id="process-payroll-confirm" type="checkbox" onchange="toggleProcessPayrollButton()"><span>I have reviewed the period and want to create payroll records.</span></label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" onclick="closeProcessPayrollModal()">Cancel</button>
+      <button id="process-payroll-submit" class="btn btn-primary" type="button" onclick="submitPayrollProcess()" disabled>Process payroll</button>
+    </div>
+  </div>
 </div>
 
 <!-- Payslip Detail Modal -->
@@ -362,6 +393,6 @@ function showProcessModal() {
 
 loadMyPayslips();
 </script>
-<script src="../js/payroll.js?v=20260526"></script>
+<script src="../js/payroll.js?v=20260721c"></script>
 </body>
 </html>

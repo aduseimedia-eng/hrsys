@@ -12,7 +12,7 @@ exports.getDashboard = async (req, res) => {
 
     const [total, present, onLeave, payroll, birthdays, recent] = await Promise.all([
       db.query("SELECT COUNT(*) FROM employees WHERE company_id=$1 AND is_active = true", [req.user.company_id]),
-      db.query("SELECT COUNT(*) FROM attendance WHERE company_id=$1 AND work_date = $2 AND status IN ('present','late')", [req.user.company_id, today]),
+      db.query("SELECT COUNT(*) FROM attendance WHERE company_id=$1 AND work_date = $2 AND status = 'present'", [req.user.company_id, today]),
       db.query("SELECT COUNT(*) FROM leave_requests WHERE company_id=$1 AND status='approved' AND $2 BETWEEN start_date AND end_date", [req.user.company_id, today]),
       db.query("SELECT SUM(net_salary) as total FROM payroll WHERE company_id=$1 AND month=$2 AND year=$3 AND status IN ('processed','paid')", [req.user.company_id, month, year]),
       db.query(
@@ -135,6 +135,9 @@ exports.create = async (req, res) => {
     if (!first_name || !last_name || !email || !password) {
       return res.status(400).json({ error: 'Name, email and password are required' });
     }
+    if (process.env.OTP_ENABLED === 'true' && process.env.VYNFY_API_KEY && !String(phone || '').trim()) {
+      return res.status(400).json({ error: 'Phone number is required so staff can complete first sign-in verification' });
+    }
     if (employment_type && !EMPLOYMENT_TYPES.includes(employment_type)) {
       return res.status(400).json({ error: 'Invalid employment type' });
     }
@@ -231,6 +234,10 @@ exports.update = async (req, res) => {
 
       params.push(value);
       updates.push(`${field}=$${params.length}`);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'phone')) {
+      updates.push('phone_verified_at=NULL');
     }
 
     if (!updates.length) {

@@ -130,7 +130,7 @@
       attendance: [
         { id: 1, employee_id: 1, work_date: t, clock_in: minutesAgo(430), clock_out: null, status: 'present', notes: null },
         { id: 2, employee_id: 2, work_date: t, clock_in: minutesAgo(450), clock_out: null, status: 'present', notes: null },
-        { id: 3, employee_id: 3, work_date: t, clock_in: minutesAgo(360), clock_out: null, status: 'late', notes: null },
+        { id: 3, employee_id: 3, work_date: t, clock_in: minutesAgo(360), clock_out: null, status: 'present', notes: null },
         { id: 4, employee_id: 4, work_date: t, clock_in: null, clock_out: null, status: 'absent', notes: null },
         { id: 5, employee_id: 5, work_date: t, clock_in: minutesAgo(470), clock_out: null, status: 'present', notes: null },
         { id: 6, employee_id: 3, work_date: addDays(-1), clock_in: minutesAgo(1900), clock_out: minutesAgo(1420), status: 'present', notes: null },
@@ -179,6 +179,9 @@
       messages: [
         { id: 1, sender_id: 2, receiver_id: 3, body: 'Nice work on the dashboard polish.', is_read: false, sent_at: minutesAgo(120) },
         { id: 2, sender_id: 3, receiver_id: 2, body: 'Thank you. I will ship the next pass today.', is_read: true, sent_at: minutesAgo(90) }
+      ],
+      team_messages: [
+        { id: 1, sender_id: 1, body: 'Welcome to Team Chat. Use this space for quick updates and collaboration.', sent_at: minutesAgo(180) }
       ],
       todos: [
         {
@@ -279,6 +282,7 @@
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const db = JSON.parse(raw);
+      if (!Array.isArray(db.team_messages)) db.team_messages = seedDb().team_messages;
       const departmentNames = (db.departments || []).map((dept) => dept.name).join('|');
       if (!departmentNames.includes('HR/ Admin') || !departmentNames.includes('Member Management')) {
         const oldDepartmentById = Object.fromEntries((db.departments || []).map((dept) => [dept.id, dept.name]));
@@ -451,7 +455,7 @@
 
     return {
       total_employees: db.employees.filter((e) => e.is_active).length,
-      present_today: db.attendance.filter((a) => a.work_date === t && ['present', 'late'].includes(a.status)).length,
+      present_today: db.attendance.filter((a) => a.work_date === t && a.status === 'present').length,
       on_leave_today: db.leave_requests.filter((l) => l.status === 'approved' && between(t, l.start_date, l.end_date)).length,
       payroll_this_month: payroll,
       upcoming_birthdays: db.employees
@@ -899,7 +903,7 @@
       const existing = db.attendance.find((a) => a.employee_id === user.id && a.work_date === today());
       if (existing?.clock_in) throw new Error('Already clocked in today');
       const now = new Date();
-      const status = now.getHours() >= 9 ? 'late' : 'present';
+      const status = 'present';
       const row = existing || { id: nextId(db.attendance), employee_id: user.id, work_date: today(), clock_out: null, notes: null };
       row.clock_in = now.toISOString();
       row.status = status;
@@ -1011,7 +1015,9 @@
         });
       }
       const status = url.searchParams.get('status');
+      const employeeId = url.searchParams.get('employee_id');
       if (status) rows = rows.filter((l) => l.status === status);
+      if (employeeId) rows = rows.filter((l) => l.employee_id === Number(employeeId));
       return leaveRows(db, rows).sort((a, b) => b.created_at.localeCompare(a.created_at));
     }
 
@@ -1078,9 +1084,11 @@
       const month = url.searchParams.get('month');
       const year = url.searchParams.get('year');
       const status = url.searchParams.get('status');
+      const employeeId = url.searchParams.get('employee_id');
       if (month) rows = rows.filter((p) => p.month === Number(month));
       if (year) rows = rows.filter((p) => p.year === Number(year));
       if (status) rows = rows.filter((p) => p.status === status);
+      if (employeeId) rows = rows.filter((p) => p.employee_id === Number(employeeId));
       return rows.map((p) => enrichPayroll(db, p));
     }
 
@@ -1091,9 +1099,13 @@
       if (!row) throw new Error('Payroll record not found');
       const status = body?.status || row.status;
       if (!['pending', 'processed', 'paid'].includes(status)) throw new Error('Invalid payroll status');
-      row.base_salary = Number(body?.base_salary || 0);
-      row.allowances = Number(body?.allowances || 0);
-      row.deductions = Number(body?.deductions || 0);
+      const amounts = [body?.base_salary, body?.allowances, body?.tax, body?.other_deductions].map(Number);
+      if (amounts.some((amount) => !Number.isFinite(amount) || amount < 0)) throw new Error('Enter valid non-negative payroll amounts');
+      row.base_salary = amounts[0];
+      row.allowances = amounts[1];
+      row.tax = amounts[2];
+      row.other_deductions = amounts[3];
+      row.deductions = row.tax + row.other_deductions;
       row.status = status;
       row.paid_at = status === 'paid' ? (row.paid_at || new Date().toISOString()) : null;
       saveDb(db);
@@ -1114,6 +1126,8 @@
           year,
           base_salary: Number(e.salary || 0),
           allowances: Number(e.salary || 0) * 0.05,
+          tax: Number(e.salary || 0) * 0.10,
+          other_deductions: 0,
           deductions: Number(e.salary || 0) * 0.10,
           status: 'processed',
           paid_at: null,
@@ -1391,6 +1405,59 @@
       db.notifications.push({ id: nextId(db.notifications), employee_id: row.receiver_id, type: 'message', message: `New message from ${user.first_name} ${user.last_name}`, link: '/pages/messages.html', is_read: false, created_at: new Date().toISOString() });
       saveDb(db);
       return clone(row);
+    }
+
+    if (method === 'POST' && route === '/messages/team') {
+      if (!body?.body?.trim()) throw new Error('Message body required');
+      const row = { id: nextId(db.team_messages), sender_id: user.id, body: body.body.trim(), sent_at: new Date().toISOString() };
+      db.team_messages.push(row);
+      saveDb(db);
+      return clone(row);
+    }
+
+    const teamMessageMatch = route.match(/^\/messages\/team\/(\d+)$/);
+    if (teamMessageMatch && method === 'PUT') {
+      const row = db.team_messages.find((message) => message.id === Number(teamMessageMatch[1]) && message.sender_id === user.id);
+      if (!row) throw new Error('Sent team message not found');
+      if (!body?.body?.trim()) throw new Error('Message body required');
+      row.body = body.body.trim();
+      row.edited_at = new Date().toISOString();
+      saveDb(db);
+      return clone(row);
+    }
+
+    if (teamMessageMatch && method === 'DELETE') {
+      const index = db.team_messages.findIndex((message) => message.id === Number(teamMessageMatch[1]) && message.sender_id === user.id);
+      if (index < 0) throw new Error('Sent team message not found');
+      const [row] = db.team_messages.splice(index, 1);
+      saveDb(db);
+      return { message: 'Team message deleted', id: row.id };
+    }
+
+    const directMessageMatch = route.match(/^\/messages\/(\d+)$/);
+    if (directMessageMatch && method === 'PUT') {
+      const row = db.messages.find((message) => message.id === Number(directMessageMatch[1]) && message.sender_id === user.id);
+      if (!row) throw new Error('Sent message not found');
+      if (!body?.body?.trim()) throw new Error('Message body required');
+      row.body = body.body.trim();
+      row.edited_at = new Date().toISOString();
+      saveDb(db);
+      return clone(row);
+    }
+
+    if (directMessageMatch && method === 'DELETE') {
+      const index = db.messages.findIndex((message) => message.id === Number(directMessageMatch[1]) && message.sender_id === user.id);
+      if (index < 0) throw new Error('Sent message not found');
+      const [row] = db.messages.splice(index, 1);
+      saveDb(db);
+      return { message: 'Message deleted', id: row.id };
+    }
+
+    if (method === 'GET' && route === '/messages/team') {
+      return db.team_messages
+        .slice()
+        .sort((a, b) => a.sent_at.localeCompare(b.sent_at))
+        .map((m) => ({ ...clone(m), sender_name: employeeName(db, m.sender_id), sender_photo: db.employees.find((e) => e.id === m.sender_id)?.photo_url || null }));
     }
 
     if (method === 'GET' && route === '/messages/inbox') {

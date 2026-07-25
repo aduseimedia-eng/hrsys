@@ -19,13 +19,15 @@ exports.upload = async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    const fileData = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
     const { rows } = await db.query(
-      `INSERT INTO documents (company_id, employee_id, doc_type, title, file_path, original_name, file_size, share_with_hr, shared_with)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      `INSERT INTO documents (company_id, employee_id, doc_type, title, file_path, original_name, file_size, mime_type, file_data, share_with_hr, shared_with)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [req.user.company_id, employeeId, doc_type || 'other',
        title, `/uploads/documents/${req.file.filename}`,
-       req.file.originalname, req.file.size, shareWithHr, shared_with || null]
+       req.file.originalname, req.file.size, req.file.mimetype || null, fileData, shareWithHr, shared_with || null]
     );
+    if (req.file.path) fs.unlink(req.file.path, () => {});
     res.status(201).json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Could not save document' });
@@ -81,6 +83,32 @@ exports.getForEmployee = async (req, res) => {
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Could not fetch documents' });
+  }
+};
+
+exports.download = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT * FROM documents WHERE id=$1 AND company_id=$2',
+      [req.params.id, req.user.company_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Document not found' });
+    const doc = rows[0];
+    const canAccess = ['admin', 'manager'].includes(req.user.role)
+      || doc.employee_id === req.user.id
+      || doc.shared_with === req.user.id;
+    if (!canAccess) return res.status(403).json({ error: 'Access denied' });
+
+    if (doc.file_data) {
+      res.type(doc.mime_type || 'application/octet-stream');
+      res.attachment(doc.original_name);
+      return res.send(doc.file_data);
+    }
+    const filePath = path.join(__dirname, '..', doc.file_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Document file not found. Please ask the owner to upload it again.' });
+    res.download(filePath, doc.original_name);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not download document' });
   }
 };
 

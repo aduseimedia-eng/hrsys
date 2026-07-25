@@ -641,7 +641,6 @@ async function loadDashboard() {
 function renderDashboardAttendance({ attendanceSummary, attendanceRows }) {
   const summary = attendanceSummary?.summary || {};
   const present = Number(summary.present || 0);
-  const late = Number(summary.late || 0);
   const onLeave = Number(summary['on-leave'] || 0);
   const rows = (attendanceRows || []).slice(0, 5);
   const target = document.getElementById('dashboard-attendance');
@@ -656,7 +655,6 @@ function renderDashboardAttendance({ attendanceSummary, attendanceRows }) {
   target.innerHTML = `
     <div class="attendance-summary-strip">
       <div class="attendance-summary-cell"><span>Present</span><strong>${present}</strong></div>
-      <div class="attendance-summary-cell late"><span>Late</span><strong>${late}</strong></div>
       <div class="attendance-summary-cell leave"><span>On leave</span><strong>${onLeave}</strong></div>
     </div>
     <div class="attendance-list">${list}</div>`;

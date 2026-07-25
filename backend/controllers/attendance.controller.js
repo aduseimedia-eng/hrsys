@@ -1,7 +1,6 @@
 // controllers/attendance.controller.js
 const db = require('../config/db');
 
-const LATE_THRESHOLD_HOUR = parseInt(process.env.LATE_THRESHOLD_HOUR) || 9;
 const ATTENDANCE_TIME_ZONE = process.env.ATTENDANCE_TIME_ZONE || 'Africa/Accra';
 
 function formatExportDate(value) {
@@ -23,7 +22,6 @@ exports.clockIn = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const clockInTime = new Date();
-    const isLate = clockInTime.getHours() >= LATE_THRESHOLD_HOUR;
 
     const existing = await db.query(
       'SELECT id, clock_in FROM attendance WHERE company_id=$1 AND employee_id=$2 AND work_date=$3',
@@ -36,14 +34,14 @@ exports.clockIn = async (req, res) => {
     if (existing.rows.length) {
       const { rows } = await db.query(
         'UPDATE attendance SET clock_in=$1, status=$2 WHERE company_id=$3 AND employee_id=$4 AND work_date=$5 RETURNING *',
-        [clockInTime, isLate ? 'late' : 'present', req.user.company_id, req.user.id, today]
+        [clockInTime, 'present', req.user.company_id, req.user.id, today]
       );
       return res.json(rows[0]);
     }
 
     const { rows } = await db.query(
       'INSERT INTO attendance (company_id, employee_id, work_date, clock_in, status) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [req.user.company_id, req.user.id, today, clockInTime, isLate ? 'late' : 'present']
+      [req.user.company_id, req.user.id, today, clockInTime, 'present']
     );
     res.status(201).json(rows[0]);
   } catch (err) {

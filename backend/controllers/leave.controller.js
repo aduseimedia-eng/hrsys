@@ -103,12 +103,13 @@ exports.getMyLeaves = async (req, res) => {
 // ─── HR: All leave requests ───────────────────────────────────
 exports.getAll = async (req, res) => {
   try {
-    const { status, department_id, from, to } = req.query;
+    const { status, department_id, employee_id, from, to } = req.query;
     const params = [req.user.company_id];
     let where = 'WHERE lr.company_id = $1';
 
     if (status)        { params.push(status);        where += ` AND lr.status = $${params.length}`; }
     if (department_id) { params.push(department_id); where += ` AND e.department_id = $${params.length}`; }
+    if (employee_id)   { params.push(employee_id);   where += ` AND lr.employee_id = $${params.length}`; }
     if (from)          { params.push(from);          where += ` AND lr.start_date >= $${params.length}`; }
     if (to)            { params.push(to);            where += ` AND lr.end_date <= $${params.length}`; }
     if (req.user.role === 'admin') {
