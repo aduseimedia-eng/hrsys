@@ -949,4 +949,5 @@ tbody tr:hover { background: #f7faff; }
   .sidebar-user .user-avatar { background:rgba(255,255,255,.18); color:#fff; }
   .sidebar-user .user-name, .sidebar-user .user-role { color:#fff; }
   .sidebar-user .logout-btn { color:rgba(255,255,255,.78); }
+  .topbar .mobile-menu-btn { display:inline-flex !important; }
 }
