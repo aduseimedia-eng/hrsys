@@ -36,6 +36,25 @@
     .clock-in-btn:hover  { background:var(--amber-400); }
     .clock-out-btn { background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.2); }
     .clock-out-btn:hover { background:rgba(255,255,255,.15); }
+    .attendance-filter { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+    @media (max-width: 640px) {
+      .clock-section { padding:22px 18px; border-radius:16px; flex-direction:column; align-items:stretch; gap:20px; }
+      .clock-main-time { font-size:2.55rem; }
+      .clock-main-date { font-size:.82rem; }
+      .clock-actions { min-width:0; width:100%; gap:10px; }
+      .clock-actions .btn { min-height:46px; }
+      .clock-status-info { padding-top:4px; }
+      .clock-info-row { font-size:.82rem; }
+      .attendance-filter { display:grid; grid-template-columns:1fr; gap:10px; }
+      .attendance-filter .form-control, .attendance-filter .btn { width:100%; max-width:none !important; }
+      #att-summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+      #att-summary .stat-card { padding:12px 8px; justify-content:center; text-align:center; }
+      #att-summary .stat-icon { display:none; }
+      #att-summary .stat-value { font-size:1.25rem; }
+      #att-summary .stat-label { font-size:.68rem; }
+      #tab-my .table-container, #tab-hr .table-container { margin:0 -2px; }
+    }
+    @media (max-width: 380px) { #att-summary { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -73,7 +92,7 @@
 
     <!-- My history tab -->
     <div id="tab-my">
-      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="attendance-filter">
         <input type="date" id="my-from" class="form-control" style="max-width:160px">
         <input type="date" id="my-to"   class="form-control" style="max-width:160px">
         <button class="btn btn-outline" onclick="loadMyHistory()">Filter</button>
@@ -88,7 +107,7 @@
 
     <!-- HR report tab -->
     <div id="tab-hr" style="display:none">
-      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="attendance-filter">
         <input type="date" id="hr-date" class="form-control" style="max-width:160px">
         <select id="hr-status" class="form-control form-select" style="max-width:160px">
           <option value="">All Status</option>
