@@ -108,9 +108,23 @@ const workspaceFrame = document.getElementById('workspace-frame');
 const workspaceLoading = document.getElementById('workspace-loading');
 let syncingFromFrame = false;
 
-buildSidebar(WORKSPACE_DEFAULT);
-loadNotifCount();
-loadWorkspaceRoute();
+initializeWorkspace();
+
+async function initializeWorkspace() {
+  const reference = new URLSearchParams(window.location.search).get('reference');
+  if (reference) {
+    try {
+      const result = await api.get(`/billing/verify/${encodeURIComponent(reference)}`);
+      toast(`Payment confirmed. Your ${result.subscription.plan_key} plan is active.`, 'success', 6000);
+    } catch (error) {
+      toast(error.message || 'We could not confirm the payment yet. Please refresh shortly.', 'error', 6000);
+    }
+    window.history.replaceState(null, '', appUrl('/pages/workspace.html#dashboard'));
+  }
+  buildSidebar(WORKSPACE_DEFAULT);
+  loadNotifCount();
+  loadWorkspaceRoute();
+}
 window.addEventListener('hashchange', () => {
   if (!syncingFromFrame) loadWorkspaceRoute();
 });

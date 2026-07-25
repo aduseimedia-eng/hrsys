@@ -9,7 +9,7 @@ function configured() { return Boolean(process.env.PAYSTACK_SECRET_KEY); }
 function callbackUrl(reference) {
   const base = process.env.PUBLIC_APP_URL || process.env.CLIENT_URL;
   if (!base || !/^https?:\/\//i.test(base)) throw new Error('Set PUBLIC_APP_URL to the public application URL before enabling billing');
-  return new URL(`/pages/settings.html?payment=return&reference=${encodeURIComponent(reference)}`, base).toString();
+  return new URL(`/pages/workspace.html?payment=return&reference=${encodeURIComponent(reference)}`, base).toString();
 }
 
 async function paystack(path, options = {}) {

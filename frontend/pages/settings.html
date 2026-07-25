@@ -182,7 +182,7 @@ async function loadBilling() {
         <h4>${escapeUi(plan.name)}</h4>
         <p>${escapeUi(plan.description || 'Annual KenadHR access.')}</p>
         <div class="billing-price">${escapeUi(money(plan.amount, plan.currency))}<small style="font-size:.75rem;color:var(--text-muted);font-weight:600"> / year</small></div>
-        <button class="btn ${subscription?.plan_key === plan.key && subscription?.status === 'active' ? 'btn-outline' : 'btn-primary'} btn-sm" type="button" ${plansResult.billing_enabled ? '' : 'disabled'} onclick="startCheckout('${escapeUi(plan.key)}')">${subscription?.plan_key === plan.key && subscription?.status === 'active' ? 'Current plan' : 'Choose plan'}</button>
+        <button class="btn ${subscription?.plan_key === plan.key && subscription?.status === 'active' ? 'btn-outline' : 'btn-primary'} btn-sm" type="button" ${plansResult.billing_enabled ? '' : 'disabled'} onclick="startCheckout('${escapeUi(plan.key)}')">${subscription?.plan_key === plan.key && subscription?.status === 'active' ? 'Current plan' : (subscription?.status === 'active' && Number(plan.amount) > Number(subscription.amount) ? 'Upgrade plan' : 'Choose plan')}</button>
       </section>`).join('');
   } catch (error) {
     status.textContent = error.message || 'Could not load billing details.';
