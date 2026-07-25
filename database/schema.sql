@@ -84,6 +84,7 @@ CREATE TABLE hr_signup_otps (
   email         VARCHAR(160) NOT NULL,
   phone         VARCHAR(20) NOT NULL,
   password_hash TEXT NOT NULL,
+  plan_key      VARCHAR(80) NOT NULL,
   expires_at    TIMESTAMPTZ NOT NULL,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );

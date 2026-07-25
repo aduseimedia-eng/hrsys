@@ -1,0 +1,1 @@
+ALTER TABLE hr_signup_otps ADD COLUMN IF NOT EXISTS plan_key VARCHAR(80);

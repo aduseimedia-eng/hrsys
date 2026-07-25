@@ -76,7 +76,7 @@ test('first-time setup creates the initial HR admin and signs them in', async ()
     release() { calls.push({ text: 'RELEASE' }); }
   });
   const res = response();
-  await authController.setup({ body: { company_name: 'KenadHR', full_name: 'Adwoa Mensah', email: 'adwoa@kenadhr.com', password: 'Password123!' } }, res);
+  await authController.setup({ body: { company_name: 'KenadHR', full_name: 'Adwoa Mensah', email: 'adwoa@kenadhr.com', password: 'Password123!', plan_key: 'starter' } }, res);
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.user.role, 'admin');
   assert.ok(res.body.token);

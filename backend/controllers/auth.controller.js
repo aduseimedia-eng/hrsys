@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../config/db');
+const { findPlan, currency } = require('../config/billing');
 
 const JWT_SECRET  = process.env.JWT_SECRET  || 'hr_secret_key_change_in_prod';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
@@ -20,8 +21,9 @@ function setupDetails(body) {
   const fullName = String(body.full_name || '').trim();
   const email = String(body.email || '').toLowerCase().trim();
   const password = String(body.password || '');
+  const planKey = String(body.plan_key || '').trim().toLowerCase();
   const [firstName, ...lastNameParts] = fullName.split(/\s+/);
-  return { companyName, fullName, email, password, firstName, lastName: lastNameParts.join(' ') };
+  return { companyName, fullName, email, password, planKey, firstName, lastName: lastNameParts.join(' ') };
 }
 
 function validateSetupDetails(details) {
@@ -29,6 +31,8 @@ function validateSetupDetails(details) {
     return 'Company name, full name, email and password are required';
   }
   if (details.password.length < 8) return 'Password must be at least 8 characters';
+  if (!details.planKey) return 'Choose an annual plan before creating your account';
+  if (!findPlan(details.planKey)) return 'Choose a valid annual plan';
   return null;
 }
 
@@ -61,6 +65,12 @@ async function createInitialAdmin(client, details, passwordHash) {
      VALUES ($1,$2,$3,$4,$5,'admin',$6,true)
      RETURNING id, company_id, first_name, last_name, email, role, department_id, photo_url, is_active`,
     [company.rows[0].id, details.firstName, details.lastName, details.email, passwordHash, details.phone || null]
+  );
+  const plan = findPlan(details.planKey);
+  await client.query(
+    `INSERT INTO company_subscriptions (company_id, plan_key, status, amount, currency)
+     VALUES ($1,$2,'pending',$3,$4)`,
+    [company.rows[0].id, plan.key, plan.amount, currency()]
   );
   await client.query('COMMIT');
   return { user: employee.rows[0], company: company.rows[0] };
@@ -154,9 +164,9 @@ exports.requestSetupOtp = async (req, res) => {
 
     const signupId = crypto.randomUUID();
     await client.query(
-      `INSERT INTO hr_signup_otps (id, company_name, full_name, email, phone, password_hash, expires_at)
-       VALUES ($1,$2,$3,$4,$5,$6,NOW() + INTERVAL '5 minutes')`,
-      [signupId, details.companyName, details.fullName, details.email, phone, await bcrypt.hash(details.password, 12)]
+      `INSERT INTO hr_signup_otps (id, company_name, full_name, email, phone, password_hash, plan_key, expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,NOW() + INTERVAL '5 minutes')`,
+      [signupId, details.companyName, details.fullName, details.email, phone, await bcrypt.hash(details.password, 12), details.planKey]
     );
     res.status(201).json({ signup_id: signupId, message: 'Verification code sent' });
   } catch (err) {
