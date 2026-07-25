@@ -260,3 +260,37 @@ thead th {
     justify-content: center;
   }
 }
+
+/* Mobile card rhythm: preserve each page's own content layout while making
+   the section boxes themselves easy to scan and tap on a phone. */
+@media (max-width: 640px) {
+  .main-content > .card,
+  .main-content > .suite-panel,
+  .main-content > .messages-layout,
+  .main-content > .org-container {
+    width: 100%;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .card-header,
+  .suite-panel-header {
+    gap: 10px;
+    padding: 14px 15px;
+  }
+
+  .card-header > div,
+  .suite-panel-header > div {
+    min-width: 0;
+  }
+
+  .card-body,
+  .suite-panel-body {
+    padding: 15px;
+  }
+
+  .card-header .btn,
+  .suite-panel-header .btn {
+    min-height: 40px;
+  }
+}
