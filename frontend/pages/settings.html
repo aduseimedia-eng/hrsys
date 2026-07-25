@@ -97,7 +97,11 @@ buildSidebar('settings');
 loadNotifCount();
 let profile = user;
 loadSettings();
-loadBilling();
+(async () => {
+  await loadBilling();
+  const checkoutPlan = new URLSearchParams(window.location.search).get('checkout');
+  if (checkoutPlan) await startCheckout(checkoutPlan);
+})();
 
 async function loadSettings() {
   profile = await api.get('/auth/me');
