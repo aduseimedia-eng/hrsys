@@ -1,1 +1,54 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Choose a plan - KenadHR</title><link rel="stylesheet" href="../css/main.css"><style>body{min-height:100vh;background:#f4f7fd;padding:48px 22px}.wrap{max-width:980px;margin:auto}.heading{text-align:center;margin-bottom:30px}.heading h1{color:#174fae}.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.plan{background:#fff;border:1px solid #dfe7f5;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px}.plan p{min-height:42px;color:var(--text-muted)}.price{font-size:1.8rem;font-weight:800;color:#174fae}.plan .btn{margin-top:auto;justify-content:center}@media(max-width:720px){.plans{grid-template-columns:1fr}}</style></head><body><main class="wrap"><div class="heading"><h1>Choose your yearly plan</h1><p>Select the employee tier before creating your HR account.</p></div><div class="plans" id="plans">Loading plans…</div></main><script src="../js/api.js"></script><script>const money=(a,c)=>new Intl.NumberFormat('en-GH',{style:'currency',currency:c}).format(Number(a)/100);api.get('/billing/plans').then(({plans,billing_enabled})=>{if(!billing_enabled)throw new Error('Pricing is unavailable.');document.getElementById('plans').innerHTML=plans.map(p=>`<section class="plan"><h2>${escapeUi(p.name)}</h2><p>${escapeUi(p.description)}</p><div class="price">${escapeUi(money(p.amount,p.currency))} <small>/ year</small></div><a class="btn btn-primary" href="hr-login.html?setup=1&plan=${encodeURIComponent(p.key)}">Choose this plan</a></section>`).join('');}).catch(e=>document.getElementById('plans').textContent=e.message);</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing - KenadHR</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    :root { --blue:#3f5bf6; --ink:#18203b; --muted:#7e879d; --lavender:#f4f3ff; }
+    * { box-sizing:border-box; }
+    body { min-height:100vh; margin:0; background:linear-gradient(180deg,var(--lavender) 0 41%,#fff 41%); color:var(--ink); }
+    .pricing-shell { width:min(1080px,calc(100% - 36px)); margin:auto; padding:26px 0 72px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; }
+    .brand { display:flex; align-items:center; gap:9px; color:var(--ink); font-size:1.15rem; font-weight:800; }.brand img{width:146px;height:42px;object-fit:contain}
+    .login-link { color:var(--ink); font-size:.86rem; font-weight:700; }
+    .login-link:hover { color:var(--blue); }
+    .intro { max-width:580px; margin:68px auto 36px; text-align:center; }.intro h1 { margin:0; font-size:clamp(2.15rem,5vw,3.3rem); letter-spacing:-.055em; }.intro p { margin:13px auto 0; color:var(--muted); font-size:.96rem; }
+    .plans { display:grid; grid-template-columns:repeat(3,1fr); align-items:center; gap:22px; }
+    .plan { min-height:455px; padding:27px 25px 23px; border:1px solid #eef0f7; border-radius:20px; background:#fff; box-shadow:0 14px 35px rgba(35,42,86,.08); display:flex; flex-direction:column; }
+    .plan.featured { min-height:505px; color:#fff; border:0; background:linear-gradient(145deg,#3f5bf6,#3d49ee); box-shadow:0 18px 38px rgba(53,77,240,.31); }
+    .plan-top { display:flex; align-items:center; gap:12px; }.plan-icon { width:39px; height:39px; display:grid; place-items:center; border-radius:11px; color:var(--blue); background:#edf0ff; font-size:1.2rem; }.featured .plan-icon { background:rgba(255,255,255,.18); color:#fff; }.plan h2 { margin:0; font-size:1.07rem; }.amount { margin:24px 0 6px; font-size:2rem; font-weight:800; letter-spacing:-.05em; }.amount small { color:var(--muted); font-size:.78rem; font-weight:600; letter-spacing:0; }.featured .amount small,.featured .summary,.featured .features { color:rgba(255,255,255,.86); }
+    .summary { min-height:45px; margin:0; color:var(--muted); font-size:.82rem; line-height:1.55; }.divider { height:1px; margin:22px 0 18px; background:#e7e9f1; }.featured .divider { background:rgba(255,255,255,.3); }
+    .features { display:grid; gap:11px; padding:0; margin:0; list-style:none; color:#3b4660; font-size:.8rem; }.features li { display:flex; gap:9px; align-items:center; }.tick { width:18px; height:18px; display:grid; place-items:center; flex:0 0 auto; border-radius:5px; color:#fff; background:var(--blue); font-size:.68rem; font-weight:900; }.featured .tick { color:var(--blue); background:#fff; }
+    .plan .btn { width:100%; min-height:43px; margin-top:auto; border:0; border-radius:22px; color:#fff; background:var(--blue); font-size:.82rem; font-weight:800; }.featured .btn { color:var(--blue); background:#fff; }.note { margin:13px 0 0; color:#9ba3b5; text-align:center; font-size:.72rem; }.featured .note { color:rgba(255,255,255,.72); }
+    .comparison { display:block; width:max-content; margin:30px auto 0; padding:11px 20px; border-radius:22px; color:var(--blue); background:#f0f2ff; font-size:.79rem; font-weight:750; }
+    @media(max-width:760px) { body{background:var(--lavender)}.pricing-shell{padding-bottom:34px}.intro{margin:45px auto 28px}.plans{grid-template-columns:1fr;max-width:400px;margin:auto}.plan,.plan.featured{min-height:0}.plan.featured{order:-1}.topbar .brand img{width:130px}.comparison{margin-bottom:18px} }
+  </style>
+</head>
+<body>
+  <main class="pricing-shell">
+    <header class="topbar"><a class="brand" href="/"><img src="../assets/logo.png" alt="KenadHR"></a><a class="login-link" href="login.html">Sign in</a></header>
+    <section class="intro"><h1>Simple, transparent pricing</h1><p>Choose the annual KenadHR plan that matches your team size.</p></section>
+    <section class="plans" id="plans"><p>Loading plans…</p></section>
+    <a class="comparison" href="#plans">Compare annual plans</a>
+  </main>
+  <script src="../js/api.js"></script>
+  <script>
+    const planDetails = {
+      team_10: { icon:'◈', features:['Employee profiles & documents','Leave and attendance','Payroll workspace','Standard support'] },
+      team_30: { icon:'◈', features:['Everything in 1–10 plan','Up to 30 employee profiles','Team messages and reports','Priority support'] },
+      team_90: { icon:'◈', features:['Everything in 10–30 plan','Up to 90 employee profiles','Full HR workspace','Dedicated support'] }
+    };
+    const money = (amount, currency) => new Intl.NumberFormat('en-GH',{style:'currency',currency,maximumFractionDigits:2}).format(Number(amount)/100);
+    api.get('/billing/plans').then(({plans,billing_enabled}) => {
+      if (!billing_enabled) throw new Error('Pricing is unavailable right now. Please try again later.');
+      document.getElementById('plans').innerHTML = plans.map((plan,index) => {
+        const details = planDetails[plan.key] || { icon:'◈', features:['Full KenadHR workspace','Annual access','Secure payments','Customer support'] };
+        const featured = index === 1 ? ' featured' : '';
+        return `<article class="plan${featured}"><div class="plan-top"><span class="plan-icon">${details.icon}</span><h2>${escapeUi(plan.name)}</h2></div><div class="amount">${escapeUi(money(plan.amount,plan.currency))} <small>/ year</small></div><p class="summary">${escapeUi(plan.description || 'Annual access to KenadHR.')}</p><div class="divider"></div><ul class="features">${details.features.map(item=>`<li><span class="tick">✓</span>${escapeUi(item)}</li>`).join('')}</ul><a class="btn" href="hr-login.html?setup=1&plan=${encodeURIComponent(plan.key)}">Get started&nbsp; →</a><p class="note">Secure Paystack payment</p></article>`;
+      }).join('');
+    }).catch(error => { document.getElementById('plans').innerHTML = `<p>${escapeUi(error.message || 'Could not load pricing.')}</p>`; });
+  </script>
+</body>
+</html>
