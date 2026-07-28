@@ -296,6 +296,29 @@ CREATE TABLE company_calendar_events (
   CHECK (end_date >= start_date)
 );
 
+CREATE TABLE work_schedules (
+  id SERIAL PRIMARY KEY,
+  company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name VARCHAR(120) NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  break_minutes INT NOT NULL DEFAULT 0 CHECK (break_minutes >= 0 AND break_minutes <= 720),
+  weekdays SMALLINT[] NOT NULL DEFAULT ARRAY[1,2,3,4,5],
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE employee_schedule_assignments (
+  id SERIAL PRIMARY KEY,
+  company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  schedule_id INT NOT NULL REFERENCES work_schedules(id) ON DELETE CASCADE,
+  starts_on DATE NOT NULL DEFAULT CURRENT_DATE,
+  ends_on DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (ends_on IS NULL OR ends_on >= starts_on)
+);
+
 CREATE TABLE billing_payments (
   id            BIGSERIAL PRIMARY KEY,
   company_id    INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -334,6 +357,8 @@ CREATE INDEX idx_it_tickets_employee   ON it_tickets(employee_id, created_at);
 CREATE INDEX idx_it_tickets_company    ON it_tickets(company_id, status, created_at);
 CREATE INDEX idx_billing_payments_company ON billing_payments(company_id, created_at DESC);
 CREATE INDEX idx_company_calendar_events_dates ON company_calendar_events(company_id, start_date, end_date);
+CREATE INDEX idx_work_schedules_company ON work_schedules(company_id);
+CREATE INDEX idx_schedule_assignments_employee ON employee_schedule_assignments(company_id, employee_id, starts_on);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
