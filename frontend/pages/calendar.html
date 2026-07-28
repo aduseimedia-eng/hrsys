@@ -9,7 +9,9 @@
   <style>
     .calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
     .cal-header { padding:7px 3px; color:var(--text-muted); text-align:center; font-size:.72rem; font-weight:800; text-transform:uppercase; }
-    .cal-day { aspect-ratio:1; display:grid; place-items:center; position:relative; border-radius:8px; font-size:.84rem; }
+    .cal-day { aspect-ratio:1; display:grid; place-items:center; position:relative; width:100%; border:0; border-radius:8px; background:transparent; color:inherit; font:inherit; font-size:.84rem; }
+    .cal-day.has-events { cursor:pointer; }
+    .cal-day.has-events:hover, .cal-day.has-events:focus-visible { box-shadow:0 0 0 2px var(--navy-500); outline:0; }
     .cal-day.today { background:var(--navy-800); color:#fff; font-weight:800; }
     .cal-day.public-holiday { background:var(--mint-100); color:var(--navy-950); font-weight:800; }
     .cal-day.company-event { background:var(--violet-100); color:var(--violet-600); font-weight:800; }
@@ -20,6 +22,15 @@
     .calendar-legend { flex-wrap:wrap; gap:16px; margin-top:16px; font-size:.8rem; }
     .legend { display:flex; align-items:center; gap:6px; }
     .legend i { width:14px; height:14px; border-radius:4px; }
+    .calendar-event-list { display:grid; gap:10px; }
+    .calendar-event-detail { padding:13px; border:1px solid var(--border); border-radius:10px; background:var(--bg-subtle); }
+    .calendar-event-type { display:inline-flex; margin-bottom:7px; padding:4px 8px; border-radius:999px; background:var(--navy-100); color:var(--navy-700); font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.03em; }
+    .calendar-event-detail.public-holiday .calendar-event-type { background:var(--mint-100); color:var(--navy-950); }
+    .calendar-event-detail.company-event .calendar-event-type { background:var(--violet-100); color:var(--violet-600); }
+    .calendar-event-detail.on-leave .calendar-event-type { background:var(--amber-100); color:var(--amber-700); }
+    .calendar-event-detail strong, .calendar-event-detail p { display:block; }
+    .calendar-event-detail strong { font-size:.9rem; }
+    .calendar-event-detail p { margin:5px 0 0; color:var(--text-secondary); font-size:.82rem; line-height:1.45; }
     @media (max-width:640px) {
       .calendar-nav h3 { font-size:.95rem; }
       .calendar-actions .btn { padding:0 10px; }
@@ -57,6 +68,7 @@
     </main>
   </div>
   <div id="event-modal" class="modal-overlay" style="display:none"><div class="modal"><div class="modal-header"><h3>Add company event</h3><button class="modal-close" type="button" onclick="closeEventModal()">×</button></div><div class="modal-body"><div class="form-group"><label class="form-label required">Title</label><input class="form-control" id="event-title" placeholder="e.g. Team planning day"></div><div class="form-grid"><div class="form-group"><label class="form-label required">Start</label><input class="form-control" type="date" id="event-start"></div><div class="form-group"><label class="form-label required">End</label><input class="form-control" type="date" id="event-end"></div></div><div class="form-group"><label class="form-label">Category</label><select class="form-control form-select" id="event-category"><option value="event">Company event</option><option value="meeting">Meeting</option><option value="payday">Payday</option><option value="shutdown">Office shutdown</option><option value="holiday">Company holiday</option></select></div><div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="event-description" rows="3"></textarea></div></div><div class="modal-footer"><button class="btn btn-outline" type="button" onclick="closeEventModal()">Cancel</button><button class="btn btn-primary" type="button" onclick="saveEvent()">Save event</button></div></div></div>
+  <div id="calendar-detail-modal" class="modal-overlay" style="display:none"><div class="modal"><div class="modal-header"><div><h3 id="calendar-detail-title">Calendar details</h3><p style="margin-top:3px;color:var(--text-muted);font-size:.8rem">Event information for this day</p></div><button class="modal-close" type="button" onclick="closeCalendarDetails()">×</button></div><div class="modal-body"><div class="calendar-event-list" id="calendar-detail-list"></div></div></div></div>
   <script src="../js/api.js"></script>
   <script>
     const user = api.getUser();
@@ -65,6 +77,7 @@
     loadNotifCount();
     if (['admin', 'manager'].includes(user.role)) document.getElementById('add-event').style.display = 'inline-flex';
     let view = new Date();
+    let calendarMarks = {};
     const iso = (date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
     async function renderCalendar() {
@@ -73,17 +86,22 @@
       const end = `${year}-${String(month+1).padStart(2,'0')}-${String(new Date(year,month+1,0).getDate()).padStart(2,'0')}`;
       const [leaves, holidays, events] = await Promise.all([api.get(`/leave/calendar?year=${year}&month=${month+1}`), api.get(`/leave/public-holidays?year=${year}`), api.get(`/company-calendar?from=${start}&to=${end}`)]);
       const marks = {};
-      const add = (date, type, label) => { (marks[date] ??= []).push({ type, label }); };
-      holidays.holidays.forEach((holiday) => add(holiday.date, 'public-holiday', holiday.name));
-      events.forEach((event) => { for (let date = new Date(`${event.start_date}T00:00:00`), last = new Date(`${event.end_date}T00:00:00`); date <= last; date.setDate(date.getDate()+1)) add(iso(date), 'company-event', event.title); });
-      leaves.forEach((leave) => { for (let date = new Date(leave.start_date), last = new Date(leave.end_date); date <= last; date.setDate(date.getDate()+1)) add(iso(date), 'on-leave', `${leave.employee_name} on leave`); });
+      const add = (date, type, label, eventType, description = '') => { (marks[date] ??= []).push({ type, label, eventType, description }); };
+      holidays.holidays.forEach((holiday) => add(holiday.date, 'public-holiday', holiday.name, 'Public holiday'));
+      events.forEach((event) => { for (let date = new Date(`${event.start_date}T00:00:00`), last = new Date(`${event.end_date}T00:00:00`); date <= last; date.setDate(date.getDate()+1)) add(iso(date), 'company-event', event.title, companyEventType(event.category), event.description); });
+      leaves.forEach((leave) => { for (let date = new Date(leave.start_date), last = new Date(leave.end_date); date <= last; date.setDate(date.getDate()+1)) add(iso(date), 'on-leave', `${leave.employee_name} on leave`, 'Approved leave'); });
+      calendarMarks = marks;
       document.getElementById('calendar-title').textContent = view.toLocaleDateString('en-GH', { month:'long', year:'numeric' });
       let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((day) => `<div class="cal-header">${day}</div>`).join('');
       for (let i = 0; i < new Date(year,month,1).getDay(); i++) html += '<div></div>';
       const today = iso(new Date());
-      for (let day = 1; day <= new Date(year,month+1,0).getDate(); day++) { const date = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`, items = marks[date] || [], classes = [...new Set(['cal-day', date === today ? 'today' : '', ...items.map((item) => item.type)])]; html += `<div class="${classes.join(' ')}" title="${esc(items.map((item) => item.label).join(' · '))}">${day}</div>`; }
+      for (let day = 1; day <= new Date(year,month+1,0).getDate(); day++) { const date = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`, items = marks[date] || [], classes = [...new Set(['cal-day', date === today ? 'today' : '', items.length ? 'has-events' : '', ...items.map((item) => item.type)])]; html += items.length ? `<button class="${classes.join(' ')}" type="button" data-calendar-date="${date}" aria-label="${esc(`${day}: ${items.map((item) => `${item.eventType} — ${item.label}`).join(', ')}`)}">${day}</button>` : `<div class="${classes.join(' ')}">${day}</div>`; }
       document.getElementById('calendar-grid').innerHTML = html;
+      document.querySelectorAll('[data-calendar-date]').forEach((day) => day.addEventListener('click', () => openCalendarDetails(day.dataset.calendarDate)));
     }
+    function companyEventType(category) { return ({ event:'Company event', meeting:'Meeting', payday:'Payday', shutdown:'Office shutdown', holiday:'Company holiday' })[category] || 'Company event'; }
+    function openCalendarDetails(date) { const items = calendarMarks[date] || []; if (!items.length) return; document.getElementById('calendar-detail-title').textContent = new Date(`${date}T00:00:00`).toLocaleDateString('en-GH', { weekday:'long', day:'numeric', month:'long', year:'numeric' }); document.getElementById('calendar-detail-list').innerHTML = items.map((item) => `<article class="calendar-event-detail ${item.type}"><span class="calendar-event-type">${esc(item.eventType)}</span><strong>${esc(item.label)}</strong>${item.description ? `<p>${esc(item.description)}</p>` : ''}</article>`).join(''); document.getElementById('calendar-detail-modal').style.display = 'flex'; }
+    function closeCalendarDetails() { document.getElementById('calendar-detail-modal').style.display = 'none'; }
     function changeMonth(amount) { view.setMonth(view.getMonth()+amount); renderCalendar(); }
     function openEventModal() { const today = iso(new Date()); document.getElementById('event-start').value = today; document.getElementById('event-end').value = today; document.getElementById('event-modal').style.display = 'flex'; }
     function closeEventModal() { document.getElementById('event-modal').style.display = 'none'; }
