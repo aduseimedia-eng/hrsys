@@ -109,6 +109,12 @@ CREATE TABLE attendance (
   work_date    DATE NOT NULL,
   clock_in     TIMESTAMPTZ,
   clock_out    TIMESTAMPTZ,
+  clock_in_latitude NUMERIC(9,6),
+  clock_in_longitude NUMERIC(9,6),
+  clock_in_accuracy_meters NUMERIC(8,2),
+  clock_out_latitude NUMERIC(9,6),
+  clock_out_longitude NUMERIC(9,6),
+  clock_out_accuracy_meters NUMERIC(8,2),
   status       VARCHAR(20) DEFAULT 'present'
                  CHECK (status IN ('present','absent','late','half-day','on-leave')),
   notes        TEXT,

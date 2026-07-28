@@ -1675,6 +1675,7 @@
                 <button class="btn btn-outline" type="button" id="staff-clock-out" onclick="staffClockAction('out')" disabled>Clock Out</button>
               </div>
             </div>
+            <p style="margin:12px 0 0;color:var(--text-secondary);font-size:.78rem;line-height:1.45">Your precise location is recorded only when you clock in or out.</p>
 
             <div class="staff-attendance-status">
               <div class="staff-attendance-stat">
@@ -2732,7 +2733,9 @@
       if (overviewBtn) overviewBtn.disabled = true;
 
       try {
-        await api.post(`/attendance/clock-${type}`);
+        toast('Getting your precise location…', 'info');
+        const location = await requestAttendanceLocation();
+        await api.post(`/attendance/clock-${type}`, location);
         toast(`Clocked ${type} at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`, 'success');
         await refreshStaffAttendance(false);
       } catch (err) {

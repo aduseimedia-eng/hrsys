@@ -80,6 +80,7 @@
         <div style="font-size:.8rem;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Today's Attendance</div>
         <button id="clock-in-btn"  class="btn clock-in-btn"  style="justify-content:center" onclick="clockAction('in')">Clock In</button>
         <button id="clock-out-btn" class="btn clock-out-btn" style="justify-content:center" onclick="clockAction('out')" disabled>Clock Out</button>
+        <p style="margin:10px 0 0;color:rgba(255,255,255,.66);font-size:.75rem;line-height:1.4">Your precise location is recorded only when you clock in or out.</p>
         <div class="clock-status-info" id="clock-status-info"></div>
       </div>
     </div>
@@ -122,8 +123,8 @@
       <div class="stat-grid" id="att-summary" style="margin-bottom:20px"></div>
       <div class="table-container">
         <table>
-          <thead><tr><th>Employee</th><th>Department</th><th>Clock In</th><th>Clock Out</th><th>Duration</th><th>Status</th></tr></thead>
-          <tbody id="hr-tbody"><tr><td colspan="6"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+          <thead><tr><th>Employee</th><th>Department</th><th>Clock In</th><th>Clock Out</th><th>Location</th><th>Duration</th><th>Status</th></tr></thead>
+          <tbody id="hr-tbody"><tr><td colspan="7"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -178,7 +179,9 @@ async function loadTodayStatus() {
 
 async function clockAction(type) {
   try {
-    await api.post(`/attendance/clock-${type}`);
+    toast('Getting your precise location…', 'info');
+    const location = await requestAttendanceLocation();
+    await api.post(`/attendance/clock-${type}`, location);
     toast(`Clocked ${type} at ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`, 'success');
     await loadTodayStatus();
     await loadMyHistory();
@@ -225,16 +228,24 @@ async function loadHrReport() {
   `;
 
   const tbody = document.getElementById('hr-tbody');
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>No records</p></div></td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>No records</p></div></td></tr>`; return; }
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td><div style="display:flex;align-items:center;gap:10px">${attendanceEmployeeAvatar(r)}<div><div style="font-weight:500">${r.employee_name}</div><div style="font-size:.78rem;color:var(--text-muted)">${r.job_title||''}</div></div></div></td>
       <td>${r.department_name||'—'}</td>
       <td>${r.clock_in ? fmt.time(r.clock_in) : '—'}</td>
       <td>${r.clock_out ? fmt.time(r.clock_out) : '—'}</td>
+      <td>${attendanceLocationLink(r)}</td>
       <td>${fmt.duration(r.clock_in, r.clock_out)}</td>
       <td>${fmt.statusBadge(r.status)}</td>
     </tr>`).join('');
+}
+
+function attendanceLocationLink(row) {
+  const latitude = Number(row.clock_in_latitude), longitude = Number(row.clock_in_longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return '<span style="color:var(--text-muted)">Not captured</span>';
+  const accuracy = Number(row.clock_in_accuracy_meters);
+  return `<a href="https://www.google.com/maps?q=${latitude},${longitude}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">View map</a>${Number.isFinite(accuracy) ? `<div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">±${Math.round(accuracy)}m</div>` : ''}`;
 }
 
 function attendanceEmployeeAvatar(row) {

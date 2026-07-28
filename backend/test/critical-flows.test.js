@@ -174,10 +174,14 @@ test('clock-in creates a present attendance record', async () => {
     { rows: [{ id: 9, employee_id: 7, status: 'present' }] }
   ]);
   const res = response();
-  await attendanceController.clockIn({ user: { id: 7, company_id: 1 } }, res);
+  await attendanceController.clockIn({
+    user: { id: 7, company_id: 1 },
+    body: { latitude: 5.603717, longitude: -0.186964, accuracy_meters: 12 }
+  }, res);
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.id, 9);
   assert.match(calls[1].text, /INSERT INTO attendance/);
+  assert.deepEqual(calls[1].params.slice(-3), [5.603717, -0.186964, 12]);
 });
 
 test('HR attendance export produces a CSV scoped to its company', async () => {

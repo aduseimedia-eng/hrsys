@@ -141,6 +141,26 @@ const api = {
   upload(path, form) { return this.request('POST', path, form); },
 };
 
+function requestAttendanceLocation() {
+  if (!window.isSecureContext || !navigator.geolocation) {
+    return Promise.reject(new Error('Location requires HTTPS and a browser that supports device location.'));
+  }
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => resolve({
+        latitude: Number(coords.latitude.toFixed(6)),
+        longitude: Number(coords.longitude.toFixed(6)),
+        accuracy_meters: Math.round(coords.accuracy)
+      }),
+      (error) => {
+        const messages = { 1: 'Location permission was denied. Allow precise location to clock in or out.', 2: 'Your location could not be determined. Check GPS or network signal and try again.', 3: 'Location request timed out. Please try again.' };
+        reject(new Error(messages[error.code] || 'Could not get your location.'));
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  });
+}
+
 // ─── Auth guard (call on every protected page) ─────────────
 function requireAuth() {
   const token = api.getToken();
