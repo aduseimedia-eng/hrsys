@@ -697,6 +697,31 @@
       opacity: .5;
     }
 
+    .staff-attendance-location {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 13px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.82);
+      font-size: .74rem;
+      font-weight: 700;
+    }
+
+    .staff-attendance-location::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--amber-400);
+      box-shadow: 0 0 0 3px rgba(255,196,80,.14);
+    }
+
+    .staff-attendance-location.verified::before { background: #78e0b1; box-shadow: 0 0 0 3px rgba(120,224,177,.14); }
+
     .staff-attendance-status {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1410,6 +1435,11 @@
       .staff-panel-body { padding: 14px; }
       .staff-attendance-clock { padding: 18px; }
       .staff-attendance-time { font-size: 2rem; }
+      .staff-attendance-status { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; margin-bottom:16px; }
+      .staff-attendance-stat { padding:12px; }
+      .staff-attendance-stat strong { font-size:.9rem; }
+      .staff-attendance-location { max-width:100%; font-size:.7rem; }
+      #attendance-history-list .staff-row { padding:13px 14px; }
     }
   </style>
 </head>
@@ -1727,6 +1757,7 @@
                 <div class="staff-attendance-kicker">KenadHR time clock</div>
                 <div class="staff-attendance-time" id="staff-clock-time">--:--:--</div>
                 <div class="staff-attendance-date" id="staff-clock-date">Today</div>
+                <div class="staff-attendance-location" id="attendance-location-status">Location will be requested when you clock in</div>
               </div>
               <div class="staff-attendance-actions">
                 <button class="btn btn-primary" type="button" id="staff-clock-in" onclick="staffClockAction('in')">Clock In</button>
@@ -2726,6 +2757,15 @@
       setText('attendance-clock-in', hasClockIn ? fmt.time(att.clock_in) : '--');
       setText('attendance-clock-out', hasClockOut ? fmt.time(att.clock_out) : '--');
       setText('attendance-hours', hasClockIn ? (hasClockOut ? fmt.duration(att.clock_in, att.clock_out) : 'In progress') : '--');
+      const locationNode = document.getElementById('attendance-location-status');
+      if (locationNode) {
+        const accuracy = Number(att.clock_in_accuracy_meters);
+        const isVerified = hasClockIn && Number.isFinite(Number(att.clock_in_latitude)) && Number.isFinite(Number(att.clock_in_longitude));
+        locationNode.classList.toggle('verified', isVerified);
+        locationNode.textContent = isVerified
+          ? `Location verified${Number.isFinite(accuracy) ? ` · ±${Math.round(accuracy)}m accuracy` : ''}`
+          : 'Location will be requested when you clock in';
+      }
     }
 
     function renderStaffAttendanceHistory() {
