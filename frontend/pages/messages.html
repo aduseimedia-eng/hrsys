@@ -389,6 +389,36 @@ let pollInterval = null;
 let directoryEmployees = [];
 let visibleMessages = [];
 let pendingMessageAction = null;
+let seenMessageIds = new Set();
+let hasLoadedActiveChat = false;
+let messageAudioContext = null;
+
+function enableMessageSound() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  if (!messageAudioContext) messageAudioContext = new AudioContextClass();
+  if (messageAudioContext.state === 'suspended') messageAudioContext.resume();
+}
+
+function playIncomingMessageSound() {
+  if (!messageAudioContext || messageAudioContext.state !== 'running') return;
+  const now = messageAudioContext.currentTime;
+  [740, 988].forEach((frequency, index) => {
+    const oscillator = messageAudioContext.createOscillator();
+    const gain = messageAudioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, now + index * 0.11);
+    gain.gain.exponentialRampToValueAtTime(0.08, now + index * 0.11 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.15);
+    oscillator.connect(gain).connect(messageAudioContext.destination);
+    oscillator.start(now + index * 0.11);
+    oscillator.stop(now + index * 0.11 + 0.17);
+  });
+}
+
+window.addEventListener('pointerdown', enableMessageSound, { once: true });
+window.addEventListener('keydown', enableMessageSound, { once: true });
 
 async function loadInbox() {
   allConversations = await api.get('/messages/inbox');
@@ -432,6 +462,8 @@ function filterInbox(query) {
 
 async function openConversation(personId, name, photoUrl, title, sourceEl = null) {
   activePerson = { id: personId, name, photoUrl, title, isTeam: false };
+  seenMessageIds = new Set();
+  hasLoadedActiveChat = false;
 
   // Update active state in inbox
   document.querySelectorAll('.inbox-item').forEach(el => el.classList.remove('active'));
@@ -466,6 +498,8 @@ async function openConversation(personId, name, photoUrl, title, sourceEl = null
 
 async function openTeamChat(sourceEl = null) {
   activePerson = { id: 'team', name: 'Team Chat', photoUrl: '', title: 'Everyone in your organisation', isTeam: true };
+  seenMessageIds = new Set();
+  hasLoadedActiveChat = false;
   document.querySelectorAll('.inbox-item').forEach(el => el.classList.remove('active'));
   if (sourceEl) sourceEl.classList.add('active');
   document.getElementById('chat-empty').style.display = 'none';
@@ -482,6 +516,12 @@ async function openTeamChat(sourceEl = null) {
 async function loadMessages() {
   if (!activePerson) return;
   const msgs = await api.get(activePerson.isTeam ? '/messages/team' : `/messages/conversation/${activePerson.id}`);
+  const hasNewIncomingMessage = hasLoadedActiveChat && msgs.some((message) => (
+    message.sender_id !== user.id && !seenMessageIds.has(message.id)
+  ));
+  msgs.forEach((message) => seenMessageIds.add(message.id));
+  hasLoadedActiveChat = true;
+  if (hasNewIncomingMessage) playIncomingMessageSound();
   visibleMessages = msgs;
   const container = document.getElementById('chat-messages');
   let lastDateKey = '';
