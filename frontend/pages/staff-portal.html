@@ -1285,6 +1285,47 @@
     .modal .detail-row span:first-child { color: var(--text-secondary); }
     .modal .detail-row.total { font-weight: 800; color: var(--text-primary); }
     .modal .net-salary-box { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px; border: 1px solid #d5e2fb; border-radius: 12px; background: #f3f7ff; }
+
+    /* Mobile staff portal: keep navigation compact and make actions easy to reach. */
+    @media (max-width: 860px) {
+      .staff-main { padding-bottom: 94px; }
+      .staff-mobile-nav {
+        display: flex;
+        align-items: stretch;
+        gap: 6px;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .staff-mobile-nav::-webkit-scrollbar { display: none; }
+      .staff-mobile-nav a {
+        flex: 0 0 68px;
+        min-height: 52px;
+        padding: 5px 4px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .staff-sidebar { padding: 12px 14px; }
+      .staff-brand-logo { width: 142px; height: 36px; }
+      .staff-main { padding: 12px; padding-bottom: 94px; }
+      .staff-topbar { gap: 12px; padding: 13px; margin-bottom: 12px; }
+      .staff-topbar-title span { max-width: 100%; white-space: normal; line-height: 1.35; }
+      .staff-topbar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .staff-topbar-actions .staff-date-chip,
+      .staff-topbar-actions > .btn-outline:not(.hr-updates-btn),
+      .staff-topbar-actions label,
+      .staff-topbar-actions .avatar { display: none; }
+      .staff-topbar-actions .btn { min-height: 38px; padding: 0 8px; font-size: .75rem; white-space: nowrap; }
+      .staff-hero { padding: 18px; }
+      .staff-hero-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
+      .staff-hero-actions .btn { width: 100%; min-width: 0; }
+      .staff-panel-header { align-items: flex-start; gap: 10px; }
+      .staff-panel-header .btn { flex-shrink: 0; }
+      .staff-panel-body { padding: 16px; }
+      .overview-priority-item { align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
