@@ -826,6 +826,8 @@
     .staff-leave-balance small { display: block; margin-top: 5px; color: #6f7c91; font-size: .72rem; }
     #leave-duration-preview { padding:10px 12px; border-radius:9px; background:#f7faff; color:#52617a; font-weight:650; }
     #leave-list .staff-row { padding:14px 16px; }
+    .staff-todo-filters { display:flex; gap:8px; flex-wrap:wrap; }
+    .staff-todo-item .row-meta { gap:8px; }
 
     .staff-messages-frame {
       display: block;
@@ -1451,6 +1453,13 @@
       #leave-submit { width:100%; justify-content:center; min-height:44px; }
       #leave-list { display:grid; gap:9px; }
       #leave-list .staff-row { margin:0; padding:13px; border:1px solid var(--border); border-radius:10px; background:#fbfdff; }
+      .staff-todo-filters { display:grid !important; grid-template-columns:repeat(3, minmax(0, 1fr)); width:100%; }
+      .staff-todo-filters .btn { min-width:0; padding:0 6px; font-size:.72rem; }
+      #staff-todo-page-list { display:grid; gap:10px; }
+      #staff-todo-page-list .staff-todo-item { margin:0; padding:14px; border:1px solid var(--border); border-radius:11px; background:#fbfdff; }
+      #staff-todo-page-list .staff-todo-item .row-meta { width:100%; display:grid; grid-template-columns:auto 1fr; align-items:center; text-align:left; }
+      #staff-todo-page-list .staff-todo-item .row-meta small { grid-column:1 / -1; }
+      #staff-todo-page-list .staff-todo-item .row-meta .btn { justify-content:center; width:100%; }
     }
   </style>
 </head>
@@ -1935,7 +1944,7 @@
               <h3>To Do List</h3>
               <span>Mark shared items completed and review completed history</span>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="staff-todo-filters">
               <button class="btn btn-outline btn-sm" type="button" data-staff-todo-filter="open" onclick="setStaffTodoFilter('open')">Open</button>
               <button class="btn btn-outline btn-sm" type="button" data-staff-todo-filter="completed" onclick="setStaffTodoFilter('completed')">History</button>
               <button class="btn btn-outline btn-sm" type="button" data-staff-todo-filter="all" onclick="setStaffTodoFilter('all')">All</button>
@@ -3074,7 +3083,7 @@
       }
 
       target.innerHTML = rows.map((item) => `
-        <div class="staff-row">
+        <div class="staff-row staff-todo-item">
           <div>
             <strong>${safe(item.title)}</strong>
             <span>${safe(item.detail)} &middot; due ${fmt.date(item.due_date)}</span>
