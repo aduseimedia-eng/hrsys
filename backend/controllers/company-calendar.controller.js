@@ -34,6 +34,26 @@ exports.create = async (req, res) => {
   } catch (error) { res.status(500).json({ error: 'Could not create company event' }); }
 };
 
+exports.update = async (req, res) => {
+  try {
+    const title = String(req.body.title || '').trim();
+    const startDate = String(req.body.start_date || '');
+    const endDate = String(req.body.end_date || startDate);
+    const category = String(req.body.category || 'event');
+    if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return res.status(400).json({ error: 'Title and valid event dates are required' });
+    if (endDate < startDate) return res.status(400).json({ error: 'End date cannot be before start date' });
+    if (!CATEGORIES.includes(category)) return res.status(400).json({ error: 'Choose a valid event category' });
+    const { rows } = await db.query(
+      `UPDATE company_calendar_events
+       SET title=$1, description=$2, category=$3, start_date=$4, end_date=$5
+       WHERE id=$6 AND company_id=$7 RETURNING *`,
+      [title, String(req.body.description || '').trim() || null, category, startDate, endDate, req.params.id, req.user.company_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Company event not found' });
+    res.json(rows[0]);
+  } catch (error) { res.status(500).json({ error: 'Could not update company event' }); }
+};
+
 exports.remove = async (req, res) => {
   try {
     const { rows } = await db.query('DELETE FROM company_calendar_events WHERE id=$1 AND company_id=$2 RETURNING id', [req.params.id, req.user.company_id]);
