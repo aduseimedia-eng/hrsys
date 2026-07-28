@@ -1,5 +1,6 @@
 // controllers/payroll.controller.js
 const db = require('../config/db');
+const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
 
 // ─── Get my payslips ──────────────────────────────────────────
 exports.getMine = async (req, res) => {
@@ -88,18 +89,15 @@ exports.processMonth = async (req, res) => {
 
     if (!emps.length) return res.status(409).json({ error: 'Payroll already processed for this period' });
 
-    const taxRate = parseFloat(process.env.TAX_RATE || process.env.DEDUCTION_RATE || 0.1);
     const allowanceRate = parseFloat(process.env.ALLOWANCE_RATE || 0.05);
 
     for (const emp of emps) {
-      const tax = (emp.salary * taxRate).toFixed(2);
-      const otherDeductions = 0;
-      const deductions = tax;
       const allowances = (emp.salary * allowanceRate).toFixed(2);
+      const compliance = calculateMonthlyPayroll({ basicSalary: emp.salary, allowances });
       await db.query(
-        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, tax, other_deductions, deductions, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'processed')`,
-        [req.user.company_id, emp.id, month, year, emp.salary, allowances, tax, otherDeductions, deductions]
+        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, tax, ssnit_employee, ssnit_employer, other_deductions, deductions, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'processed')`,
+        [req.user.company_id, emp.id, month, year, emp.salary, allowances, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.otherDeductions, compliance.deductions]
       );
       // Notify employee
       await db.query(
@@ -151,7 +149,7 @@ exports.updatePayroll = async (req, res) => {
            allowances=$2,
            tax=$3,
            other_deductions=$4,
-           deductions=$5,
+           deductions=$5 + ssnit_employee,
            status=$6,
            paid_at=CASE WHEN $6='paid' THEN COALESCE(paid_at, NOW()) ELSE NULL END
        WHERE id=$7 AND company_id=$8

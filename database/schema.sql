@@ -146,6 +146,8 @@ CREATE TABLE payroll (
   base_salary   NUMERIC(12,2) NOT NULL,
   allowances    NUMERIC(12,2) DEFAULT 0,
   tax           NUMERIC(12,2) DEFAULT 0,
+  ssnit_employee NUMERIC(12,2) DEFAULT 0,
+  ssnit_employer NUMERIC(12,2) DEFAULT 0,
   other_deductions NUMERIC(12,2) DEFAULT 0,
   deductions    NUMERIC(12,2) DEFAULT 0,
   net_salary    NUMERIC(12,2) GENERATED ALWAYS AS (base_salary + allowances - deductions) STORED,

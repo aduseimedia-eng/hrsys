@@ -92,6 +92,7 @@ async function viewPayslip(id) {
       <div class="detail-section">
         <h4>Deductions</h4>
         <div class="detail-row"><span>Tax</span><span class="negative">-${fmt.currency(s.tax ?? s.deductions)}</span></div>
+        <div class="detail-row"><span>SSNIT (employee)</span><span class="negative">-${fmt.currency(s.ssnit_employee || 0)}</span></div>
         <div class="detail-row"><span>Other deductions</span><span class="negative">-${fmt.currency(s.other_deductions || 0)}</span></div>
         <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
@@ -177,6 +178,7 @@ function payslipHtml(s) {
       <div class="detail-section">
         <h4>Deductions</h4>
         <div class="detail-row"><span>Tax</span><span class="negative">-${fmt.currency(s.tax ?? s.deductions)}</span></div>
+        <div class="detail-row"><span>SSNIT (employee)</span><span class="negative">-${fmt.currency(s.ssnit_employee || 0)}</span></div>
         <div class="detail-row"><span>Other deductions</span><span class="negative">-${fmt.currency(s.other_deductions || 0)}</span></div>
         <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
@@ -256,6 +258,7 @@ function showAmountModal(id) {
   api.get(`/payroll/${id}`).then((row) => {
     const gross = Number(row.base_salary || 0) + Number(row.allowances || 0);
     const tax = Number(row.tax ?? row.deductions ?? 0);
+    const ssnitEmployee = Number(row.ssnit_employee || 0);
     const otherDeductions = Number(row.other_deductions || 0);
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -272,6 +275,7 @@ function showAmountModal(id) {
             <div class="form-group"><label class="form-label">Base salary</label><input type="number" min="0" id="pay-base" class="form-control" step="0.01" value="${Number(row.base_salary || 0)}"></div>
             <div class="form-group"><label class="form-label">Allowances</label><input type="number" min="0" id="pay-allowances" class="form-control" step="0.01" value="${Number(row.allowances || 0)}"></div>
             <div class="form-group"><label class="form-label">Tax</label><input type="number" min="0" id="pay-tax" class="form-control" step="0.01" value="${tax}"></div>
+            <div class="form-group"><label class="form-label">SSNIT (employee)</label><input type="number" id="pay-ssnit" class="form-control" readonly value="${ssnitEmployee.toFixed(2)}"></div>
             <div class="form-group"><label class="form-label">Other deductions</label><input type="number" min="0" id="pay-other-deductions" class="form-control" step="0.01" value="${otherDeductions}"></div>
             <div class="form-group"><label class="form-label">Gross pay</label><input type="number" id="pay-gross" class="form-control" readonly value="${gross.toFixed(2)}"></div>
             <div class="form-group"><label class="form-label">Net pay</label><input type="number" id="pay-net" class="form-control" readonly value="${Number(row.net_salary || 0).toFixed(2)}"></div>
@@ -292,10 +296,11 @@ function showAmountModal(id) {
       const baseValue = Number(document.getElementById('pay-base').value || 0);
       const allowanceValue = Number(document.getElementById('pay-allowances').value || 0);
       const taxValue = Number(document.getElementById('pay-tax').value || 0);
+      const ssnitValue = Number(document.getElementById('pay-ssnit').value || 0);
       const otherValue = Number(document.getElementById('pay-other-deductions').value || 0);
       const grossValue = Math.max(0, baseValue + allowanceValue);
       document.getElementById('pay-gross').value = grossValue.toFixed(2);
-      document.getElementById('pay-net').value = Math.max(0, grossValue - taxValue - otherValue).toFixed(2);
+      document.getElementById('pay-net').value = Math.max(0, grossValue - taxValue - ssnitValue - otherValue).toFixed(2);
     };
     ['pay-base', 'pay-allowances', 'pay-tax', 'pay-other-deductions'].forEach((field) => document.getElementById(field).addEventListener('input', syncTotals));
   }).catch((e) => toast(e.message, 'error'));

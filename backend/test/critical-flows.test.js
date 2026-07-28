@@ -9,6 +9,7 @@ const documentsController = require('../controllers/documents.controller');
 const leaveController = require('../controllers/leave.controller');
 const attendanceController = require('../controllers/attendance.controller');
 const payrollController = require('../controllers/payroll.controller');
+const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
 const messagesController = require('../controllers/messages.controller');
 const rbac = require('../middleware/rbac');
 const originalGetClient = db.getClient;
@@ -39,6 +40,14 @@ function mockQueries(results) {
 test.afterEach(() => {
   db.query = () => { throw new Error('Database mock missing'); };
   db.getClient = originalGetClient;
+});
+
+test('Ghana payroll calculates SSNIT and graduated PAYE from monthly pay', () => {
+  const result = calculateMonthlyPayroll({ basicSalary: 5000, allowances: 0 });
+  assert.equal(result.ssnitEmployee, 275);
+  assert.equal(result.ssnitEmployer, 650);
+  assert.equal(result.payeTax, 779.75);
+  assert.equal(result.deductions, 1054.75);
 });
 
 test('login returns a token and never exposes the password hash', async () => {
