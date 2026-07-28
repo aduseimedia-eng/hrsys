@@ -1279,6 +1279,7 @@
     .staff-mobile-nav { border-radius: 14px; background: rgba(255,255,255,.96); border-color: #dfe6f2; box-shadow: 0 14px 34px rgba(36,56,103,.16); }
     .staff-mobile-nav a { border-radius: 9px; }
     .staff-mobile-nav a.active { color: #2865d9; background: #e8f0ff; }
+    .staff-menu-btn, .staff-sidebar-close, .staff-sidebar-backdrop { display: none; }
     .modal .detail-section { margin-bottom: 20px; }
     .modal .detail-section h4 { font-size: .82rem; color: #647189; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
     .modal .detail-row { display: flex; justify-content: space-between; gap: 18px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .88rem; }
@@ -1286,30 +1287,60 @@
     .modal .detail-row.total { font-weight: 800; color: var(--text-primary); }
     .modal .net-salary-box { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px; border: 1px solid #d5e2fb; border-radius: 12px; background: #f3f7ff; }
 
-    /* Mobile staff portal: keep navigation compact and make actions easy to reach. */
+    /* Mobile staff portal: use the same slide-out navigation pattern as the HR workspace. */
     @media (max-width: 860px) {
-      .staff-main { padding-bottom: 94px; }
-      .staff-mobile-nav {
-        display: flex;
-        align-items: stretch;
-        gap: 6px;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+      .staff-main { padding-bottom: 20px; }
+      .staff-mobile-nav { display: none; }
+      .staff-sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(284px, 84vw);
+        height: 100dvh;
+        min-height: 100dvh;
+        padding: 20px 16px;
+        overflow: hidden;
+        transform: translateX(-105%);
+        transition: transform .2s ease;
+        box-shadow: 20px 0 48px rgba(29,43,77,.18);
+        z-index: 300;
       }
-      .staff-mobile-nav::-webkit-scrollbar { display: none; }
-      .staff-mobile-nav a {
-        flex: 0 0 68px;
-        min-height: 52px;
-        padding: 5px 4px;
+      .staff-sidebar.open { transform: translateX(0); }
+      .staff-sidebar .staff-nav { display: flex; }
+      .staff-sidebar .staff-account-block { display: grid; }
+      .staff-menu-btn, .staff-sidebar-close {
+        width: 38px;
+        height: 38px;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: #fff;
+        color: #2865d9;
+        font: inherit;
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
       }
+      .staff-sidebar-close { color: #647189; }
+      .staff-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        display: block;
+        background: rgba(18,32,58,.38);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .2s ease;
+        z-index: 290;
+      }
+      .staff-sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
+      body.staff-menu-open { overflow: hidden; }
     }
 
     @media (max-width: 640px) {
       .staff-sidebar { padding: 12px 14px; }
       .staff-brand-logo { width: 142px; height: 36px; }
-      .staff-main { padding: 12px; padding-bottom: 94px; }
+      .staff-main { padding: 12px; padding-bottom: 20px; }
       .staff-topbar { gap: 12px; padding: 13px; margin-bottom: 12px; }
       .staff-topbar-title span { max-width: 100%; white-space: normal; line-height: 1.35; }
       .staff-topbar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -1335,6 +1366,7 @@
         <div class="staff-brand">
           <img class="staff-brand-logo" src="../assets/logo.png" alt="KenadHR">
         </div>
+        <button class="staff-sidebar-close" type="button" onclick="closeStaffMenu()" aria-label="Close menu">×</button>
       </div>
 
       <nav class="staff-nav" id="staff-nav" aria-label="Staff portal navigation">
@@ -1408,10 +1440,12 @@
         </button>
       </div>
     </aside>
+    <div class="staff-sidebar-backdrop" id="staff-sidebar-backdrop" onclick="closeStaffMenu()"></div>
 
     <main class="staff-main">
       <header class="staff-topbar">
         <div class="staff-topbar-title">
+          <button class="staff-menu-btn" type="button" onclick="toggleStaffMenu()" aria-label="Open menu">☰</button>
           <div>
             <h1>Staff workspace</h1>
             <span id="topbar-detail">Your work, updates, and HR requests in one place.</span>
@@ -2206,6 +2240,18 @@
       }
     }
 
+    function toggleStaffMenu() {
+      document.querySelector('.staff-sidebar')?.classList.toggle('open');
+      document.getElementById('staff-sidebar-backdrop')?.classList.toggle('open');
+      document.body.classList.toggle('staff-menu-open');
+    }
+
+    function closeStaffMenu() {
+      document.querySelector('.staff-sidebar')?.classList.remove('open');
+      document.getElementById('staff-sidebar-backdrop')?.classList.remove('open');
+      document.body.classList.remove('staff-menu-open');
+    }
+
     async function bootStaffPortal() {
       setDateDefaults();
       updateStaffAttendanceClock();
@@ -2213,7 +2259,10 @@
       renderShellUser(currentUser);
       showStaffPage(window.location.hash || '#overview', { scroll: false });
       document.querySelectorAll('.staff-nav a, .staff-mobile-nav a').forEach((link) => {
-        link.addEventListener('click', () => showStaffPage(link.getAttribute('href')));
+        link.addEventListener('click', () => {
+          showStaffPage(link.getAttribute('href'));
+          closeStaffMenu();
+        });
       });
       window.addEventListener('hashchange', () => showStaffPage(window.location.hash || '#overview'));
       document.getElementById('overview-attendance-action')?.addEventListener('click', handleOverviewAttendanceAction);
