@@ -590,6 +590,17 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .staff-overview-duo {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .staff-overview-duo .staff-panel {
+      min-width: 0;
+    }
+
     .staff-panel-header {
       min-height: 60px;
       padding: 16px 18px;
@@ -1113,6 +1124,7 @@
       }
       .staff-grid,
       .staff-grid.three,
+      .staff-overview-duo,
       .staff-main .staff-grid.profile-section-grid[data-staff-page].staff-page-active {
         grid-template-columns: 1fr;
       }
@@ -1936,7 +1948,7 @@
         </article>
       </section>
 
-      <section class="staff-grid staff-page-active" data-staff-page="overview">
+      <section class="staff-overview-duo staff-page-active" data-staff-page="overview" aria-label="Tasks and upcoming events">
         <article class="staff-panel">
           <div class="staff-panel-header">
             <div>
@@ -1949,9 +1961,6 @@
             <div class="loading-state"><div class="spinner"></div></div>
           </div>
         </article>
-      </section>
-
-      <section class="staff-grid staff-page-active" data-staff-page="overview">
         <article class="staff-panel">
           <div class="staff-panel-header">
             <div>
@@ -2187,7 +2196,7 @@
         </article>
       </section>
 
-      <section class="staff-grid staff-page-active" data-staff-page="overview">
+      <section class="staff-overview-duo staff-page-active" data-staff-page="overview" aria-label="Company announcements and notifications">
         <article class="staff-panel" id="announcements-overview">
           <div class="staff-panel-header">
             <div>
@@ -2200,9 +2209,6 @@
             <div class="loading-state"><div class="spinner"></div><span>Loading announcements...</span></div>
           </div>
         </article>
-      </section>
-
-      <section class="staff-grid staff-page-active" data-staff-page="overview">
         <article class="staff-panel" id="alerts">
           <div class="staff-panel-header">
             <div>
