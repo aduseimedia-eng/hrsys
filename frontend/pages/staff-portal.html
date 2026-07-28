@@ -1355,7 +1355,7 @@
       .staff-sidebar .staff-sidebar-user strong,
       .staff-sidebar .staff-sidebar-user span { color: #fff; }
       .staff-sidebar-close { color: #fff; background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); }
-      .staff-main { padding: 0 0 24px; }
+      .staff-main { padding: 58px 0 24px; }
       .staff-topbar { gap: 12px; padding: 13px; margin-bottom: 12px; }
       .staff-topbar-title span { max-width: 100%; white-space: normal; line-height: 1.35; }
       .staff-topbar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -1385,8 +1385,10 @@
         border-bottom: 1px solid var(--border);
         border-radius: 0;
         box-shadow: none;
-        position: sticky;
+        position: fixed;
         top: 0;
+        left: 0;
+        right: 0;
         z-index: 50;
       }
       .staff-topbar-title { width: 100%; gap: 10px; }
