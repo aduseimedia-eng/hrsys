@@ -7,6 +7,7 @@ const rbac   = require('../middleware/rbac');
 router.post('/',             auth, ctrl.request);
 router.get ('/mine',         auth, ctrl.getMyLeaves);
 router.get ('/calendar',     auth, ctrl.getCalendar);
+router.get ('/public-holidays', auth, require('../controllers/holiday.controller').getPublicHolidays);
 router.get ('/',             auth, rbac('admin','manager'), ctrl.getAll);
 router.patch('/:id/status',  auth, rbac('admin','manager'), ctrl.updateStatus);
 

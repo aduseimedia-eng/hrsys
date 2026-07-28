@@ -43,6 +43,9 @@
     .cal-day.today { background: var(--navy-800); color: #fff; font-weight: 600; }
     .cal-day.on-leave { background: var(--amber-100); color: var(--amber-600); font-weight: 500; }
     .cal-day.on-leave.today { background: var(--amber-500); color: var(--navy-950); }
+    .cal-day.public-holiday { background: var(--mint-100); color: var(--navy-950); font-weight: 700; }
+    .cal-day.public-holiday.today { background: var(--mint-500); color: var(--navy-950); }
+    .cal-day.public-holiday::after { content: ''; position:absolute; width:5px; height:5px; border-radius:50%; bottom:5px; background:var(--mint-600); }
     .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .cal-nav h4 { font-size: 1rem; }
     .leave-person-button {
@@ -411,7 +414,11 @@ let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
 async function renderCalendar() {
-  const leaves = await api.get(`/leave/calendar?year=${calYear}&month=${calMonth + 1}`);
+  const [leaves, holidayResult] = await Promise.all([
+    api.get(`/leave/calendar?year=${calYear}&month=${calMonth + 1}`),
+    api.get(`/leave/public-holidays?year=${calYear}`)
+  ]);
+  const holidayDates = Object.fromEntries((holidayResult.holidays || []).map(holiday => [holiday.date, holiday.name]));
 
   // Build set of leave dates
   const leaveDates = {};
@@ -444,9 +451,10 @@ async function renderCalendar() {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday = dateStr === today;
     const onLeave = leaveDates[dateStr];
-    const cls = `cal-day${isToday?' today':''}${onLeave?' on-leave':''}`;
-    const title = onLeave ? `title="${onLeave.join(', ')} on leave"` : '';
-    html += `<div class="${cls}" ${title}>${d}</div>`;
+    const holiday = holidayDates[dateStr];
+    const cls = `cal-day${isToday?' today':''}${holiday?' public-holiday':''}${onLeave?' on-leave':''}`;
+    const title = [holiday, onLeave ? `${onLeave.join(', ')} on leave` : ''].filter(Boolean).join(' · ');
+    html += `<div class="${cls}" ${title ? `title="${title}"` : ''}>${d}</div>`;
   }
 
   grid.innerHTML = html;
@@ -459,6 +467,9 @@ async function renderCalendar() {
     </div>
     <div style="display:flex;align-items:center;gap:6px;font-size:.8rem">
       <div style="width:14px;height:14px;border-radius:3px;background:var(--amber-100)"></div> On Leave
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:.8rem">
+      <div style="width:14px;height:14px;border-radius:3px;background:var(--mint-100)"></div> Public Holiday
     </div>
   `;
 }
