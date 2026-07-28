@@ -936,7 +936,7 @@ tbody tr:hover { background: #f7faff; }
 /* On phones, the navigation becomes a branded blue drawer and uses the white logo asset. */
 @media (max-width: 768px) {
   .sidebar { background:#174FAE; border-right:0; box-shadow:18px 0 48px rgba(23,79,174,.28); }
-  .sidebar-logo { border-bottom-color:rgba(255,255,255,.16); }
+  .sidebar-logo { margin:10px 12px 0; padding:0 12px; height:54px; border:0; border-radius:10px; background:#fff; }
   .sidebar-logo .brand-logo { mix-blend-mode:normal; filter:none; }
   .sidebar-close-btn { color:rgba(255,255,255,.85); }
   .sidebar-close-btn:hover { background:rgba(255,255,255,.12); color:#fff; }
