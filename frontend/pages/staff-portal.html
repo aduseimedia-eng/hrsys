@@ -1356,6 +1356,34 @@
       .staff-panel-header .btn { flex-shrink: 0; }
       .staff-panel-body { padding: 16px; }
       .overview-priority-item { align-items: flex-start; }
+
+      /* A phone gets a small app bar; all navigation and secondary actions live in the menu. */
+      .staff-topbar {
+        min-height: 58px;
+        height: 58px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 10px 12px;
+        border-radius: 12px;
+      }
+      .staff-topbar-title { width: 100%; gap: 10px; }
+      .staff-topbar-title h1 { font-size: 1rem; }
+      .staff-topbar-title span,
+      .staff-topbar-actions { display: none; }
+      .staff-menu-btn { width: 36px; height: 36px; border-radius: 9px; }
+      .staff-hero { min-height: 0; padding: 16px; gap: 16px; }
+      .staff-hero h2 { font-size: 1.2rem; line-height: 1.2; }
+      .staff-hero p { font-size: .84rem; line-height: 1.5; }
+      .staff-representative-card { padding: 14px; }
+      .metric-grid { gap: 10px; margin: 12px 0; }
+      .metric-card { min-height: 106px; padding: 14px; }
+      .metric-value { margin-top: 10px; font-size: 1.5rem; }
+      .staff-panel { border-radius: 12px; }
+      .staff-panel-header { min-height: 0; padding: 14px; }
+      .staff-panel-body { padding: 14px; }
+      .staff-attendance-clock { padding: 18px; }
+      .staff-attendance-time { font-size: 2rem; }
     }
   </style>
 </head>
