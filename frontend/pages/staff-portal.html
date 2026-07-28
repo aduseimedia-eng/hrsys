@@ -2306,6 +2306,8 @@
       attendanceHistory: [],
     };
     let staffTodoFilter = 'open';
+    let knownStaffNotificationIds = new Set();
+    let staffNotificationsReady = false;
 
     if (currentUser) {
       bootStaffPortal();
@@ -2382,6 +2384,9 @@
       document.getElementById('ticket-form').addEventListener('submit', submitTicket);
       document.getElementById('mark-alerts-read').addEventListener('click', markAlertsRead);
       await loadPortal();
+      knownStaffNotificationIds = new Set((portalState.notifications || []).map((notification) => Number(notification.id)));
+      staffNotificationsReady = true;
+      setInterval(refreshStaffAnnouncementNotifications, 10000);
     }
 
     async function loadPortal() {
@@ -2427,6 +2432,32 @@
         if (getStaffPage() === 'announcements') markAnnouncementNotificationsRead();
       } catch (err) {
         toast(err.message || 'Could not load staff portal', 'error');
+      }
+    }
+
+    async function refreshStaffAnnouncementNotifications() {
+      try {
+        const [notifications, announcements] = await Promise.all([
+          api.get('/notifications/mine'),
+          api.get('/notifications/announcements')
+        ]);
+        const newAnnouncements = notifications.filter((notification) => (
+          notification.type === 'announcement' && !knownStaffNotificationIds.has(Number(notification.id))
+        ));
+        portalState.notifications = notifications;
+        portalState.announcements = announcements;
+        knownStaffNotificationIds = new Set(notifications.map((notification) => Number(notification.id)));
+        renderAnnouncements();
+        renderNotifications();
+        renderAnnouncementIndicators();
+        renderOverview();
+        if (staffNotificationsReady && newAnnouncements.length) {
+          const count = newAnnouncements.length;
+          toast(`${count} new HR announcement${count === 1 ? '' : 's'}`, 'info', 6000);
+        }
+        staffNotificationsReady = true;
+      } catch (error) {
+        // Background refresh should not interrupt the staff member's work.
       }
     }
 
