@@ -318,6 +318,7 @@ function buildSidebar(activePage) {
     { page: 'todos',       icon: checkIcon(),      label: 'To Do List',    roles: ['admin','manager','employee'] },
     { page: 'tickets',     icon: chatIcon(),       label: 'Tickets',       roles: ['admin','manager','employee'] },
     { page: 'leave',       icon: calendarIcon(),   label: 'Leave',        roles: ['admin','manager','employee'] },
+    { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager'] },
     { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
@@ -351,6 +352,8 @@ function buildSidebar(activePage) {
     const href = user.role === 'employee'
       ? (item.page === 'messages'
         ? appUrl('/pages/messages.html')
+        : item.page === 'calendar'
+          ? appUrl('/pages/calendar.html')
         : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
       : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page));
     return `<a href="${href}" class="nav-item ${active}">
