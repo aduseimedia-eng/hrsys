@@ -937,7 +937,7 @@ tbody tr:hover { background: #f7faff; }
 @media (max-width: 768px) {
   .sidebar { background:#174FAE; border-right:0; box-shadow:18px 0 48px rgba(23,79,174,.28); }
   .sidebar-logo { border-bottom-color:rgba(255,255,255,.16); }
-  .sidebar-logo .brand-logo { mix-blend-mode:normal; filter:brightness(0) invert(1); }
+  .sidebar-logo .brand-logo { mix-blend-mode:normal; filter:none; }
   .sidebar-close-btn { color:rgba(255,255,255,.85); }
   .sidebar-close-btn:hover { background:rgba(255,255,255,.12); color:#fff; }
   .nav-section-label { color:rgba(255,255,255,.52); }
