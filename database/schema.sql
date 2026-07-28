@@ -273,6 +273,21 @@ CREATE TABLE company_subscriptions (
   updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE company_calendar_events (
+  id          SERIAL PRIMARY KEY,
+  company_id  INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  title       VARCHAR(180) NOT NULL,
+  description TEXT,
+  category    VARCHAR(30) NOT NULL DEFAULT 'event'
+              CHECK (category IN ('event','meeting','payday','shutdown','holiday')),
+  start_date  DATE NOT NULL,
+  end_date    DATE NOT NULL,
+  created_by  INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (end_date >= start_date)
+);
+
 CREATE TABLE billing_payments (
   id            BIGSERIAL PRIMARY KEY,
   company_id    INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -310,6 +325,7 @@ CREATE INDEX idx_it_tickets_number     ON it_tickets(ticket_number);
 CREATE INDEX idx_it_tickets_employee   ON it_tickets(employee_id, created_at);
 CREATE INDEX idx_it_tickets_company    ON it_tickets(company_id, status, created_at);
 CREATE INDEX idx_billing_payments_company ON billing_payments(company_id, created_at DESC);
+CREATE INDEX idx_company_calendar_events_dates ON company_calendar_events(company_id, start_date, end_date);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -329,6 +345,10 @@ CREATE TRIGGER trg_employees_updated_at
 
 CREATE TRIGGER trg_company_subscriptions_updated_at
   BEFORE UPDATE ON company_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_company_calendar_events_updated_at
+  BEFORE UPDATE ON company_calendar_events
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE OR REPLACE FUNCTION set_company_from_employee()
