@@ -1338,9 +1338,24 @@
     }
 
     @media (max-width: 640px) {
-      .staff-sidebar { padding: 12px 14px; }
-      .staff-brand-logo { width: 142px; height: 36px; }
-      .staff-main { padding: 12px; padding-bottom: 20px; }
+      .staff-sidebar {
+        padding: 16px;
+        background: #174FAE;
+        border-right: 0;
+        box-shadow: 18px 0 48px rgba(23,79,174,.28);
+      }
+      .staff-brand-logo { width: 142px; height: 36px; mix-blend-mode: normal; }
+      .staff-sidebar .staff-nav a,
+      .staff-sidebar .staff-logout { color: rgba(255,255,255,.78); }
+      .staff-sidebar .staff-nav a:hover,
+      .staff-sidebar .staff-logout:hover { color: #fff; background: rgba(255,255,255,.12); }
+      .staff-sidebar .staff-nav a.active { color: #fff; background: rgba(255,255,255,.16); }
+      .staff-sidebar .staff-sidebar-user { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.16); }
+      .staff-sidebar .staff-sidebar-user .avatar { background: rgba(255,255,255,.18); color: #fff; }
+      .staff-sidebar .staff-sidebar-user strong,
+      .staff-sidebar .staff-sidebar-user span { color: #fff; }
+      .staff-sidebar-close { color: #fff; background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); }
+      .staff-main { padding: 0 0 24px; }
       .staff-topbar { gap: 12px; padding: 13px; margin-bottom: 12px; }
       .staff-topbar-title span { max-width: 100%; white-space: normal; line-height: 1.35; }
       .staff-topbar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -1364,14 +1379,23 @@
         flex-direction: row;
         align-items: center;
         justify-content: flex-start;
-        padding: 10px 12px;
-        border-radius: 12px;
+        padding: 10px 16px;
+        margin-bottom: 0;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        box-shadow: none;
+        position: sticky;
+        top: 0;
+        z-index: 50;
       }
       .staff-topbar-title { width: 100%; gap: 10px; }
       .staff-topbar-title h1 { font-size: 1rem; }
       .staff-topbar-title span,
       .staff-topbar-actions { display: none; }
       .staff-menu-btn { width: 36px; height: 36px; border-radius: 9px; }
+      .staff-main > section { margin-left: 16px; margin-right: 16px; }
+      .staff-main > .staff-hero { margin-top: 16px; }
       .staff-hero { min-height: 0; padding: 16px; gap: 16px; }
       .staff-hero h2 { font-size: 1.2rem; line-height: 1.2; }
       .staff-hero p { font-size: .84rem; line-height: 1.5; }
