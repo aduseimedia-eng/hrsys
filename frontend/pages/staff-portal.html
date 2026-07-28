@@ -822,7 +822,10 @@
     .staff-leave-balance-main { background: linear-gradient(135deg, #e8f0ff, #f7faff); }
     .staff-leave-balance span { display: block; color: var(--text-muted); font-size: .76rem; font-weight: 650; }
     .staff-leave-balance strong { display: block; margin-top: 5px; color: #2865d9; font-size: 1.5rem; line-height: 1; }
+    .staff-leave-balance-main strong { font-size: 2rem; }
     .staff-leave-balance small { display: block; margin-top: 5px; color: #6f7c91; font-size: .72rem; }
+    #leave-duration-preview { padding:10px 12px; border-radius:9px; background:#f7faff; color:#52617a; font-weight:650; }
+    #leave-list .staff-row { padding:14px 16px; }
 
     .staff-messages-frame {
       display: block;
@@ -1440,6 +1443,14 @@
       .staff-attendance-stat strong { font-size:.9rem; }
       .staff-attendance-location { max-width:100%; font-size:.7rem; }
       #attendance-history-list .staff-row { padding:13px 14px; }
+      .staff-leave-balance { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:9px; }
+      .staff-leave-balance-main { grid-column:1 / -1; }
+      .staff-leave-balance-main, .staff-leave-balance-stat { padding:14px; }
+      .staff-leave-balance-main strong { font-size:1.8rem; }
+      #leave-request .staff-panel-body { padding:14px; }
+      #leave-submit { width:100%; justify-content:center; min-height:44px; }
+      #leave-list { display:grid; gap:9px; }
+      #leave-list .staff-row { margin:0; padding:13px; border:1px solid var(--border); border-radius:10px; background:#fbfdff; }
     }
   </style>
 </head>
