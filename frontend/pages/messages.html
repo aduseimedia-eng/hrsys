@@ -138,6 +138,7 @@
       font-weight: 700;
     }
     .messages-notif-btn .dot { right: 4px; top: 4px; }
+    .message-sound-btn { min-width: auto; padding: 0 10px; gap: 6px; font-size: .78rem; }
     body.staff-message-view .sidebar { display: none; }
     .staff-message-menu { display: none; }
     body.staff-message-view { background: #eef4ff; }
@@ -241,6 +242,8 @@
       body.staff-message-view .messages-layout { height: calc(100vh - 94px); border-radius: 14px; }
       .messages-notif-label { display: none; }
       .messages-notif-btn { width: 40px; padding: 0; }
+      .message-sound-btn { width: 40px; padding: 0; }
+      .message-sound-label { display: none; }
     }
 
     @media (max-width: 768px) {
@@ -270,6 +273,9 @@
     <a class="staff-message-back" href="staff-portal.html#overview" aria-label="Return to staff portal">← Staff portal</a>
     <div class="topbar-title">Messages</div>
     <div class="topbar-actions">
+      <button class="icon-btn message-sound-btn" type="button" onclick="enableAndTestMessageSound()" title="Enable and test message sound" aria-label="Enable and test message sound">
+        <span aria-hidden="true">🔊</span><span class="message-sound-label">Sound</span>
+      </button>
       <button class="icon-btn messages-notif-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         <span class="messages-notif-label">Notifications</span>
@@ -396,11 +402,23 @@ let inboxUnreadCounts = new Map();
 let inboxSnapshotReady = false;
 let lastMessageSoundAt = 0;
 
-function enableMessageSound() {
+async function enableMessageSound() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return;
+  if (!AudioContextClass) return false;
   if (!messageAudioContext) messageAudioContext = new AudioContextClass();
-  if (messageAudioContext.state === 'suspended') messageAudioContext.resume();
+  if (messageAudioContext.state === 'suspended') await messageAudioContext.resume();
+  return messageAudioContext.state === 'running';
+}
+
+async function enableAndTestMessageSound() {
+  try {
+    const enabled = await enableMessageSound();
+    if (!enabled) throw new Error('Your browser blocked message audio. Check its site sound setting.');
+    playIncomingMessageSound();
+    toast('Message sound enabled', 'success');
+  } catch (error) {
+    toast(error.message || 'Could not enable message sound', 'error');
+  }
 }
 
 function playIncomingMessageSound() {
@@ -423,8 +441,8 @@ function playIncomingMessageSound() {
   navigator.vibrate?.([20, 35, 40]);
 }
 
-window.addEventListener('pointerdown', enableMessageSound, { once: true });
-window.addEventListener('keydown', enableMessageSound, { once: true });
+window.addEventListener('pointerdown', () => enableMessageSound().catch(() => {}), { once: true });
+window.addEventListener('keydown', () => enableMessageSound().catch(() => {}), { once: true });
 
 async function loadInbox({ notify = false } = {}) {
   const conversations = await api.get('/messages/inbox');
