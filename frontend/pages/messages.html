@@ -233,6 +233,40 @@
     }
     body.staff-message-view .staff-message-back:hover { color: var(--navy-950); }
 
+    /* Telegram-inspired conversation surface */
+    .messages-layout { border-color:#cbd7e2; border-radius:14px; background:#edf3f7; box-shadow:0 14px 36px rgba(49,77,101,.12); }
+    .inbox-panel { background:#fff; border-right-color:#dbe4eb; }
+    .inbox-header { padding:15px 16px; background:#fff; border-bottom-color:#e7edf1; }
+    .inbox-header .btn { border-radius:999px; background:#5288b7; border-color:#5288b7; }
+    .inbox-search { padding:10px 12px; background:#fff; border-bottom-color:#edf1f4; }
+    .inbox-search .form-control { border:0; border-radius:999px; background:#eef3f6; box-shadow:none; }
+    .inbox-item { padding:12px 14px; border-bottom-color:#edf1f4; }
+    .inbox-item:hover, .inbox-item.active, .inbox-item.unread { background:#e8f2fa; }
+    .inbox-item.active::before { content:''; position:absolute; top:0; bottom:0; left:0; width:3px; background:#5288b7; }
+    .team-chat-item { margin:8px 10px 4px; border-color:#d6e4f0; background:#f4f9fd; }
+    .team-chat-item.active { background:#e5f1fa; border-color:#a9c9e1; }
+    .team-chat-icon { border-radius:50%; background:#5288b7; }
+    .chat-panel { background:#dfeaf0; }
+    .chat-messages { background-color:#dfe9ef; background-image:radial-gradient(rgba(96,132,151,.13) .8px, transparent .8px); background-size:18px 18px; padding:18px 22px 24px; }
+    .chat-header { padding:13px 18px; border-bottom-color:#cfdce5; background:rgba(255,255,255,.94); box-shadow:0 1px 4px rgba(57,79,94,.06); }
+    .msg-bubble { max-width:min(76%, 680px); }
+    .msg-text { padding:9px 12px; border-radius:12px; box-shadow:0 1px 2px rgba(52,73,86,.14); }
+    .msg-bubble:not(.mine) .msg-text { background:#fff; border-bottom-left-radius:3px; }
+    .msg-bubble.mine .msg-text { background:#d9f5c9; color:#263b28; border-bottom-right-radius:3px; }
+    .msg-time { color:#7c8a92; font-size:.68rem; }
+    .chat-input-area { margin:0; padding:10px 14px; gap:10px; border-top-color:#cfdce5; background:rgba(255,255,255,.96); }
+    .chat-input-area textarea { min-height:42px; padding:10px 14px; border:0; border-radius:22px; background:#f1f5f7; box-shadow:none; }
+    .chat-send-btn { width:42px; min-width:42px; height:42px; padding:0; border-radius:50%; background:#5288b7; border-color:#5288b7; }
+    .chat-send-btn svg { margin:0; }
+    .chat-send-label { display:none; }
+    .chat-empty { background:#dfe9ef; color:#657a88; }
+    .chat-empty p { padding:8px 12px; border-radius:999px; background:rgba(72,100,119,.14); color:#506773; }
+    body.staff-message-view .chat-panel { background:#dfeaf0; }
+    body.staff-message-view .chat-header { background:rgba(255,255,255,.94); }
+    body.staff-message-view .msg-bubble.mine .msg-text { background:#d9f5c9; color:#263b28; }
+    body.staff-message-view .chat-input-area { background:rgba(255,255,255,.96); }
+    body.staff-message-view .chat-input-area textarea { border:0; background:#f1f5f7; }
+
     @media (max-width: 900px) {
       body.staff-message-view .app-shell { display: block; }
       body.staff-message-view .staff-message-menu { display: none; }
@@ -244,6 +278,9 @@
       .messages-notif-btn { width: 40px; padding: 0; }
       .message-sound-btn { width: 40px; padding: 0; }
       .message-sound-label { display: none; }
+      .chat-messages { padding:14px 12px 18px; }
+      .msg-bubble { max-width:88%; }
+      .chat-input-area { padding:9px 10px; }
     }
 
     @media (max-width: 768px) {
@@ -310,9 +347,9 @@
           <div class="chat-messages" id="chat-messages"></div>
           <div class="chat-input-area">
             <textarea id="msg-input" class="form-control" placeholder="Type a message…" rows="1" onkeydown="handleMsgKey(event)"></textarea>
-            <button class="btn btn-primary" onclick="sendMessage()">
+            <button class="btn btn-primary chat-send-btn" type="button" onclick="sendMessage()" aria-label="Send message">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              Send
+              <span class="chat-send-label">Send</span>
             </button>
           </div>
         </div>
