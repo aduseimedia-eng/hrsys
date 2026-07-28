@@ -312,8 +312,8 @@
     <a class="staff-message-back" href="staff-portal.html#overview" aria-label="Return to staff portal">← Staff portal</a>
     <div class="topbar-title">Messages</div>
     <div class="topbar-actions">
-      <button class="icon-btn message-sound-btn" type="button" onclick="enableAndTestMessageSound()" title="Enable and test message sound" aria-label="Enable and test message sound">
-        <span aria-hidden="true">🔊</span><span class="message-sound-label">Sound</span>
+      <button class="icon-btn message-sound-btn" id="message-sound-button" type="button" onclick="enableAndTestMessageSound()" title="Enable and test message sound" aria-label="Enable and test message sound" aria-pressed="false">
+        <span aria-hidden="true" id="message-sound-icon">🔊</span><span class="message-sound-label" id="message-sound-label">Enable sound</span>
       </button>
       <button class="icon-btn messages-notif-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -440,6 +440,19 @@ let messageAudioContext = null;
 let inboxUnreadCounts = new Map();
 let inboxSnapshotReady = false;
 let lastMessageSoundAt = 0;
+let messageSoundEnabled = localStorage.getItem('kenadhr-message-sound') === 'enabled';
+
+function updateMessageSoundButton() {
+  const button = document.getElementById('message-sound-button');
+  const icon = document.getElementById('message-sound-icon');
+  const label = document.getElementById('message-sound-label');
+  if (!button || !icon || !label) return;
+  button.setAttribute('aria-pressed', String(messageSoundEnabled));
+  button.title = messageSoundEnabled ? 'Test message sound' : 'Enable and test message sound';
+  button.setAttribute('aria-label', button.title);
+  icon.textContent = messageSoundEnabled ? '🔊' : '🔔';
+  label.textContent = messageSoundEnabled ? 'Sound on' : 'Enable sound';
+}
 
 async function enableMessageSound() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -453,14 +466,19 @@ async function enableAndTestMessageSound() {
   try {
     const enabled = await enableMessageSound();
     if (!enabled) throw new Error('Your browser blocked message audio. Check its site sound setting.');
+    messageSoundEnabled = true;
+    localStorage.setItem('kenadhr-message-sound', 'enabled');
+    updateMessageSoundButton();
+    if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
     playIncomingMessageSound();
-    toast('Message sound enabled', 'success');
+    toast('Message sound enabled. Keep your phone media volume on.', 'success');
   } catch (error) {
     toast(error.message || 'Could not enable message sound', 'error');
   }
 }
 
 function playIncomingMessageSound() {
+  if (!messageSoundEnabled) return;
   if (!messageAudioContext || messageAudioContext.state !== 'running') return;
   if (Date.now() - lastMessageSoundAt < 1200) return;
   lastMessageSoundAt = Date.now();
@@ -471,13 +489,18 @@ function playIncomingMessageSound() {
     oscillator.type = 'sine';
     oscillator.frequency.value = frequency;
     gain.gain.setValueAtTime(0.0001, now + index * 0.11);
-    gain.gain.exponentialRampToValueAtTime(0.18, now + index * 0.11 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.32, now + index * 0.11 + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.22);
     oscillator.connect(gain).connect(messageAudioContext.destination);
     oscillator.start(now + index * 0.11);
     oscillator.stop(now + index * 0.11 + 0.24);
   });
   navigator.vibrate?.([20, 35, 40]);
+}
+
+function showIncomingMessageNotification(title, body) {
+  if (!messageSoundEnabled || !('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
+  new Notification(title, { body, icon: appUrl('/assets/logo.png'), tag: 'kenadhr-message', renotify: true });
 }
 
 window.addEventListener('pointerdown', () => enableMessageSound().catch(() => {}), { once: true });
@@ -490,7 +513,10 @@ async function loadInbox({ notify = false } = {}) {
   ));
   inboxUnreadCounts = new Map(conversations.map((conversation) => [conversation.id, Number(conversation.unread_count || 0)]));
   inboxSnapshotReady = true;
-  if (hasNewUnreadMessage) playIncomingMessageSound();
+  if (hasNewUnreadMessage) {
+    playIncomingMessageSound();
+    showIncomingMessageNotification('New KenadHR message', 'You have an unread message.');
+  }
   allConversations = conversations;
   renderInbox(allConversations);
 }
@@ -594,7 +620,10 @@ async function loadMessages() {
   ));
   msgs.forEach((message) => seenMessageIds.add(message.id));
   hasLoadedActiveChat = true;
-  if (hasNewIncomingMessage) playIncomingMessageSound();
+  if (hasNewIncomingMessage) {
+    playIncomingMessageSound();
+    showIncomingMessageNotification(`New message from ${activePerson.name}`, 'Open KenadHR to reply.');
+  }
   visibleMessages = msgs;
   const container = document.getElementById('chat-messages');
   let lastDateKey = '';
@@ -747,6 +776,7 @@ async function sendNewMessage() {
   } catch(e) { toast(e.message, 'error'); }
 }
 
+updateMessageSoundButton();
 loadInbox();
 setInterval(() => loadInbox({ notify: true }).catch(() => {}), 5000);
 </script>
