@@ -1870,7 +1870,7 @@
           </div>
           <div class="staff-panel-body">
             <div class="staff-leave-balance">
-              <div class="staff-leave-balance-main"><span>Available</span><strong id="staff-leave-balance">--</strong><small>of 20 annual leave days</small></div>
+              <div class="staff-leave-balance-main"><span>Available</span><strong id="staff-leave-balance">--</strong><small id="staff-leave-balance-note">of 20 annual leave days</small></div>
               <div class="staff-leave-balance-stat"><span>Used</span><strong id="staff-leave-used">--</strong><small>approved days</small></div>
               <div class="staff-leave-balance-stat"><span>Pending</span><strong id="staff-leave-pending">--</strong><small>awaiting approval</small></div>
             </div>
@@ -2461,20 +2461,25 @@
 
     async function refreshStaffAnnouncementNotifications() {
       try {
-        const [notifications, announcements] = await Promise.all([
+        const [notifications, announcements, leaves] = await Promise.all([
           api.get('/notifications/mine'),
-          api.get('/notifications/announcements')
+          api.get('/notifications/announcements'),
+          api.get('/leave/mine')
         ]);
         const newAnnouncements = notifications.filter((notification) => (
           notification.type === 'announcement' && !knownStaffNotificationIds.has(Number(notification.id))
         ));
         portalState.notifications = notifications;
         portalState.announcements = announcements;
+        portalState.leaves = leaves;
         knownStaffNotificationIds = new Set(notifications.map((notification) => Number(notification.id)));
         renderAnnouncements();
         renderNotifications();
         renderAnnouncementIndicators();
         loadNotifCount();
+        renderKpis();
+        renderLeaveHistory();
+        renderNextLeave();
         renderOverview();
         if (staffNotificationsReady && newAnnouncements.length) {
           const count = newAnnouncements.length;
@@ -2739,6 +2744,7 @@
       setText('staff-leave-balance', remaining);
       setText('staff-leave-used', annualUsed);
       setText('staff-leave-pending', annualPending);
+      setText('staff-leave-balance-note', annualUsed ? `${annualUsed} approved day${annualUsed === 1 ? '' : 's'} deducted from 20` : 'of 20 annual leave days');
       setText('kpi-latest-pay', latestPay ? compactMoney(latestPay.net_salary) : '--');
       setText('kpi-latest-pay-note', latestPay ? `${monthLabel(latestPay.month, latestPay.year)} net salary` : 'net salary');
       setText('kpi-review-score', latestReview ? `${Number(latestReview.rating).toFixed(1)}/5` : '--');
