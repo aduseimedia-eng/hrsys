@@ -392,6 +392,9 @@ let pendingMessageAction = null;
 let seenMessageIds = new Set();
 let hasLoadedActiveChat = false;
 let messageAudioContext = null;
+let inboxUnreadCounts = new Map();
+let inboxSnapshotReady = false;
+let lastMessageSoundAt = 0;
 
 function enableMessageSound() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -402,6 +405,8 @@ function enableMessageSound() {
 
 function playIncomingMessageSound() {
   if (!messageAudioContext || messageAudioContext.state !== 'running') return;
+  if (Date.now() - lastMessageSoundAt < 1200) return;
+  lastMessageSoundAt = Date.now();
   const now = messageAudioContext.currentTime;
   [740, 988].forEach((frequency, index) => {
     const oscillator = messageAudioContext.createOscillator();
@@ -409,19 +414,27 @@ function playIncomingMessageSound() {
     oscillator.type = 'sine';
     oscillator.frequency.value = frequency;
     gain.gain.setValueAtTime(0.0001, now + index * 0.11);
-    gain.gain.exponentialRampToValueAtTime(0.08, now + index * 0.11 + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + index * 0.11 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.22);
     oscillator.connect(gain).connect(messageAudioContext.destination);
     oscillator.start(now + index * 0.11);
-    oscillator.stop(now + index * 0.11 + 0.17);
+    oscillator.stop(now + index * 0.11 + 0.24);
   });
+  navigator.vibrate?.([20, 35, 40]);
 }
 
 window.addEventListener('pointerdown', enableMessageSound, { once: true });
 window.addEventListener('keydown', enableMessageSound, { once: true });
 
-async function loadInbox() {
-  allConversations = await api.get('/messages/inbox');
+async function loadInbox({ notify = false } = {}) {
+  const conversations = await api.get('/messages/inbox');
+  const hasNewUnreadMessage = notify && inboxSnapshotReady && conversations.some((conversation) => (
+    Number(conversation.unread_count || 0) > Number(inboxUnreadCounts.get(conversation.id) || 0)
+  ));
+  inboxUnreadCounts = new Map(conversations.map((conversation) => [conversation.id, Number(conversation.unread_count || 0)]));
+  inboxSnapshotReady = true;
+  if (hasNewUnreadMessage) playIncomingMessageSound();
+  allConversations = conversations;
   renderInbox(allConversations);
 }
 
@@ -461,6 +474,7 @@ function filterInbox(query) {
 }
 
 async function openConversation(personId, name, photoUrl, title, sourceEl = null) {
+  enableMessageSound();
   activePerson = { id: personId, name, photoUrl, title, isTeam: false };
   seenMessageIds = new Set();
   hasLoadedActiveChat = false;
@@ -497,6 +511,7 @@ async function openConversation(personId, name, photoUrl, title, sourceEl = null
 }
 
 async function openTeamChat(sourceEl = null) {
+  enableMessageSound();
   activePerson = { id: 'team', name: 'Team Chat', photoUrl: '', title: 'Everyone in your organisation', isTeam: true };
   seenMessageIds = new Set();
   hasLoadedActiveChat = false;
@@ -670,6 +685,7 @@ async function sendNewMessage() {
 }
 
 loadInbox();
+setInterval(() => loadInbox({ notify: true }).catch(() => {}), 5000);
 </script>
 </body>
 </html>
