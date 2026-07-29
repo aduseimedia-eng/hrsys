@@ -139,7 +139,22 @@
       font-weight: 700;
     }
     .messages-notif-btn .dot { right: 4px; top: 4px; }
-    .message-sound-btn { min-width: auto; padding: 0 10px; gap: 6px; font-size: .78rem; }
+    .message-sound-btn {
+      min-width: auto;
+      padding: 0 10px;
+      gap: 6px;
+      border: 1px solid #b9d1ff;
+      border-radius: 10px;
+      background: #eaf2ff;
+      color: #1558c5;
+      font-size: .78rem;
+      font-weight: 800;
+      box-shadow: 0 2px 7px rgba(21, 88, 197, .13);
+    }
+    .message-sound-btn:hover,
+    .message-sound-btn:focus-visible { background: #dce9ff; color: #104aa9; }
+    .message-sound-btn[aria-pressed="true"] { border-color: #8bd7a8; background: #e8f9ee; color: #16703d; }
+    .message-sound-icon { width: 18px; height: 18px; flex: 0 0 auto; }
     body.staff-message-view .sidebar { display: none; }
     .staff-message-menu { display: none; }
     body.staff-message-view { background: #eef4ff; }
@@ -277,8 +292,8 @@
       body.staff-message-view .messages-layout { height: calc(100vh - 94px); border-radius: 14px; }
       .messages-notif-label { display: none; }
       .messages-notif-btn { width: 40px; padding: 0; }
-      .message-sound-btn { width: 40px; padding: 0; }
-      .message-sound-label { display: none; }
+      .topbar-actions .message-sound-btn { width: auto; min-width: 84px; padding: 0 9px; }
+      .message-sound-label { display: inline; }
       .chat-messages { padding:14px 12px 18px; }
       .msg-bubble { max-width:88%; }
       .chat-input-area { padding:9px 10px; }
@@ -313,7 +328,7 @@
     <div class="topbar-title">Messages</div>
     <div class="topbar-actions">
       <button class="icon-btn message-sound-btn" id="message-sound-button" type="button" onclick="enableAndTestMessageSound()" title="Enable and test message sound" aria-label="Enable and test message sound" aria-pressed="false">
-        <span aria-hidden="true" id="message-sound-icon">🔊</span><span class="message-sound-label" id="message-sound-label">Enable sound</span>
+        <svg class="message-sound-icon" id="message-sound-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg><span class="message-sound-label" id="message-sound-label">Sound</span>
       </button>
       <button class="icon-btn messages-notif-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -444,14 +459,12 @@ let messageSoundEnabled = localStorage.getItem('kenadhr-message-sound') === 'ena
 
 function updateMessageSoundButton() {
   const button = document.getElementById('message-sound-button');
-  const icon = document.getElementById('message-sound-icon');
   const label = document.getElementById('message-sound-label');
-  if (!button || !icon || !label) return;
+  if (!button || !label) return;
   button.setAttribute('aria-pressed', String(messageSoundEnabled));
   button.title = messageSoundEnabled ? 'Test message sound' : 'Enable and test message sound';
   button.setAttribute('aria-label', button.title);
-  icon.textContent = messageSoundEnabled ? '🔊' : '🔔';
-  label.textContent = messageSoundEnabled ? 'Sound on' : 'Enable sound';
+  label.textContent = messageSoundEnabled ? 'Sound on' : 'Sound';
 }
 
 async function enableMessageSound() {
