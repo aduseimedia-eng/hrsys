@@ -2351,6 +2351,7 @@
     let portalState = {
       profile: null,
       leaves: [],
+      leaveBalance: null,
       payroll: [],
       documents: [],
       reviews: [],
@@ -2452,8 +2453,9 @@
       try {
         const profile = await api.get('/auth/me');
         const isItDepartment = profile.department_name === 'IT Department';
-        const [leaves, payroll, documents, reviews, announcements, notifications, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
+        const [leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
           api.get('/leave/mine'),
+          api.get('/leave/balance'),
           api.get('/payroll/mine'),
           api.get('/documents/mine'),
           api.get('/performance/mine'),
@@ -2467,7 +2469,7 @@
           api.get('/employees/directory'),
         ]);
 
-        portalState = { profile, leaves, payroll, documents, reviews, announcements, notifications, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
+        portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
         renderShellUser(profile);
         renderProfile(profile);
         renderProfileAvatar(profile);
@@ -2496,10 +2498,11 @@
 
     async function refreshStaffAnnouncementNotifications() {
       try {
-        const [notifications, announcements, leaves] = await Promise.all([
+        const [notifications, announcements, leaves, leaveBalance] = await Promise.all([
           api.get('/notifications/mine'),
           api.get('/notifications/announcements'),
-          api.get('/leave/mine')
+          api.get('/leave/mine'),
+          api.get('/leave/balance')
         ]);
         const newAnnouncements = notifications.filter((notification) => (
           notification.type === 'announcement' && !knownStaffNotificationIds.has(Number(notification.id))
@@ -2507,6 +2510,7 @@
         portalState.notifications = notifications;
         portalState.announcements = announcements;
         portalState.leaves = leaves;
+        portalState.leaveBalance = leaveBalance;
         knownStaffNotificationIds = new Set(notifications.map((notification) => Number(notification.id)));
         renderAnnouncements();
         renderNotifications();
@@ -2764,13 +2768,16 @@
     function renderKpis() {
       const { leaves, payroll, reviews } = portalState;
       const pending = leaves.filter((leave) => leave.status === 'pending').length;
-      const annualUsed = leaves
+      const calculatedAnnualUsed = leaves
         .filter((leave) => leave.status === 'approved' && leave.leave_type === 'annual' && new Date(leave.start_date).getFullYear() === new Date().getFullYear())
         .reduce((total, leave) => total + leaveDays(leave), 0);
-      const annualPending = leaves
+      const calculatedAnnualPending = leaves
         .filter((leave) => leave.status === 'pending' && leave.leave_type === 'annual' && new Date(leave.start_date).getFullYear() === new Date().getFullYear())
         .reduce((total, leave) => total + leaveDays(leave), 0);
-      const remaining = Math.max(0, 20 - annualUsed);
+      const annualUsed = Number.isFinite(Number(portalState.leaveBalance?.used)) ? Number(portalState.leaveBalance.used) : calculatedAnnualUsed;
+      const annualPending = Number.isFinite(Number(portalState.leaveBalance?.pending)) ? Number(portalState.leaveBalance.pending) : calculatedAnnualPending;
+      const entitlement = Number(portalState.leaveBalance?.entitlement || 20);
+      const remaining = Number.isFinite(Number(portalState.leaveBalance?.available)) ? Number(portalState.leaveBalance.available) : Math.max(0, entitlement - annualUsed);
       const latestPay = latestPayroll(payroll);
       const latestReview = latestReviewRow(reviews);
 
@@ -2779,7 +2786,7 @@
       setText('staff-leave-balance', remaining);
       setText('staff-leave-used', annualUsed);
       setText('staff-leave-pending', annualPending);
-      setText('staff-leave-balance-note', annualUsed ? `${annualUsed} approved day${annualUsed === 1 ? '' : 's'} deducted from 20` : 'of 20 annual leave days');
+      setText('staff-leave-balance-note', annualUsed ? `${annualUsed} approved day${annualUsed === 1 ? '' : 's'} deducted from ${entitlement}` : `of ${entitlement} annual leave days`);
       setText('kpi-latest-pay', latestPay ? compactMoney(latestPay.net_salary) : '--');
       setText('kpi-latest-pay-note', latestPay ? `${monthLabel(latestPay.month, latestPay.year)} net salary` : 'net salary');
       setText('kpi-review-score', latestReview ? `${Number(latestReview.rating).toFixed(1)}/5` : '--');

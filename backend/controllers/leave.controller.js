@@ -98,6 +98,28 @@ exports.getMyLeaves = async (req, res) => {
   }
 };
 
+exports.getMyBalance = async (req, res) => {
+  try {
+    const requestedYear = Number(req.query.year || new Date().getFullYear());
+    const year = Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= 2100
+      ? requestedYear
+      : new Date().getFullYear();
+    const [used, pending] = await Promise.all([
+      annualLeaveDays(req.user.company_id, req.user.id, year, ['approved']),
+      annualLeaveDays(req.user.company_id, req.user.id, year, ['pending'])
+    ]);
+    res.json({
+      year,
+      entitlement: ANNUAL_LEAVE_ENTITLEMENT,
+      used,
+      pending,
+      available: Math.max(0, ANNUAL_LEAVE_ENTITLEMENT - used)
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not calculate leave balance' });
+  }
+};
+
 // ─── HR: All leave requests ───────────────────────────────────
 exports.getAll = async (req, res) => {
   try {
