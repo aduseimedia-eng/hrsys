@@ -474,6 +474,7 @@ function buildSidebar(activePage) {
   const navItems = [
     { page: 'dashboard',   icon: gridIcon(),       label: 'Dashboard',    roles: ['admin','manager','employee'] },
     { page: 'announcements', icon: chatIcon(),      label: 'Announcements', roles: ['admin','employee'] },
+    { page: 'profile',     icon: usersIcon(),      label: 'Profile',      roles: ['employee'] },
     { section: 'People Suite', roles: ['admin','manager'] },
     { page: 'hiring',      icon: briefcaseIcon(),   label: 'Hiring & ATS', roles: ['admin','manager'] },
     { page: 'onboarding',  icon: checkIcon(),      label: 'Onboarding',   roles: ['admin','manager'] },
@@ -510,7 +511,7 @@ function buildSidebar(activePage) {
     }
     const active = activePage === item.page ? 'active' : '';
     const staffRoutes = {
-      dashboard: 'overview', announcements: 'announcements', attendance: 'attendance',
+      dashboard: 'overview', announcements: 'announcements', profile: 'profile', attendance: 'attendance',
       todos: 'todos', tickets: 'tickets', leave: 'leave', payroll: 'payroll',
       documents: 'documents', performance: 'performance', orgchart: 'orgchart', settings: 'settings'
     };
@@ -524,6 +525,7 @@ function buildSidebar(activePage) {
     return `<a href="${href}" class="nav-item ${active}">
       ${item.icon}
       <span>${item.label}</span>
+      ${item.page === 'announcements' ? '<span class="nav-badge hidden" data-announcement-nav-badge>0</span>' : ''}
       ${item.page === 'messages' ? '<span class="nav-badge hidden" data-message-nav-badge>0</span>' : ''}
     </a>`;
   }).join('');
@@ -556,6 +558,7 @@ function buildSidebar(activePage) {
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
   loadMessageNavCount();
+  loadAnnouncementNavCount();
 }
 
 const SIDEBAR_SCROLL_KEY = 'hrconnect.sidebar.scrollTop';
@@ -665,6 +668,23 @@ function setMessageNavBadge(count) {
     badge.textContent = total > 99 ? '99+' : String(total);
     badge.classList.toggle('hidden', total === 0);
   });
+}
+
+function setAnnouncementNavBadge(count) {
+  const total = Number(count) || 0;
+  document.querySelectorAll('[data-announcement-nav-badge]').forEach((badge) => {
+    badge.textContent = total > 99 ? '99+' : String(total);
+    badge.classList.toggle('hidden', total === 0);
+  });
+}
+
+async function loadAnnouncementNavCount() {
+  try {
+    const rows = await getNotifications();
+    setAnnouncementNavBadge(rows.filter((notification) => notification.type === 'announcement' && !notification.is_read).length);
+  } catch (error) {
+    // The menu should still work if announcement counts are temporarily unavailable.
+  }
 }
 
 async function loadMessageNavCount() {

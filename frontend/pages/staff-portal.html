@@ -1521,11 +1521,28 @@
       #staff-todo-page-list .staff-todo-item .row-meta small { grid-column:1 / -1; }
       #staff-todo-page-list .staff-todo-item .row-meta .btn { justify-content:center; width:100%; }
     }
+
+    /* Staff uses the same shared shell and drawer navigation as HR. */
+    .staff-shell.app-shell { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); grid-template-rows: 1fr; }
+    .sidebar.staff-sidebar { grid-row: 1 / -1; gap: 0; padding: 0; z-index: 100; }
+    .staff-main.main-content { grid-column: 2; grid-row: 1 / -1; min-width: 0; padding: 0 30px 30px; }
+    .staff-shell .staff-topbar { position: sticky; top: 0; z-index: 80; height: var(--topbar-h); margin: 0 -30px 30px; padding: 0 30px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: rgba(255,255,255,.9); box-shadow: none; backdrop-filter: blur(12px); }
+    .staff-shell .staff-mobile-nav { display: none !important; }
+    @media (max-width: 768px) {
+      .staff-shell.app-shell { grid-template-columns: 1fr; }
+      .staff-main.main-content { grid-column: 1; grid-row: 1; padding: 0 16px 24px; }
+      .staff-shell .staff-topbar { margin: 0 -16px 20px; padding: 0 16px; }
+      .staff-shell .staff-topbar .mobile-menu-btn { display: inline-flex !important; }
+    }
+    @media (max-width: 640px) {
+      .staff-main.main-content { padding: 58px 12px 24px; }
+      .staff-shell .staff-topbar { margin: 0; padding: 10px 16px; }
+    }
   </style>
 </head>
 <body>
-  <div class="staff-shell">
-    <aside class="staff-sidebar">
+  <div class="staff-shell app-shell">
+    <aside class="sidebar staff-sidebar" id="sidebar">
       <div class="staff-sidebar-header">
         <div class="staff-brand">
           <img class="staff-brand-logo" src="../assets/logo.png" alt="KenadHR">
@@ -1611,10 +1628,10 @@
     </aside>
     <div class="staff-sidebar-backdrop" id="staff-sidebar-backdrop" onclick="closeStaffMenu()"></div>
 
-    <main class="staff-main">
-      <header class="staff-topbar">
+    <main class="main-content staff-main">
+      <header class="topbar staff-topbar">
         <div class="staff-topbar-title">
-          <button class="staff-menu-btn" type="button" onclick="toggleStaffMenu()" aria-label="Open menu">☰</button>
+          <button class="icon-btn mobile-menu-btn" type="button" aria-label="Open menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
           <div>
             <h1>Staff workspace</h1>
             <span id="topbar-detail">Your work, updates, and HR requests in one place.</span>
@@ -2372,6 +2389,7 @@
     let staffNotificationsReady = false;
 
     if (currentUser) {
+      buildSidebar('dashboard');
       bootStaffPortal();
     }
 
@@ -2383,8 +2401,9 @@
 
     function setStaffNavActive(hash) {
       const target = `#${getStaffPage(hash)}`;
-      document.querySelectorAll('.staff-nav a, .staff-mobile-nav a').forEach((link) => {
-        link.classList.toggle('active', link.getAttribute('href') === target);
+      document.querySelectorAll('#sidebar .nav-item, .staff-nav a, .staff-mobile-nav a').forEach((link) => {
+        const href = link.getAttribute('href') || '';
+        link.classList.toggle('active', href === target || href.endsWith(`/staff-portal.html${target}`));
       });
     }
 
@@ -2432,7 +2451,7 @@
       setInterval(updateStaffAttendanceClock, 1000);
       renderShellUser(currentUser);
       showStaffPage(window.location.hash || '#overview', { scroll: false });
-      document.querySelectorAll('.staff-nav a, .staff-mobile-nav a').forEach((link) => {
+      document.querySelectorAll('#sidebar .nav-item, .staff-nav a, .staff-mobile-nav a').forEach((link) => {
         link.addEventListener('click', () => {
           const href = link.getAttribute('href') || '';
           if (href.startsWith('#')) showStaffPage(href);
@@ -3519,6 +3538,7 @@
 
     function renderAnnouncementIndicators() {
       const count = unreadAnnouncementNotifications().length;
+      setAnnouncementNavBadge(count);
       const headerBadge = document.getElementById('staff-hr-updates-count');
       if (headerBadge) {
         headerBadge.textContent = count > 9 ? '9+' : String(count);
@@ -3537,6 +3557,7 @@
 
     function renderMessageIndicators() {
       const count = Number(portalState.messageUnreadCount) || 0;
+      setMessageNavBadge(count);
       document.querySelectorAll('[data-message-badge]').forEach((badge) => {
         badge.textContent = count > 9 ? '9+' : String(count);
         badge.classList.toggle('hidden', count === 0);
