@@ -417,6 +417,39 @@ function assetUrl(url) {
   return `${assetBase}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
+async function openDocument(id) {
+  let viewer = null;
+  try {
+    viewer = window.open('', '_blank');
+    if (viewer) viewer.document.title = 'Opening document…';
+    const response = await fetch(`${API_BASE}/documents/${id}/view`, {
+      headers: { Authorization: `Bearer ${api.getToken()}` }
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'Could not open document');
+    }
+    const objectUrl = URL.createObjectURL(await response.blob());
+    if (viewer) {
+      viewer.location.replace(objectUrl);
+    } else {
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+  } catch (error) {
+    viewer?.close();
+    toast(error.message || 'Could not open document', 'error');
+  }
+}
+
+window.openDocument = openDocument;
+
 function escapeAvatarText(value) {
   return String(value || '').replace(/[&<>\"]/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'

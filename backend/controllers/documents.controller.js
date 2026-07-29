@@ -86,27 +86,52 @@ exports.getForEmployee = async (req, res) => {
   }
 };
 
+async function getAccessibleDocument(req, res) {
+  const { rows } = await db.query(
+    'SELECT * FROM documents WHERE id=$1 AND company_id=$2',
+    [req.params.id, req.user.company_id]
+  );
+  if (!rows.length) {
+    res.status(404).json({ error: 'Document not found' });
+    return null;
+  }
+  const doc = rows[0];
+  const canAccess = ['admin', 'manager'].includes(req.user.role)
+    || doc.employee_id === req.user.id
+    || doc.shared_with === req.user.id;
+  if (!canAccess) {
+    res.status(403).json({ error: 'Access denied' });
+    return null;
+  }
+  return doc;
+}
+
+function sendDocument(res, doc, { download = false } = {}) {
+  if (doc.file_data) {
+    res.type(doc.mime_type || 'application/octet-stream');
+    res.set('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${String(doc.original_name || 'document').replace(/[\"\\]/g, '_')}"`);
+    return res.send(doc.file_data);
+  }
+  const filePath = path.join(__dirname, '..', doc.file_path);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Document file not found. Please ask the owner to upload it again.' });
+  return download ? res.download(filePath, doc.original_name) : res.sendFile(filePath);
+}
+
+exports.view = async (req, res) => {
+  try {
+    const doc = await getAccessibleDocument(req, res);
+    if (!doc) return;
+    return sendDocument(res, doc);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not open document' });
+  }
+};
+
 exports.download = async (req, res) => {
   try {
-    const { rows } = await db.query(
-      'SELECT * FROM documents WHERE id=$1 AND company_id=$2',
-      [req.params.id, req.user.company_id]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Document not found' });
-    const doc = rows[0];
-    const canAccess = ['admin', 'manager'].includes(req.user.role)
-      || doc.employee_id === req.user.id
-      || doc.shared_with === req.user.id;
-    if (!canAccess) return res.status(403).json({ error: 'Access denied' });
-
-    if (doc.file_data) {
-      res.type(doc.mime_type || 'application/octet-stream');
-      res.attachment(doc.original_name);
-      return res.send(doc.file_data);
-    }
-    const filePath = path.join(__dirname, '..', doc.file_path);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Document file not found. Please ask the owner to upload it again.' });
-    res.download(filePath, doc.original_name);
+    const doc = await getAccessibleDocument(req, res);
+    if (!doc) return;
+    return sendDocument(res, doc, { download: true });
   } catch (err) {
     res.status(500).json({ error: 'Could not download document' });
   }

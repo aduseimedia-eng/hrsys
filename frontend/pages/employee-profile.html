@@ -465,7 +465,7 @@ async function showEmployeeDocuments(employeeId) {
       ? await api.get('/documents/mine')
       : await api.get(`/documents/employee/${encodeURIComponent(employeeId)}`);
     const content = rows.length ? `<div class="table-container"><table><thead><tr><th>Document</th><th>Type</th><th>Uploaded</th><th></th></tr></thead><tbody>${rows.map((row) => `
-      <tr><td>${safe(row.title || row.original_name)}</td><td><span class="badge badge-info">${safe(row.doc_type)}</span></td><td>${fmt.date(row.uploaded_at)}</td><td><a class="btn btn-outline btn-sm" href="${assetUrl(row.file_path)}" target="_blank" rel="noopener">Open</a></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><p>No documents recorded for this employee.</p></div>`;
+      <tr><td>${safe(row.title || row.original_name)}</td><td><span class="badge badge-info">${safe(row.doc_type)}</span></td><td>${fmt.date(row.uploaded_at)}</td><td><button class="btn btn-outline btn-sm" type="button" onclick="openDocument(${row.id})">Open</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><p>No documents recorded for this employee.</p></div>`;
     panel.innerHTML = `<div class="quick-access-panel-head"><h4>Documents — ${safe(`${employee.first_name} ${employee.last_name}`)}</h4><button type="button" class="btn btn-outline btn-sm" onclick="closeQuickAccessPanel()">Close</button></div>${content}`;
   } catch (error) { quickAccessError(panel, error); }
 }

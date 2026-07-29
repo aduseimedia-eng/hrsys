@@ -3132,7 +3132,7 @@
           </div>
           <div class="row-meta">
             <small>${fmt.date(doc.uploaded_at)}</small>
-            <a class="btn btn-outline btn-sm" href="${assetUrl(doc.file_path)}" target="_blank" rel="noopener">View</a>
+            <button class="btn btn-outline btn-sm" type="button" onclick="openDocument(${doc.id})">View</button>
             ${Number(doc.employee_id) === Number(portalState.profile?.id) ? `<button class="btn btn-outline btn-sm" type="button" onclick="showStaffDocumentDeleteModal(${doc.id}, '${String(doc.title || doc.original_name || 'Document').replace(/'/g, '&#39;')}')">Delete</button>` : ''}
           </div>
         </div>
