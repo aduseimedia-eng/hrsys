@@ -633,7 +633,9 @@ function setupMobileSidebar(sidebar) {
     button.setAttribute('aria-label', 'Close menu');
   };
 
-  button.onclick = () => sidebar.classList.contains('open') ? closeMenu() : openMenu();
+  if (button.dataset.staffMenuControl !== 'true') {
+    button.onclick = () => sidebar.classList.contains('open') ? closeMenu() : openMenu();
+  }
   const closeButton = sidebar.querySelector('.sidebar-close-btn');
   if (closeButton) closeButton.onclick = closeMenu;
   backdrop.onclick = closeMenu;

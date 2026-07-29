@@ -1637,7 +1637,7 @@
 
     <main class="main-content staff-main">
       <header class="topbar staff-topbar">
-        <button class="icon-btn mobile-menu-btn" type="button" aria-label="Open menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <button class="icon-btn mobile-menu-btn" type="button" aria-label="Open menu" aria-expanded="false" data-staff-menu-control="true" onclick="toggleStaffMobileDrawer()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
         <div class="topbar-title" id="staff-page-title">Dashboard</div>
         <div class="topbar-actions">
           <button class="icon-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications" data-notif-direct="true" onclick="openNotificationsPanel()">
@@ -2381,7 +2381,6 @@
 
     if (currentUser) {
       buildSidebar('dashboard');
-      setupStaffMobileMenu();
       bootStaffPortal();
     }
 
@@ -2432,20 +2431,17 @@
       document.body.classList.toggle('staff-menu-open');
     }
 
-    function setupStaffMobileMenu() {
+    function toggleStaffMobileDrawer() {
       const button = document.querySelector('.staff-topbar .mobile-menu-btn');
-      if (!button) return;
-      button.onclick = () => {
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.querySelector('.sidebar-backdrop');
-        const isOpen = !sidebar?.classList.contains('open');
-        sidebar?.classList.toggle('open', isOpen);
-        backdrop?.classList.toggle('open', isOpen);
-        document.body.classList.toggle('sidebar-open', isOpen);
-        document.body.classList.toggle('staff-menu-open', isOpen);
-        button.setAttribute('aria-expanded', String(isOpen));
-        button.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
-      };
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.querySelector('.sidebar-backdrop');
+      const isOpen = !sidebar?.classList.contains('open');
+      sidebar?.classList.toggle('open', isOpen);
+      backdrop?.classList.toggle('open', isOpen);
+      document.body.classList.toggle('sidebar-open', isOpen);
+      document.body.classList.toggle('staff-menu-open', isOpen);
+      button?.setAttribute('aria-expanded', String(isOpen));
+      button?.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
     }
 
     function closeStaffMenu() {
