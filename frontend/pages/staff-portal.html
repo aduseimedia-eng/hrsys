@@ -1630,29 +1630,12 @@
 
     <main class="main-content staff-main">
       <header class="topbar staff-topbar">
-        <div class="staff-topbar-title">
-          <button class="icon-btn mobile-menu-btn" type="button" aria-label="Open menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-          <div>
-            <h1>Staff workspace</h1>
-            <span id="topbar-detail">Your work, updates, and HR requests in one place.</span>
-          </div>
-        </div>
-        <button class="icon-btn staff-notif-btn" id="notif-btn" type="button" aria-label="Open notifications">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span class="dot hidden" id="notif-badge"></span>
-        </button>
-        <div class="staff-topbar-actions">
-          <span class="staff-date-chip" id="topbar-date-range">Today</span>
-          <button class="btn btn-outline btn-sm hr-updates-btn" type="button" onclick="goToStaffPage('announcements')" aria-label="Open HR updates">
-            HR updates <span class="hr-updates-count hidden" id="staff-hr-updates-count">0</span>
+        <div class="topbar-title" id="staff-page-title">Dashboard</div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="dot hidden" id="notif-badge"></span>
           </button>
-          <button class="btn btn-primary btn-sm staff-message-shortcut" type="button" onclick="goToStaffPage('messages')">Messages</button>
-          <button class="btn btn-outline btn-sm" type="button" onclick="goToStaffPage('documents')">View Documents</button>
-          <label class="btn btn-outline btn-sm">
-            Change Avatar
-            <input type="file" accept="image/*" style="display:none" onchange="uploadStaffAvatar(this.files[0])">
-          </label>
-          <div class="avatar avatar-sm" data-staff-initials>--</div>
         </div>
       </header>
 
@@ -2415,6 +2398,7 @@
       });
       setStaffNavActive(targetHash);
       document.title = `${STAFF_PAGE_TITLES[page]} - KenadHR`;
+      setText('staff-page-title', page === 'overview' ? 'Dashboard' : STAFF_PAGE_TITLES[page]);
       if (window.location.hash !== targetHash) {
         window.history.replaceState(null, '', targetHash);
       }
