@@ -1533,6 +1533,8 @@
       .staff-main.main-content { grid-column: 1; grid-row: 1; padding: calc(var(--topbar-h) + 20px) 16px 24px; }
       .staff-shell .staff-topbar { left: 0; right: 0; margin: 0; padding: 0 16px; }
       .staff-shell .staff-topbar .mobile-menu-btn { display: inline-flex !important; }
+      .staff-shell .staff-topbar .topbar-actions { display: flex !important; margin-left: auto; }
+      .staff-shell .staff-topbar #notif-btn { display: inline-flex !important; }
     }
     @media (max-width: 640px) {
       .staff-main.main-content { padding: 74px 12px 24px; }
@@ -1633,7 +1635,7 @@
         <button class="icon-btn mobile-menu-btn" type="button" aria-label="Open menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
         <div class="topbar-title" id="staff-page-title">Dashboard</div>
         <div class="topbar-actions">
-          <button class="icon-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
+          <button class="icon-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications" data-notif-direct="true" onclick="openNotificationsPanel()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span class="dot hidden" id="notif-badge"></span>
           </button>

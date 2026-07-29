@@ -770,6 +770,8 @@ async function openNotificationsPanel() {
   await renderNotifications(panel);
 }
 
+window.openNotificationsPanel = openNotificationsPanel;
+
 function notificationMeta(type) {
   const meta = {
     message: ['Message', '✉'], announcement: ['Announcement', '📣'], leave_request: ['Leave request', '◷'],
@@ -861,6 +863,7 @@ function bindNotificationButtons(root = document) {
     if (button.dataset.notifBound) return;
     if (!button.querySelector('#notif-badge, .dot')) return;
     button.dataset.notifBound = '1';
+    if (button.dataset.notifDirect === 'true') return;
     button.type = button.type || 'button';
     button.addEventListener('click', openNotificationsPanel);
   });
