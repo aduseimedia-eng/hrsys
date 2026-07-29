@@ -625,6 +625,26 @@ function logout() {
 }
 
 // ─── Load notification badge ────────────────────────────────
+let notificationsCache = null;
+let notificationsRequest = null;
+
+async function getNotifications({ refresh = false } = {}) {
+  if (!refresh && notificationsCache) return notificationsCache;
+  if (!notificationsRequest) {
+    notificationsRequest = api.get('/notifications/mine')
+      .then((rows) => {
+        notificationsCache = rows;
+        return rows;
+      })
+      .finally(() => { notificationsRequest = null; });
+  }
+  return notificationsRequest;
+}
+
+function warmNotificationsCache() {
+  if (!notificationsCache && !notificationsRequest) getNotifications().catch(() => {});
+}
+
 async function loadNotifCount() {
   try {
     bindNotificationButtons();
@@ -638,6 +658,7 @@ async function loadNotifCount() {
         badge.classList.add('hidden');
       }
     }
+    warmNotificationsCache();
   } catch (e) { /* silent */ }
 }
 
@@ -698,7 +719,7 @@ function notificationLink(row) {
 
 async function renderNotifications(panel = document.getElementById('notif-panel')) {
   try {
-    const rows = await api.get('/notifications/mine');
+    const rows = await getNotifications();
     if (!panel?.isConnected) return;
     const list = panel.querySelector('#notif-list');
     const unread = rows.filter((row) => !row.is_read).length;
@@ -730,6 +751,7 @@ async function renderNotifications(panel = document.getElementById('notif-panel'
 async function markAllNotificationsRead(panel) {
   try {
     await api.patch('/notifications/read-all');
+    notificationsCache = null;
     await loadNotifCount();
     await renderNotifications(panel);
   } catch (e) {
@@ -741,6 +763,7 @@ async function clearAllNotifications(panel) {
   if (!window.confirm('Clear all notifications? This cannot be undone.')) return;
   try {
     await api.delete('/notifications/clear-all');
+    notificationsCache = null;
     await loadNotifCount();
     await renderNotifications(panel);
     toast('All notifications cleared', 'success');
@@ -752,6 +775,7 @@ async function clearAllNotifications(panel) {
 async function openNotification(row) {
   try {
     if (!row.is_read) await api.patch(`/notifications/${row.id}/read`);
+    if (notificationsCache) notificationsCache = notificationsCache.map((item) => item.id === row.id ? { ...item, is_read: true } : item);
     await loadNotifCount();
     document.getElementById('notif-panel')?.remove();
     window.location.href = appUrl(notificationLink(row));

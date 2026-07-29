@@ -5,7 +5,10 @@ const { notifyEmployee } = require('../services/push.service');
 exports.getMine = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT * FROM notifications WHERE company_id=$1 AND employee_id=$2 ORDER BY created_at DESC LIMIT 50`,
+      `SELECT id, type, message, link, is_read, created_at
+       FROM notifications
+       WHERE company_id=$1 AND employee_id=$2
+       ORDER BY created_at DESC LIMIT 50`,
       [req.user.company_id, req.user.id]
     );
     res.json(rows);

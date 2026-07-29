@@ -198,6 +198,9 @@ CREATE TABLE notifications (
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE INDEX idx_notifications_employee_recent
+  ON notifications(company_id, employee_id, created_at DESC);
+
 CREATE TABLE push_subscriptions (
   id              SERIAL PRIMARY KEY,
   company_id      INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
