@@ -855,6 +855,28 @@ tbody tr:hover { background: var(--bg-page); }
   .notif-panel { width: 100%; }
 }
 
+@media (max-width: 768px) {
+  .notif-panel {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    z-index: 1000;
+    animation: slideUp .2s var(--ease);
+  }
+  .notif-panel-header { padding-top: max(20px, env(safe-area-inset-top)); }
+  .notif-panel-actions { padding-bottom: 12px; }
+  .push-alert-control { flex-wrap: wrap; }
+  .push-alert-actions { width: 100%; }
+  .push-alert-actions .btn { flex: 1; justify-content: center; }
+  .notif-list { padding-bottom: max(20px, env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+}
+
 /* Phone ergonomics: keep every common control and overlay reachable on narrow screens. */
 @media (max-width: 640px) {
   html { font-size: 16px; }
