@@ -2381,6 +2381,7 @@
 
     if (currentUser) {
       buildSidebar('dashboard');
+      setupStaffMobileMenu();
       bootStaffPortal();
     }
 
@@ -2429,6 +2430,22 @@
       document.querySelector('.staff-sidebar')?.classList.toggle('open');
       document.getElementById('staff-sidebar-backdrop')?.classList.toggle('open');
       document.body.classList.toggle('staff-menu-open');
+    }
+
+    function setupStaffMobileMenu() {
+      const button = document.querySelector('.staff-topbar .mobile-menu-btn');
+      if (!button) return;
+      button.onclick = () => {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.querySelector('.sidebar-backdrop');
+        const isOpen = !sidebar?.classList.contains('open');
+        sidebar?.classList.toggle('open', isOpen);
+        backdrop?.classList.toggle('open', isOpen);
+        document.body.classList.toggle('sidebar-open', isOpen);
+        document.body.classList.toggle('staff-menu-open', isOpen);
+        button.setAttribute('aria-expanded', String(isOpen));
+        button.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+      };
     }
 
     function closeStaffMenu() {
