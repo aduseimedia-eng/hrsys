@@ -51,6 +51,18 @@ exports.markAllRead = async (req, res) => {
   }
 };
 
+exports.clearAll = async (req, res) => {
+  try {
+    const { rowCount } = await db.query(
+      'DELETE FROM notifications WHERE company_id=$1 AND employee_id=$2',
+      [req.user.company_id, req.user.id]
+    );
+    res.json({ message: 'Notifications cleared', count: rowCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not clear notifications' });
+  }
+};
+
 // Admin: broadcast announcement
 exports.announce = async (req, res) => {
   try {

@@ -653,11 +653,12 @@ async function openNotificationsPanel() {
   panel.className = 'notif-panel';
   panel.innerHTML = `
     <div class="notif-panel-header">
-      <h3>Notifications</h3>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm" id="notif-read-all">Mark read</button>
-        <button class="modal-close" id="notif-close" aria-label="Close notifications">x</button>
-      </div>
+      <div><h3>Notifications</h3><p id="notif-summary">Loading updates…</p></div>
+      <button class="modal-close" id="notif-close" type="button" aria-label="Close notifications">×</button>
+    </div>
+    <div class="notif-panel-actions">
+      <button class="btn btn-outline btn-sm" id="notif-read-all" type="button">Read all</button>
+      <button class="btn btn-danger btn-sm" id="notif-clear-all" type="button">Clear all</button>
     </div>
     <div class="push-alert-control">
       <div><strong>Device alerts</strong><span id="push-status-label">Checking…</span></div>
@@ -668,48 +669,94 @@ async function openNotificationsPanel() {
     </div>
     <div class="notif-list" id="notif-list"><div class="loading-state"><div class="spinner"></div></div></div>
   `;
-  renderPushControl();
   document.body.appendChild(panel);
+  renderPushControl();
   document.getElementById('notif-close').onclick = () => panel.remove();
-  document.getElementById('notif-read-all').onclick = async () => {
-    await api.patch('/notifications/read-all');
-    await loadNotifCount();
-    panel.remove();
-    openNotificationsPanel();
-  };
+  document.getElementById('notif-read-all').onclick = () => markAllNotificationsRead(panel);
+  document.getElementById('notif-clear-all').onclick = () => clearAllNotifications(panel);
+  await renderNotifications(panel);
+}
 
+function notificationMeta(type) {
+  const meta = {
+    message: ['Message', '✉'], announcement: ['Announcement', '📣'], leave_request: ['Leave request', '◷'],
+    leave_approved: ['Leave approved', '✓'], leave_rejected: ['Leave update', '!'], payroll: ['Payroll', '₵'],
+    review: ['Performance review', '★'], it_ticket: ['IT ticket', '⌁'], welcome: ['Welcome', '✦']
+  };
+  return meta[type] || ['KenadHR update', '•'];
+}
+
+function notificationLink(row) {
+  if (row.link) return row.link;
+  const defaults = {
+    welcome: '/pages/staff-portal.html#overview', message: '/pages/messages.html', payroll: '/pages/staff-portal.html#payroll',
+    review: '/pages/staff-portal.html#performance', leave_approved: '/pages/staff-portal.html#leave',
+    leave_rejected: '/pages/staff-portal.html#leave', it_ticket: '/pages/staff-portal.html#tickets'
+  };
+  return defaults[row.type] || '/pages/staff-portal.html#overview';
+}
+
+async function renderNotifications(panel = document.getElementById('notif-panel')) {
   try {
     const rows = await api.get('/notifications/mine');
-    const list = document.getElementById('notif-list');
+    if (!panel?.isConnected) return;
+    const list = panel.querySelector('#notif-list');
+    const unread = rows.filter((row) => !row.is_read).length;
+    panel.querySelector('#notif-summary').textContent = unread ? `${unread} unread update${unread === 1 ? '' : 's'}` : (rows.length ? 'You’re all caught up' : 'No updates yet');
+    panel.querySelector('#notif-read-all').disabled = unread === 0;
+    panel.querySelector('#notif-clear-all').disabled = rows.length === 0;
     if (!rows.length) {
-      list.innerHTML = '<div class="empty-state"><p>No notifications yet.</p></div>';
+      list.innerHTML = '<div class="notif-empty"><div>✓</div><strong>All caught up</strong><p>New KenadHR updates will appear here.</p></div>';
       return;
     }
     list.innerHTML = rows.map((row) => `
-      <div class="notif-item ${row.is_read ? '' : 'unread'}" onclick="markNotificationRead(${row.id}, '${row.link || ''}')">
-        ${row.is_read ? '' : '<span class="notif-dot"></span>'}
-        <div>
-          <div class="notif-text">${escapeUi(row.message)}</div>
-          <div class="notif-time">${fmt.relativeTime(row.created_at)}</div>
-        </div>
-      </div>
+      <button class="notif-item ${row.is_read ? '' : 'unread'}" type="button" data-notification-id="${row.id}" aria-label="Open ${escapeUi(notificationMeta(row.type)[0])}">
+        <span class="notif-type-icon notif-${escapeUi(row.type || 'general')}">${notificationMeta(row.type)[1]}</span>
+        <span class="notif-content">
+          <span class="notif-item-top"><span class="notif-label">${escapeUi(notificationMeta(row.type)[0])}</span>${row.is_read ? '' : '<span class="notif-new">New</span>'}</span>
+          <span class="notif-text">${escapeUi(row.message)}</span>
+          <span class="notif-time">${fmt.relativeTime(row.created_at)} <span aria-hidden="true">→</span></span>
+        </span>
+      </button>
     `).join('');
+    list.querySelectorAll('[data-notification-id]').forEach((item, index) => {
+      item.addEventListener('click', () => openNotification(rows[index]));
+    });
   } catch (e) {
-    document.getElementById('notif-list').innerHTML = `<div class="empty-state"><p>${escapeUi(e.message || 'Could not load notifications')}</p></div>`;
+    if (panel?.isConnected) panel.querySelector('#notif-list').innerHTML = `<div class="notif-empty"><strong>Could not load notifications</strong><p>${escapeUi(e.message || 'Please try again.')}</p></div>`;
   }
 }
 
-async function markNotificationRead(id, link) {
+async function markAllNotificationsRead(panel) {
   try {
-    await api.patch(`/notifications/${id}/read`);
+    await api.patch('/notifications/read-all');
     await loadNotifCount();
-    if (link && link !== 'null') window.location.href = appUrl(link);
-    else {
-      document.getElementById('notif-panel')?.remove();
-      openNotificationsPanel();
-    }
+    await renderNotifications(panel);
   } catch (e) {
-    toast(e.message || 'Could not update notification', 'error');
+    toast(e.message || 'Could not mark notifications as read', 'error');
+  }
+}
+
+async function clearAllNotifications(panel) {
+  if (!window.confirm('Clear all notifications? This cannot be undone.')) return;
+  try {
+    await api.delete('/notifications/clear-all');
+    await loadNotifCount();
+    await renderNotifications(panel);
+    toast('All notifications cleared', 'success');
+  } catch (e) {
+    toast(e.message || 'Could not clear notifications', 'error');
+  }
+}
+
+async function openNotification(row) {
+  try {
+    if (!row.is_read) await api.patch(`/notifications/${row.id}/read`);
+    await loadNotifCount();
+    document.getElementById('notif-panel')?.remove();
+    window.location.href = appUrl(notificationLink(row));
+  } catch (e) {
+    toast(e.message || 'Could not open notification', 'error');
   }
 }
 
