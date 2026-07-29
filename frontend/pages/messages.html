@@ -475,40 +475,53 @@ async function enableMessageSound() {
   return messageAudioContext.state === 'running';
 }
 
+async function activateMessageSound() {
+  const enabled = await enableMessageSound();
+  if (!enabled) return false;
+  messageSoundEnabled = true;
+  localStorage.setItem('kenadhr-message-sound', 'enabled');
+  updateMessageSoundButton();
+  return true;
+}
+
 async function enableAndTestMessageSound() {
   try {
-    const enabled = await enableMessageSound();
+    const enabled = await activateMessageSound();
     if (!enabled) throw new Error('Your browser blocked message audio. Check its site sound setting.');
-    messageSoundEnabled = true;
-    localStorage.setItem('kenadhr-message-sound', 'enabled');
-    updateMessageSoundButton();
     if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
-    playIncomingMessageSound();
-    toast('Message sound enabled. Keep your phone media volume on.', 'success');
+    const played = await playIncomingMessageSound({ force: true });
+    if (!played) throw new Error('Could not play the test sound. Check your phone media volume and browser site sound setting.');
+    toast('Sound is on. The test tone just played.', 'success');
   } catch (error) {
     toast(error.message || 'Could not enable message sound', 'error');
   }
 }
 
-function playIncomingMessageSound() {
-  if (!messageSoundEnabled) return;
-  if (!messageAudioContext || messageAudioContext.state !== 'running') return;
-  if (Date.now() - lastMessageSoundAt < 1200) return;
+async function playIncomingMessageSound({ force = false } = {}) {
+  if (!messageSoundEnabled) return false;
+  try {
+    const ready = await enableMessageSound();
+    if (!ready) return false;
+  } catch (_) {
+    return false;
+  }
+  if (!force && Date.now() - lastMessageSoundAt < 1200) return false;
   lastMessageSoundAt = Date.now();
   const now = messageAudioContext.currentTime;
-  [740, 988].forEach((frequency, index) => {
+  [660, 880, 1040].forEach((frequency, index) => {
     const oscillator = messageAudioContext.createOscillator();
     const gain = messageAudioContext.createGain();
     oscillator.type = 'sine';
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.0001, now + index * 0.11);
-    gain.gain.exponentialRampToValueAtTime(0.32, now + index * 0.11 + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.22);
+    oscillator.frequency.setValueAtTime(frequency, now + index * 0.14);
+    gain.gain.setValueAtTime(0.0001, now + index * 0.14);
+    gain.gain.exponentialRampToValueAtTime(0.5, now + index * 0.14 + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.14 + 0.29);
     oscillator.connect(gain).connect(messageAudioContext.destination);
-    oscillator.start(now + index * 0.11);
-    oscillator.stop(now + index * 0.11 + 0.24);
+    oscillator.start(now + index * 0.14);
+    oscillator.stop(now + index * 0.14 + 0.32);
   });
-  navigator.vibrate?.([20, 35, 40]);
+  navigator.vibrate?.([30, 45, 55, 45, 65]);
+  return true;
 }
 
 function showIncomingMessageNotification(title, body) {
@@ -516,8 +529,8 @@ function showIncomingMessageNotification(title, body) {
   new Notification(title, { body, icon: appUrl('/assets/logo.png'), tag: 'kenadhr-message', renotify: true });
 }
 
-window.addEventListener('pointerdown', () => enableMessageSound().catch(() => {}), { once: true });
-window.addEventListener('keydown', () => enableMessageSound().catch(() => {}), { once: true });
+window.addEventListener('pointerdown', () => activateMessageSound().catch(() => {}), { once: true });
+window.addEventListener('keydown', () => activateMessageSound().catch(() => {}), { once: true });
 
 async function loadInbox({ notify = false } = {}) {
   const conversations = await api.get('/messages/inbox');
@@ -570,7 +583,7 @@ function filterInbox(query) {
 }
 
 async function openConversation(personId, name, photoUrl, title, sourceEl = null) {
-  enableMessageSound();
+  activateMessageSound();
   activePerson = { id: personId, name, photoUrl, title, isTeam: false };
   seenMessageIds = new Set();
   hasLoadedActiveChat = false;
@@ -608,7 +621,7 @@ async function openConversation(personId, name, photoUrl, title, sourceEl = null
 }
 
 async function openTeamChat(sourceEl = null) {
-  enableMessageSound();
+  activateMessageSound();
   activePerson = { id: 'team', name: 'Team Chat', photoUrl: '', title: 'Everyone in your organisation', isTeam: true };
   seenMessageIds = new Set();
   hasLoadedActiveChat = false;
