@@ -526,7 +526,7 @@ async function playIncomingMessageSound({ force = false } = {}) {
 
 function showIncomingMessageNotification(title, body) {
   if (!messageSoundEnabled || !('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
-  new Notification(title, { body, icon: appUrl('/assets/logo.png'), tag: 'kenadhr-message', renotify: true });
+  new Notification(title, { body, icon: appUrl('/assets/title_icon.jpg'), tag: 'kenadhr-message', renotify: true });
 }
 
 window.addEventListener('pointerdown', () => activateMessageSound().catch(() => {}), { once: true });

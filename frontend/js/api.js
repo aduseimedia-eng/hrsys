@@ -155,6 +155,15 @@ function addWebAppManifest() {
   document.head.appendChild(manifest);
 }
 
+function addBrandIcon() {
+  if (document.querySelector('link[rel="icon"]')) return;
+  const icon = document.createElement('link');
+  icon.rel = 'icon';
+  icon.type = 'image/jpeg';
+  icon.href = appUrl('/assets/title_icon.jpg');
+  document.head.appendChild(icon);
+}
+
 async function registerPushWorker() {
   if (!pushSupported()) return null;
   if (!pushRegistrationPromise) {
@@ -727,11 +736,13 @@ function escapeUi(value) {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     addWebAppManifest();
+    addBrandIcon();
     bindNotificationButtons();
     if (api.getToken()) registerPushWorker();
   });
 } else {
   addWebAppManifest();
+  addBrandIcon();
   bindNotificationButtons();
   if (api.getToken()) registerPushWorker();
 }

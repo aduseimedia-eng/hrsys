@@ -7,8 +7,8 @@ self.addEventListener('push', (event) => {
   const title = String(data.title || 'KenadHR update');
   const options = {
     body: String(data.body || 'You have a new notification.').slice(0, 220),
-    icon: '/assets/logo.png',
-    badge: '/assets/logo.png',
+    icon: '/assets/title_icon.jpg',
+    badge: '/assets/title_icon.jpg',
     tag: data.tag || 'kenadhr-notification',
     renotify: true,
     silent: false,
