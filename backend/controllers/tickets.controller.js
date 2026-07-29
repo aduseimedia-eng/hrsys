@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { notifyEmployee } = require('../services/push.service');
 
 const STATUSES = ['open', 'in_progress', 'resolved', 'closed'];
 const PRIORITIES = ['low', 'medium', 'high'];
@@ -96,11 +97,13 @@ exports.createTicket = async (req, res) => {
     }
     const staffName = [req.user.first_name, req.user.last_name].filter(Boolean).join(' ') || 'A staff member';
     const managers = await getItDepartmentRecipients(req.user.company_id);
-    await Promise.all(managers.map((manager) => db.query(
-      `INSERT INTO notifications (company_id, employee_id, type, message, link)
-       VALUES ($1, $2, 'it_ticket', $3, $4)`,
-      [req.user.company_id, manager.id, `${staffName} submitted a ticket.`, '/pages/workspace.html#tickets']
-    )));
+    await Promise.all(managers.map((manager) => notifyEmployee({
+      companyId: req.user.company_id,
+      employeeId: manager.id,
+      type: 'it_ticket',
+      message: `${staffName} submitted a ticket.`,
+      link: '/pages/workspace.html#tickets'
+    })));
     res.status(201).json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Could not create ticket' });
@@ -171,11 +174,13 @@ exports.updateTicket = async (req, res) => {
       [status, req.body.response || '', req.params.id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Ticket not found' });
-    await db.query(
-      `INSERT INTO notifications (company_id, employee_id, type, message, link)
-       VALUES ($1, $2, 'it_ticket', $3, $4)`,
-      [req.user.company_id, rows[0].employee_id, `Your ticket "${rows[0].subject}" is now ${status === 'resolved' ? 'completed' : status.replace('_', ' ')}.`, '/pages/staff-portal.html#tickets']
-    );
+    await notifyEmployee({
+      companyId: req.user.company_id,
+      employeeId: rows[0].employee_id,
+      type: 'it_ticket',
+      message: `Your ticket "${rows[0].subject}" is now ${status === 'resolved' ? 'completed' : status.replace('_', ' ')}.`,
+      link: '/pages/staff-portal.html#tickets'
+    });
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Could not update ticket' });

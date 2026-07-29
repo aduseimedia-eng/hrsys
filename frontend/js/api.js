@@ -141,6 +141,109 @@ const api = {
   upload(path, form) { return this.request('POST', path, form); },
 };
 
+let pushRegistrationPromise = null;
+
+function pushSupported() {
+  return window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+function addWebAppManifest() {
+  if (document.querySelector('link[rel="manifest"]')) return;
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = appUrl('/manifest.webmanifest');
+  document.head.appendChild(manifest);
+}
+
+async function registerPushWorker() {
+  if (!pushSupported()) return null;
+  if (!pushRegistrationPromise) {
+    pushRegistrationPromise = navigator.serviceWorker.register(appUrl('/push-sw.js'), { scope: appUrl('/') })
+      .then((registration) => {
+        registration.update().catch(() => {});
+        return registration;
+      })
+      .catch(() => null);
+  }
+  return pushRegistrationPromise;
+}
+
+function vapidKeyBytes(publicKey) {
+  const normalized = `${publicKey}${'='.repeat((4 - publicKey.length % 4) % 4)}`.replace(/-/g, '+').replace(/_/g, '/');
+  const value = atob(normalized);
+  return Uint8Array.from(value, (character) => character.charCodeAt(0));
+}
+
+async function getPushStatus() {
+  if (!api.getToken() || !pushSupported()) return { configured: false, supported: pushSupported(), subscribed: false };
+  const status = await api.get('/push/status');
+  return { ...status, supported: true };
+}
+
+async function enableDeviceAlerts() {
+  try {
+    const status = await getPushStatus();
+    if (!status.supported) throw new Error('This browser does not support device alerts. Use the latest Chrome, Edge, Firefox, or an installed KenadHR app.');
+    if (!status.configured || !status.publicKey) throw new Error('Device alerts are not configured yet. Please try again shortly.');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') throw new Error('Allow notifications in your browser settings to receive device alerts.');
+    const registration = await registerPushWorker();
+    if (!registration) throw new Error('Could not prepare device alerts in this browser.');
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes(status.publicKey) });
+    await api.post('/push/subscribe', subscription.toJSON());
+    await renderPushControl();
+    toast('Device alerts are on. You will receive notification sounds for KenadHR updates.', 'success');
+  } catch (error) {
+    toast(error.message || 'Could not enable device alerts', 'error');
+  }
+}
+
+async function testDeviceAlerts() {
+  try {
+    await api.post('/push/test', {});
+    toast('Test alert sent. It may appear in your device notification tray.', 'success');
+  } catch (error) {
+    toast(error.message || 'Could not send a test alert', 'error');
+  }
+}
+
+async function renderPushControl() {
+  const statusLabel = document.getElementById('push-status-label');
+  const enableButton = document.getElementById('push-enable-button');
+  const testButton = document.getElementById('push-test-button');
+  if (!statusLabel || !enableButton || !testButton) return;
+  try {
+    const status = await getPushStatus();
+    if (!status.supported) {
+      statusLabel.textContent = 'Not supported in this browser';
+      enableButton.hidden = true;
+      testButton.hidden = true;
+      return;
+    }
+    if (!status.configured) {
+      statusLabel.textContent = 'Coming online';
+      enableButton.hidden = true;
+      testButton.hidden = true;
+      return;
+    }
+    if (status.subscribed && Notification.permission === 'granted') {
+      statusLabel.textContent = 'On for this device';
+      enableButton.hidden = true;
+      testButton.hidden = false;
+      return;
+    }
+    statusLabel.textContent = Notification.permission === 'denied' ? 'Blocked in browser settings' : 'Off for this device';
+    enableButton.hidden = false;
+    testButton.hidden = true;
+  } catch (_) {
+    statusLabel.textContent = 'Unavailable';
+  }
+}
+
+window.enableDeviceAlerts = enableDeviceAlerts;
+window.testDeviceAlerts = testDeviceAlerts;
+
 function requestAttendanceLocation() {
   if (!window.isSecureContext || !navigator.geolocation) {
     return Promise.reject(new Error('Location requires HTTPS and a browser that supports device location.'));
@@ -547,8 +650,16 @@ async function openNotificationsPanel() {
         <button class="modal-close" id="notif-close" aria-label="Close notifications">x</button>
       </div>
     </div>
+    <div class="push-alert-control">
+      <div><strong>Device alerts</strong><span id="push-status-label">Checking…</span></div>
+      <div class="push-alert-actions">
+        <button class="btn btn-outline btn-sm" id="push-enable-button" type="button" onclick="enableDeviceAlerts()">Enable alerts</button>
+        <button class="btn btn-outline btn-sm" id="push-test-button" type="button" onclick="testDeviceAlerts()" hidden>Test</button>
+      </div>
+    </div>
     <div class="notif-list" id="notif-list"><div class="loading-state"><div class="spinner"></div></div></div>
   `;
+  renderPushControl();
   document.body.appendChild(panel);
   document.getElementById('notif-close').onclick = () => panel.remove();
   document.getElementById('notif-read-all').onclick = async () => {
@@ -614,9 +725,15 @@ function escapeUi(value) {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => bindNotificationButtons());
+  document.addEventListener('DOMContentLoaded', () => {
+    addWebAppManifest();
+    bindNotificationButtons();
+    if (api.getToken()) registerPushWorker();
+  });
 } else {
+  addWebAppManifest();
   bindNotificationButtons();
+  if (api.getToken()) registerPushWorker();
 }
 
 // ─── SVG Icons ──────────────────────────────────────────────

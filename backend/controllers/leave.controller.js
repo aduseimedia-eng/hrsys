@@ -1,5 +1,6 @@
 // controllers/leave.controller.js
 const db = require('../config/db');
+const { notifyEmployee } = require('../services/push.service');
 const ANNUAL_LEAVE_ENTITLEMENT = 20;
 
 async function annualLeaveDays(companyId, employeeId, year, statuses) {
@@ -64,10 +65,7 @@ exports.request = async (req, res) => {
     );
     const empName = `${req.user.first_name} ${req.user.last_name}`;
     for (const admin of admins.rows) {
-      await db.query(
-        "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'leave_request',$3,'/pages/workspace.html#leave')",
-        [req.user.company_id, admin.id, `${empName} has requested ${leave_type} leave from ${start_date} to ${end_date}.`]
-      );
+      await notifyEmployee({ companyId: req.user.company_id, employeeId: admin.id, type: 'leave_request', message: `${empName} has requested ${leave_type} leave from ${start_date} to ${end_date}.`, link: '/pages/workspace.html#leave' });
     }
 
     res.status(201).json(rows[0]);
@@ -209,10 +207,7 @@ exports.updateStatus = async (req, res) => {
     }
 
     // Notify employee of the decision.
-    await db.query(
-      "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,$3,$4)",
-      [req.user.company_id, leave.employee_id, `leave_${status}`, `Your ${leave.leave_type} leave request has been ${status}.`]
-    );
+    await notifyEmployee({ companyId: req.user.company_id, employeeId: leave.employee_id, type: `leave_${status}`, message: `Your ${leave.leave_type} leave request has been ${status}.` });
 
     res.json(rows[0]);
   } catch (err) {

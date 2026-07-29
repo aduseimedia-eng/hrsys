@@ -1,5 +1,6 @@
 // controllers/notifications.controller.js
 const db = require('../config/db');
+const { notifyEmployee } = require('../services/push.service');
 
 exports.getMine = async (req, res) => {
   try {
@@ -66,10 +67,7 @@ exports.announce = async (req, res) => {
       [req.user.company_id]
     );
     for (const emp of emps) {
-      await db.query(
-        "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'announcement',$3,'/pages/staff-portal.html#announcements')",
-        [req.user.company_id, emp.id, `Announcement: ${title}`]
-      );
+      await notifyEmployee({ companyId: req.user.company_id, employeeId: emp.id, type: 'announcement', message: `Announcement: ${title}`, link: '/pages/staff-portal.html#announcements' });
     }
     res.status(201).json(rows[0]);
   } catch (err) {

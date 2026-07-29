@@ -1,5 +1,6 @@
 // controllers/performance.controller.js
 const db = require('../config/db');
+const { notifyEmployee } = require('../services/push.service');
 
 exports.create = async (req, res) => {
   try {
@@ -20,10 +21,7 @@ exports.create = async (req, res) => {
       [req.user.company_id, employee_id, req.user.id, rating, comments, period]
     );
 
-    await db.query(
-      "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,'review',$3)",
-      [req.user.company_id, employee_id, `You have received a new performance review${period ? ' for ' + period : ''}.`]
-    );
+    await notifyEmployee({ companyId: req.user.company_id, employeeId: employee_id, type: 'review', message: `You have received a new performance review${period ? ' for ' + period : ''}.` });
 
     res.status(201).json(rows[0]);
   } catch (err) {

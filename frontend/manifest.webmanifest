@@ -1,0 +1,13 @@
+{
+  "id": "/",
+  "name": "KenadHR",
+  "short_name": "KenadHR",
+  "description": "KenadHR employee and HR workspace",
+  "start_url": "/pages/login.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2865d9",
+  "icons": [
+    { "src": "/assets/logo.png", "sizes": "1125x375", "type": "image/png", "purpose": "any" }
+  ]
+}

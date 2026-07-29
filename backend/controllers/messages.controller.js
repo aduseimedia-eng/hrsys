@@ -1,5 +1,6 @@
 // controllers/messages.controller.js
 const db = require('../config/db');
+const { notifyEmployee } = require('../services/push.service');
 
 // ─── Send a message ───────────────────────────────────────────
 exports.send = async (req, res) => {
@@ -25,10 +26,7 @@ exports.send = async (req, res) => {
 
     // Notify receiver
     const senderName = `${req.user.first_name} ${req.user.last_name}`;
-    await db.query(
-      "INSERT INTO notifications (company_id,employee_id,type,message,link) VALUES ($1,$2,'message',$3,'/pages/messages.html')",
-      [req.user.company_id, receiver_id, `New message from ${senderName}`]
-    );
+    await notifyEmployee({ companyId: req.user.company_id, employeeId: receiver_id, type: 'message', message: `New message from ${senderName}`, link: '/pages/messages.html' });
 
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -45,6 +43,18 @@ exports.sendTeam = async (req, res) => {
       'INSERT INTO team_messages (company_id,sender_id,body) VALUES ($1,$2,$3) RETURNING *',
       [req.user.company_id, req.user.id, body]
     );
+    const recipients = await db.query(
+      'SELECT id FROM employees WHERE company_id=$1 AND is_active=true AND id <> $2',
+      [req.user.company_id, req.user.id]
+    );
+    const senderName = `${req.user.first_name} ${req.user.last_name}`;
+    await Promise.all(recipients.rows.map((employee) => notifyEmployee({
+      companyId: req.user.company_id,
+      employeeId: employee.id,
+      type: 'message',
+      message: `New team message from ${senderName}`,
+      link: '/pages/messages.html'
+    })));
     res.status(201).json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Could not send team message' });

@@ -1,6 +1,7 @@
 // controllers/employee.controller.js
 const bcrypt = require('bcrypt');
 const db     = require('../config/db');
+const { notifyEmployee } = require('../services/push.service');
 const EMPLOYMENT_TYPES = ['staff', 'contractual', 'national_service', 'internship'];
 
 // ─── Dashboard stats (admin/manager) ─────────────────────────
@@ -169,10 +170,7 @@ exports.create = async (req, res) => {
     );
 
     // Create welcome notification
-    await db.query(
-      "INSERT INTO notifications (company_id, employee_id, type, message) VALUES ($1,$2,'welcome',$3)",
-      [req.user.company_id, rows[0].id, `Welcome to the team, ${first_name}! Your account has been created.`]
-    );
+    await notifyEmployee({ companyId: req.user.company_id, employeeId: rows[0].id, type: 'welcome', message: `Welcome to the team, ${first_name}! Your account has been created.` });
 
     res.status(201).json(rows[0]);
   } catch (err) {

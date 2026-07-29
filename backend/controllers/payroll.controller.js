@@ -1,6 +1,7 @@
 // controllers/payroll.controller.js
 const db = require('../config/db');
 const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
+const { notifyEmployee } = require('../services/push.service');
 
 // ─── Get my payslips ──────────────────────────────────────────
 exports.getMine = async (req, res) => {
@@ -100,10 +101,7 @@ exports.processMonth = async (req, res) => {
         [req.user.company_id, emp.id, month, year, emp.salary, allowances, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.otherDeductions, compliance.deductions]
       );
       // Notify employee
-      await db.query(
-        "INSERT INTO notifications (company_id,employee_id,type,message) VALUES ($1,$2,'payroll','Your payroll for this month has been processed. View your payslip.')",
-        [req.user.company_id, emp.id]
-      );
+      await notifyEmployee({ companyId: req.user.company_id, employeeId: emp.id, type: 'payroll', message: 'Your payroll for this month has been processed. View your payslip.' });
     }
 
     res.json({ message: `Payroll processed for ${emps.length} employees`, count: emps.length });

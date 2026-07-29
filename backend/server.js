@@ -56,6 +56,7 @@ app.use('/api/tickets',       require('./routes/tickets.routes'));
 app.use('/api/billing',       require('./routes/billing.routes'));
 app.use('/api/company-calendar', require('./routes/company-calendar.routes'));
 app.use('/api/schedules',     require('./routes/schedules.routes'));
+app.use('/api/push',          require('./routes/push.routes'));
 
 // Serve the browser application from the same Railway service in production.
 const frontendDir = path.join(__dirname, '..', 'frontend');
