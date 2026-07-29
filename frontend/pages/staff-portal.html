@@ -1543,9 +1543,10 @@
           Announcements
           <span class="staff-nav-badge hidden" data-announcement-badge>0</span>
         </a>
-        <a href="#messages">
+        <a href="messages.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg>
           Messages
+          <span class="staff-nav-badge hidden" data-message-badge>0</span>
         </a>
         <a href="#profile">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
@@ -2272,9 +2273,10 @@
         News
         <span class="staff-mobile-badge hidden" data-announcement-badge>0</span>
       </a>
-      <a href="#messages">
+      <a href="messages.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg>
         Messages
+        <span class="staff-mobile-badge hidden" data-message-badge>0</span>
       </a>
       <a href="#profile">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
@@ -2359,6 +2361,7 @@
       directory: [],
       announcements: [],
       notifications: [],
+      messageUnreadCount: 0,
       todos: [],
       tickets: [],
       attendanceToday: null,
@@ -2446,14 +2449,14 @@
       loadNotifCount();
       knownStaffNotificationIds = new Set((portalState.notifications || []).map((notification) => Number(notification.id)));
       staffNotificationsReady = true;
-      setInterval(refreshStaffAnnouncementNotifications, 10000);
+      setInterval(refreshStaffPortalNotifications, 10000);
     }
 
     async function loadPortal() {
       try {
         const profile = await api.get('/auth/me');
         const isItDepartment = profile.department_name === 'IT Department';
-        const [leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
+        const [leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, messageUnread, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
           api.get('/leave/mine'),
           api.get('/leave/balance'),
           api.get('/payroll/mine'),
@@ -2461,6 +2464,7 @@
           api.get('/performance/mine'),
           api.get('/notifications/announcements'),
           api.get('/notifications/mine'),
+          api.get('/messages/unread-count'),
           api.get('/todos?status=all&scope=mine'),
           api.get(isItDepartment ? '/tickets' : '/tickets/mine'),
           api.get('/attendance/today'),
@@ -2469,7 +2473,7 @@
           api.get('/employees/directory'),
         ]);
 
-        portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
+        portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, messageUnreadCount: messageUnread.count, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
         renderShellUser(profile);
         renderProfile(profile);
         renderProfileAvatar(profile);
@@ -2489,6 +2493,7 @@
         renderAnnouncements();
         renderNotifications();
         renderAnnouncementIndicators();
+        renderMessageIndicators();
         renderNextLeave();
         if (getStaffPage() === 'announcements') markAnnouncementNotificationsRead();
       } catch (err) {
@@ -2496,11 +2501,12 @@
       }
     }
 
-    async function refreshStaffAnnouncementNotifications() {
+    async function refreshStaffPortalNotifications() {
       try {
-        const [notifications, announcements, leaves, leaveBalance] = await Promise.all([
+        const [notifications, announcements, messageUnread, leaves, leaveBalance] = await Promise.all([
           api.get('/notifications/mine'),
           api.get('/notifications/announcements'),
+          api.get('/messages/unread-count'),
           api.get('/leave/mine'),
           api.get('/leave/balance')
         ]);
@@ -2509,12 +2515,14 @@
         ));
         portalState.notifications = notifications;
         portalState.announcements = announcements;
+        portalState.messageUnreadCount = messageUnread.count;
         portalState.leaves = leaves;
         portalState.leaveBalance = leaveBalance;
         knownStaffNotificationIds = new Set(notifications.map((notification) => Number(notification.id)));
         renderAnnouncements();
         renderNotifications();
         renderAnnouncementIndicators();
+        renderMessageIndicators();
         loadNotifCount();
         renderKpis();
         renderLeaveHistory();
@@ -3525,6 +3533,14 @@
       if (alert) alert.classList.toggle('hidden', count === 0);
       setText('announcement-new-count', `${count} new`);
       setText('announcement-page-summary', count ? `${count} new announcement${count === 1 ? '' : 's'}` : 'All company updates');
+    }
+
+    function renderMessageIndicators() {
+      const count = Number(portalState.messageUnreadCount) || 0;
+      document.querySelectorAll('[data-message-badge]').forEach((badge) => {
+        badge.textContent = count > 9 ? '9+' : String(count);
+        badge.classList.toggle('hidden', count === 0);
+      });
     }
 
     async function markAnnouncementNotificationsRead() {

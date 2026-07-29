@@ -534,6 +534,7 @@ window.addEventListener('keydown', () => activateMessageSound().catch(() => {}),
 
 async function loadInbox({ notify = false } = {}) {
   const conversations = await api.get('/messages/inbox');
+  setMessageNavBadge(conversations.reduce((total, conversation) => total + Number(conversation.unread_count || 0), 0));
   const hasNewUnreadMessage = notify && inboxSnapshotReady && conversations.some((conversation) => (
     Number(conversation.unread_count || 0) > Number(inboxUnreadCounts.get(conversation.id) || 0)
   ));

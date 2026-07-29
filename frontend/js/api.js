@@ -524,6 +524,7 @@ function buildSidebar(activePage) {
     return `<a href="${href}" class="nav-item ${active}">
       ${item.icon}
       <span>${item.label}</span>
+      ${item.page === 'messages' ? '<span class="nav-badge hidden" data-message-nav-badge>0</span>' : ''}
     </a>`;
   }).join('');
 
@@ -554,6 +555,7 @@ function buildSidebar(activePage) {
   `;
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
+  loadMessageNavCount();
 }
 
 const SIDEBAR_SCROLL_KEY = 'hrconnect.sidebar.scrollTop';
@@ -655,6 +657,23 @@ function setupMobileSidebar(sidebar) {
 function logout() {
   api.clearAuth();
   window.location.href = appUrl('/pages/login.html');
+}
+
+function setMessageNavBadge(count) {
+  const total = Number(count) || 0;
+  document.querySelectorAll('[data-message-nav-badge]').forEach((badge) => {
+    badge.textContent = total > 99 ? '99+' : String(total);
+    badge.classList.toggle('hidden', total === 0);
+  });
+}
+
+async function loadMessageNavCount() {
+  try {
+    const data = await api.get('/messages/unread-count');
+    setMessageNavBadge(data.count);
+  } catch (error) {
+    // The menu should still work if message counts are temporarily unavailable.
+  }
 }
 
 // ─── Load notification badge ────────────────────────────────
