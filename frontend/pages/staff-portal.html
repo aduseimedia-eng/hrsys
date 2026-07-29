@@ -1524,13 +1524,13 @@
 
     /* Staff uses the same shared shell and drawer navigation as HR. */
     .staff-shell.app-shell { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); grid-template-rows: 1fr; }
-    .sidebar.staff-sidebar { grid-row: 1 / -1; gap: 0; padding: 0; z-index: 100; }
+    .staff-shell > .sidebar { grid-row: 1 / -1; gap: 0; padding: 0; z-index: 100; }
     .staff-main.main-content { grid-column: 2; grid-row: 1 / -1; min-width: 0; padding: calc(var(--topbar-h) + 30px) 30px 30px; }
     .staff-shell .staff-topbar { position: fixed; top: 0; left: var(--sidebar-w); right: 0; z-index: 80; height: var(--topbar-h); margin: 0; padding: 0 30px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: rgba(255,255,255,.9); box-shadow: none; backdrop-filter: blur(12px); }
     .staff-shell .staff-mobile-nav { display: none !important; }
-    .sidebar.staff-sidebar .sidebar-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto !important; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: #8aaee8 transparent; }
-    .sidebar.staff-sidebar .sidebar-nav::-webkit-scrollbar { width: 6px; }
-    .sidebar.staff-sidebar .sidebar-nav::-webkit-scrollbar-thumb { border-radius: 999px; background: #8aaee8; }
+    .staff-shell > .sidebar .sidebar-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto !important; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: #8aaee8 transparent; }
+    .staff-shell > .sidebar .sidebar-nav::-webkit-scrollbar { width: 6px; }
+    .staff-shell > .sidebar .sidebar-nav::-webkit-scrollbar-thumb { border-radius: 999px; background: #8aaee8; }
     @media (max-width: 768px) {
       .staff-shell.app-shell { grid-template-columns: 1fr; }
       .staff-main.main-content { grid-column: 1; grid-row: 1; padding: calc(var(--topbar-h) + 20px) 16px 24px; }
@@ -1538,8 +1538,8 @@
       .staff-shell .staff-topbar .mobile-menu-btn { display: inline-flex !important; }
       .staff-shell .staff-topbar .topbar-actions { display: flex !important; margin-left: auto; }
       .staff-shell .staff-topbar #notif-btn { display: inline-flex !important; }
-      .sidebar.staff-sidebar { height: 100dvh; max-height: 100dvh; }
-      .sidebar.staff-sidebar .sidebar-nav { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+      .staff-shell > .sidebar { height: 100dvh; max-height: 100dvh; }
+      .staff-shell > .sidebar .sidebar-nav { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
     }
     @media (max-width: 640px) {
       .staff-main.main-content { padding: 74px 12px 24px; }
@@ -1549,7 +1549,7 @@
 </head>
 <body>
   <div class="staff-shell app-shell">
-    <aside class="sidebar staff-sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="staff-sidebar-header">
         <div class="staff-brand">
           <img class="staff-brand-logo" src="../assets/logo.png" alt="KenadHR">
@@ -1633,8 +1633,6 @@
         </button>
       </div>
     </aside>
-    <div class="staff-sidebar-backdrop" id="staff-sidebar-backdrop" onclick="closeStaffMenu()"></div>
-
     <main class="main-content staff-main">
       <header class="topbar staff-topbar">
         <button class="icon-btn mobile-menu-btn" type="button" aria-label="Open menu" aria-expanded="false" data-staff-menu-control="true" onclick="toggleStaffMobileDrawer()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
