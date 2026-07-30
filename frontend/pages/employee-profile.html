@@ -237,9 +237,10 @@ function optionList(options, selectedValue, placeholder = '— Select —') {
 
 async function loadProfile() {
   try {
-    const [emp, deptRows] = await Promise.all([
+    const [emp, deptRows, promotions] = await Promise.all([
       api.get(`/employees/${empId}`),
-      api.get('/employees/departments')
+      api.get('/employees/departments'),
+      api.get(`/employees/${empId}/promotions`)
     ]);
     departments = deptRows || [];
     document.getElementById('page-title').textContent = `${emp.first_name} ${emp.last_name}`;
@@ -273,7 +274,7 @@ async function loadProfile() {
           <button type="button" class="btn btn-sm" onclick="goBackToEmployees()">Back to Employees</button>
           ${!isOwn ? `<button class="btn btn-primary btn-sm" onclick="showSecureMessageModal()">Send Message</button>` : ''}
           ${canEdit ? `<button class="btn btn-sm" onclick="showEditModal()">Edit Profile</button>
-          ${isAdmin && !isOwn ? `<button class="btn btn-sm" onclick="showAccountModal(${emp.id})">Account Settings</button>
+          ${isAdmin && !isOwn ? `<button class="btn btn-primary btn-sm" onclick="showPromotionModal()">Promote</button><button class="btn btn-sm" onclick="showAccountModal(${emp.id})">Account Settings</button>
           <button class="btn btn-sm" style="background:rgba(225,29,72,.2);border-color:rgba(225,29,72,.3)" onclick="showDeleteEmployeeModal(${emp.id})">Delete Staff</button>` : ''}` : ''}
         </div>
       </div>
@@ -367,6 +368,7 @@ async function loadProfile() {
               <button type="button" class="btn btn-outline" onclick="showEmployeePayslips(${emp.id})">Payslips</button>
               <button type="button" class="btn btn-outline" onclick="showEmployeeDocuments(${emp.id})">Documents</button>
               <button type="button" class="btn btn-outline" onclick="showEmployeePerformance(${emp.id})">Performance</button>
+              <button type="button" class="btn btn-outline" onclick="showPromotionHistory()">Promotion History</button>
             </div>
             <section id="quick-access-panel" class="quick-access-panel" aria-live="polite"></section>
           </div>
@@ -376,6 +378,7 @@ async function loadProfile() {
 
     // Store emp for edit modal
     window._emp = emp;
+    window._promotions = promotions || [];
   } catch(e) {
     document.getElementById('profile-content').innerHTML =
       `<div class="empty-state"><h4>Profile not found</h4><p>${e.message}</p></div>`;
@@ -547,6 +550,42 @@ function showEditModal() {
       </div>
     </div>`;
   document.body.appendChild(overlay);
+}
+
+function showPromotionHistory() {
+  const panel = document.getElementById('quick-access-panel');
+  const rows = window._promotions || [];
+  if (!panel) return;
+  panel.classList.add('open');
+  panel.innerHTML = `<div class="quick-access-panel-head"><h4>Promotion History</h4><button class="btn btn-outline btn-sm" onclick="document.getElementById('quick-access-panel').classList.remove('open')">Close</button></div>${rows.length ? `<div class="table-container"><table><thead><tr><th>Effective date</th><th>New title</th><th>New role</th><th>Recorded by</th><th>Notes</th></tr></thead><tbody>${rows.map(row => `<tr><td>${fmt.date(row.effective_date)}</td><td>${safe(row.new_details?.job_title || '—')}</td><td>${safe(row.new_details?.role || '—')}</td><td>${safe(row.promoted_by_name || '—')}</td><td>${safe(row.notes || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="suite-empty">No promotions have been recorded for this employee.</div>'}`;
+}
+
+async function showPromotionModal() {
+  const emp = window._emp;
+  if (!isAdmin || !emp) return;
+  const directory = await api.get('/employees/directory');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal modal-lg"><div class="modal-header"><div><h3>Promote ${safe(`${emp.first_name} ${emp.last_name}`)}</h3><p style="margin-top:4px;color:var(--text-secondary);font-size:.82rem">The existing employee record, payroll, attendance, documents, and history will be kept.</p></div><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">x</button></div><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">New job title</label><input id="promotion-title" class="form-control" value="${safe(emp.job_title || '')}"></div><div class="form-group"><label class="form-label">Employment type</label><select id="promotion-employment-type" class="form-control form-select">${optionList(EMPLOYMENT_TYPES, emp.employment_type)}</select></div><div class="form-group"><label class="form-label">Department</label><select id="promotion-department" class="form-control form-select">${optionList(departments.map(d=>({value:d.id,label:d.name})), emp.department_id)}</select></div><div class="form-group"><label class="form-label">Reports to</label><select id="promotion-manager" class="form-control form-select">${optionList(directory.filter(person=>person.id!==emp.id).map(person=>({value:person.id,label:`${person.first_name} ${person.last_name}`})), emp.manager_id, 'Top level')}</select></div><div class="form-group"><label class="form-label">System role</label><select id="promotion-role" class="form-control form-select">${optionList([{value:'employee',label:'Employee'},{value:'manager',label:'Manager'},{value:'admin',label:'Admin'}], emp.role)}</select></div><div class="form-group"><label class="form-label">New monthly salary (GHS)</label><input id="promotion-salary" type="number" min="0" step="0.01" class="form-control" value="${safe(emp.salary ?? '')}"></div><div class="form-group"><label class="form-label">Effective date</label><input id="promotion-date" type="date" class="form-control" value="${new Date().toISOString().slice(0,10)}"></div><div class="form-group span-2"><label class="form-label">Promotion notes</label><textarea id="promotion-notes" class="form-control" rows="3" placeholder="Reason or promotion details"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="savePromotion(${emp.id})">Confirm Promotion</button></div></div>`;
+  document.body.appendChild(overlay);
+}
+
+async function savePromotion(id) {
+  try {
+    await api.post(`/employees/${id}/promotions`, {
+      job_title: document.getElementById('promotion-title').value,
+      employment_type: document.getElementById('promotion-employment-type').value,
+      department_id: document.getElementById('promotion-department').value || null,
+      manager_id: document.getElementById('promotion-manager').value || null,
+      role: document.getElementById('promotion-role').value,
+      salary: document.getElementById('promotion-salary').value,
+      effective_date: document.getElementById('promotion-date').value,
+      notes: document.getElementById('promotion-notes').value
+    });
+    document.querySelector('.modal-overlay')?.remove();
+    toast('Promotion recorded and employee details updated', 'success');
+    loadProfile();
+  } catch (e) { toast(e.message || 'Could not complete promotion', 'error'); }
 }
 
 async function saveEdit(id) {

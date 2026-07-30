@@ -14,6 +14,8 @@ router.delete('/departments/:id',    auth, rbac('admin'), ctrl.deleteDepartment)
 router.get  ('/directory',          auth, ctrl.getDirectory);
 router.get  ('/',                   auth, rbac('admin','manager'), ctrl.getAll);
 router.post ('/',                   auth, rbac('admin'), ctrl.create);
+router.get  ('/:id/promotions',     auth, ctrl.getPromotions);
+router.post ('/:id/promotions',     auth, rbac('admin'), ctrl.promote);
 router.get  ('/:id',                auth, ctrl.getById);
 router.put  ('/:id',                auth, ctrl.update);
 router.patch('/:id/account',        auth, rbac('admin'), ctrl.resetAccount);

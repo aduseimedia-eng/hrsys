@@ -270,6 +270,78 @@ exports.update = async (req, res) => {
   }
 };
 
+// â”€â”€â”€ Promotion history and promotion workflow (admin) â”€â”€â”€
+exports.getPromotions = async (req, res) => {
+  try {
+    const employeeId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(employeeId)) return res.status(400).json({ error: 'Invalid employee id' });
+    if (req.user.role === 'employee' && req.user.id !== employeeId) return res.status(403).json({ error: 'Access denied' });
+    const { rows } = await db.query(
+      `SELECT p.*, CONCAT(a.first_name, ' ', a.last_name) AS promoted_by_name
+       FROM employee_promotions p
+       LEFT JOIN employees a ON a.id=p.promoted_by
+       WHERE p.company_id=$1 AND p.employee_id=$2
+       ORDER BY p.effective_date DESC, p.id DESC`,
+      [req.user.company_id, employeeId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not fetch promotion history' });
+  }
+};
+
+exports.promote = async (req, res) => {
+  const employeeId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(employeeId)) return res.status(400).json({ error: 'Invalid employee id' });
+  const allowed = ['job_title', 'department_id', 'manager_id', 'salary', 'role', 'employment_type'];
+  const changes = {};
+  for (const field of allowed) if (Object.prototype.hasOwnProperty.call(req.body, field)) changes[field] = req.body[field];
+  if (!Object.keys(changes).length) return res.status(400).json({ error: 'Choose at least one employment detail to update' });
+  if (changes.role && !['admin', 'manager', 'employee'].includes(changes.role)) return res.status(400).json({ error: 'Invalid role' });
+  if (changes.employment_type && !EMPLOYMENT_TYPES.includes(changes.employment_type)) return res.status(400).json({ error: 'Invalid employment type' });
+  if (changes.salary !== undefined && (Number.isNaN(Number(changes.salary)) || Number(changes.salary) < 0)) return res.status(400).json({ error: 'Salary must be a valid amount' });
+  const client = await db.getClient();
+  try {
+    await client.query('BEGIN');
+    const { rows: currentRows } = await client.query(
+      `SELECT id, first_name, last_name, job_title, department_id, manager_id, salary, role, employment_type
+       FROM employees WHERE id=$1 AND company_id=$2 FOR UPDATE`, [employeeId, req.user.company_id]
+    );
+    if (!currentRows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Employee not found' }); }
+    const current = currentRows[0];
+    const params = [];
+    const assignments = [];
+    for (const field of allowed) {
+      if (!Object.prototype.hasOwnProperty.call(changes, field)) continue;
+      let value = changes[field];
+      if (['department_id', 'manager_id'].includes(field) && value === '') value = null;
+      if (field === 'salary') value = Number(value);
+      params.push(value);
+      assignments.push(`${field}=$${params.length}`);
+    }
+    params.push(employeeId, req.user.company_id);
+    const { rows: updatedRows } = await client.query(
+      `UPDATE employees SET ${assignments.join(', ')} WHERE id=$${params.length - 1} AND company_id=$${params.length} RETURNING *`, params
+    );
+    const updated = updatedRows[0];
+    const previousDetails = Object.fromEntries(allowed.map((field) => [field, current[field]]));
+    const newDetails = Object.fromEntries(allowed.map((field) => [field, updated[field]]));
+    await client.query(
+      `INSERT INTO employee_promotions (company_id, employee_id, promoted_by, effective_date, previous_details, new_details, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [req.user.company_id, employeeId, req.user.id, req.body.effective_date || new Date().toISOString().slice(0, 10), previousDetails, newDetails, String(req.body.notes || '').trim() || null]
+    );
+    await client.query('COMMIT');
+    await notifyEmployee({ companyId: req.user.company_id, employeeId, type: 'promotion', message: `Congratulations! You have been promoted to ${updated.job_title || 'your new role'}.` });
+    res.json(updated);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Could not complete promotion' });
+  } finally { client.release(); }
+};
+
 // Admin: reset staff email/password
 exports.resetAccount = async (req, res) => {
   try {
