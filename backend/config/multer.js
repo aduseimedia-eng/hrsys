@@ -38,4 +38,5 @@ const docFilter = (req, file, cb) => {
 module.exports = {
   uploadPhoto: multer({ storage: photoStorage, fileFilter: imageFilter, limits: { fileSize: 5 * 1024 * 1024 } }),
   uploadDoc:   multer({ storage: docStorage,   fileFilter: docFilter,   limits: { fileSize: 20 * 1024 * 1024 } })
+  ,uploadApplicant: multer({ storage: multer.memoryStorage(), fileFilter: docFilter, limits: { fileSize: 20 * 1024 * 1024 } })
 };

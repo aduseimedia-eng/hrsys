@@ -49,6 +49,7 @@ app.use('/api/leave',         require('./routes/leave.routes'));
 app.use('/api/payroll',       require('./routes/payroll.routes'));
 app.use('/api/benefits',      require('./routes/benefits.routes'));
 app.use('/api/loans',         require('./routes/loans.routes'));
+app.use('/api/recruitment',   require('./routes/recruitment.routes'));
 app.use('/api/documents',     require('./routes/documents.routes'));
 app.use('/api/performance',   require('./routes/performance.routes'));
 app.use('/api/notifications', require('./routes/notifications.routes'));
