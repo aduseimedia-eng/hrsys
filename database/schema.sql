@@ -189,6 +189,8 @@ CREATE TABLE benefits (
   name VARCHAR(160) NOT NULL,
   category VARCHAR(80) NOT NULL DEFAULT 'other',
   provider VARCHAR(160), description TEXT, eligibility TEXT,
+  eligible_employment_type VARCHAR(30) NOT NULL DEFAULT 'all'
+    CHECK (eligible_employment_type IN ('all', 'staff', 'national_service', 'contractual', 'internship')),
   employee_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
   employer_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
   enrollment_info TEXT, is_active BOOLEAN NOT NULL DEFAULT true,
