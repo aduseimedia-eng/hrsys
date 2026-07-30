@@ -33,6 +33,7 @@ CREATE TABLE employees (
   first_name     VARCHAR(80)  NOT NULL,
   last_name      VARCHAR(80)  NOT NULL,
   email          VARCHAR(150) NOT NULL,
+  employee_code  VARCHAR(50),
   password_hash  TEXT         NOT NULL,
   role           VARCHAR(20)  NOT NULL DEFAULT 'employee'
                    CHECK (role IN ('admin','manager','employee')),
@@ -378,6 +379,7 @@ CREATE INDEX idx_departments_company   ON departments(company_id);
 CREATE INDEX idx_employees_company     ON employees(company_id, is_active);
 CREATE INDEX idx_employees_department  ON employees(department_id);
 CREATE INDEX idx_attendance_employee   ON attendance(employee_id);
+CREATE UNIQUE INDEX idx_employees_company_employee_code ON employees(company_id, employee_code) WHERE employee_code IS NOT NULL;
 CREATE INDEX idx_attendance_company    ON attendance(company_id, work_date);
 CREATE INDEX idx_attendance_date       ON attendance(work_date);
 CREATE INDEX idx_leave_employee        ON leave_requests(employee_id);

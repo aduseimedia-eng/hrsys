@@ -279,7 +279,7 @@ async function loadProfile() {
       </div>
 
       <section class="profile-overview">
-        <div class="profile-overview-item"><span>Employee ID</span><strong>EMP-${String(emp.id).padStart(4, '0')}</strong></div>
+        <div class="profile-overview-item"><span>Employee ID</span><strong>${emp.employee_code || 'Not assigned'}</strong></div>
         <div class="profile-overview-item"><span>Department</span><strong>${emp.department_name || 'Not assigned'}</strong></div>
         <div class="profile-overview-item"><span>Employment</span><strong>${employmentTypeLabel(emp.employment_type)}</strong></div>
         <div class="profile-overview-item"><span>Started</span><strong>${emp.hire_date ? fmt.date(emp.hire_date) : 'Not recorded'}</strong></div>
@@ -321,7 +321,7 @@ async function loadProfile() {
             ${infoRow('Field of Study', emp.education_field)}
             ${infoRow('Graduation Year', emp.graduation_year)}
             ${infoRow('Department', emp.department_name)}
-            ${infoRow('Staff ID', emp.id ? `EMP-${String(emp.id).padStart(4, '0')}` : '')}
+            ${infoRow('Staff ID', emp.employee_code || 'Not assigned')}
           </div>
         </div>
 
@@ -536,6 +536,7 @@ function showEditModal() {
           <div class="form-group"><label class="form-label">Job Title</label><select id="e-title" class="form-control form-select">${optionList(JOB_TITLES, emp.job_title)}</select></div>
           <div class="form-group"><label class="form-label">Employment Type</label><select id="e-employment-type" class="form-control form-select">${optionList(EMPLOYMENT_TYPES, emp.employment_type)}</select></div>
           <div class="form-group"><label class="form-label">Salary</label><input type="number" id="e-salary" class="form-control" value="${emp.salary || ''}"></div>
+          <div class="form-group"><label class="form-label required">Employee ID</label><input type="text" id="e-employee-code" class="form-control" maxlength="50" value="${emp.employee_code || ''}" placeholder="e.g. EMP-001"></div>
           ` : ''}
         </div>
       </div>
@@ -577,6 +578,7 @@ async function saveEdit(id) {
       body.job_title = document.getElementById('e-title')?.value;
       body.employment_type = document.getElementById('e-employment-type')?.value;
       body.salary    = document.getElementById('e-salary')?.value;
+      body.employee_code = document.getElementById('e-employee-code')?.value;
     }
     await api.put(`/employees/${id}`, body);
     document.querySelector('.modal-overlay')?.remove();

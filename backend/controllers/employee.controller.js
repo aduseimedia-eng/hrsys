@@ -63,7 +63,7 @@ exports.getAll = async (req, res) => {
 
     params.push(limit, offset);
     const { rows } = await db.query(
-      `SELECT e.id, e.first_name, e.last_name, e.email, e.role, e.employment_type, e.job_title,
+      `SELECT e.id, e.employee_code, e.first_name, e.last_name, e.email, e.role, e.employment_type, e.job_title,
               e.phone, e.hire_date, e.photo_url, e.salary,
               d.name AS department_name,
               CONCAT(m.first_name,' ',m.last_name) AS manager_name
@@ -125,7 +125,7 @@ exports.create = async (req, res) => {
   try {
     const {
       first_name, last_name, email, password, role, employment_type, department_id,
-      manager_id, job_title, salary, hire_date, phone, address, date_of_birth,
+      manager_id, job_title, salary, hire_date, phone, address, date_of_birth, employee_code,
       education_information, education_level, education_institution, education_field, graduation_year,
       experience, previous_company, previous_job_title, experience_years, experience_summary,
       emergency_contact_name, emergency_contact_relationship,
@@ -142,6 +142,8 @@ exports.create = async (req, res) => {
     if (employment_type && !EMPLOYMENT_TYPES.includes(employment_type)) {
       return res.status(400).json({ error: 'Invalid employment type' });
     }
+    const employeeCode = String(employee_code || '').trim().toUpperCase();
+    if (!employeeCode || employeeCode.length > 50) return res.status(400).json({ error: 'Employee ID is required and must be 50 characters or fewer' });
 
     const existing = await db.query('SELECT id FROM employees WHERE email = $1', [email.toLowerCase()]);
     if (existing.rows.length) return res.status(409).json({ error: 'Email already registered' });
@@ -149,17 +151,17 @@ exports.create = async (req, res) => {
     const hash = await bcrypt.hash(password, 12);
     const { rows } = await db.query(
       `INSERT INTO employees (company_id, first_name, last_name, email, password_hash, role, employment_type,
-        department_id, manager_id, job_title, salary, hire_date, phone, address, date_of_birth,
+        department_id, manager_id, job_title, salary, hire_date, phone, address, date_of_birth, employee_code,
         education_information, education_level, education_institution, education_field, graduation_year,
         experience, previous_company, previous_job_title, experience_years, experience_summary,
         emergency_contact_name, emergency_contact_relationship,
         emergency_contact_phone, emergency_contact_address, bank_name, bank_account_name,
         bank_account_number, bank_branch)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
-       RETURNING id, first_name, last_name, email, role, job_title, hire_date`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34)
+       RETURNING id, employee_code, first_name, last_name, email, role, job_title, hire_date`,
       [req.user.company_id, first_name, last_name, email.toLowerCase(), hash, role || 'employee', employment_type || 'staff',
        department_id || null, manager_id || null, job_title, salary || 0,
-       hire_date || null, phone, address, date_of_birth || null,
+       hire_date || null, phone, address, date_of_birth || null, employeeCode,
        education_information || '', education_level || '', education_institution || '',
        education_field || '', graduation_year || '', experience || '', previous_company || '',
        previous_job_title || '', experience_years || '', experience_summary || '',
@@ -174,6 +176,7 @@ exports.create = async (req, res) => {
 
     res.status(201).json(rows[0]);
   } catch (err) {
+    if (err.code === '23505' && err.constraint === 'idx_employees_company_employee_code') return res.status(409).json({ error: 'Employee ID is already in use' });
     console.error(err);
     res.status(500).json({ error: 'Could not create employee' });
   }
@@ -193,7 +196,7 @@ exports.update = async (req, res) => {
 
     const adminFields = [
       'first_name', 'last_name', 'phone', 'address', 'date_of_birth',
-      'department_id', 'manager_id', 'job_title', 'salary', 'role', 'employment_type', 'hire_date',
+      'department_id', 'manager_id', 'job_title', 'salary', 'role', 'employment_type', 'hire_date', 'employee_code',
       'education_information', 'education_level', 'education_institution', 'education_field', 'graduation_year',
       'experience', 'previous_company', 'previous_job_title', 'experience_years', 'experience_summary',
       'emergency_contact_name', 'emergency_contact_relationship',
@@ -229,6 +232,10 @@ exports.update = async (req, res) => {
       if (field === 'employment_type' && value && !EMPLOYMENT_TYPES.includes(value)) {
         return res.status(400).json({ error: 'Invalid employment type' });
       }
+      if (field === 'employee_code') {
+        value = String(value || '').toUpperCase();
+        if (!value || value.length > 50) return res.status(400).json({ error: 'Employee ID is required and must be 50 characters or fewer' });
+      }
 
       params.push(value);
       updates.push(`${field}=$${params.length}`);
@@ -245,7 +252,7 @@ exports.update = async (req, res) => {
     params.push(id);
     const { rows } = await db.query(
       `UPDATE employees SET ${updates.join(', ')} WHERE id=$${params.length} AND company_id=$${params.length + 1}
-       RETURNING id, first_name, last_name, email, role, job_title, phone, address,
+       RETURNING id, employee_code, first_name, last_name, email, role, job_title, phone, address,
                  date_of_birth, hire_date, department_id, manager_id, salary, photo_url, employment_type,
                  education_information, education_level, education_institution, education_field, graduation_year,
                  experience, previous_company, previous_job_title, experience_years, experience_summary,
@@ -257,6 +264,7 @@ exports.update = async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });
     res.json(rows[0]);
   } catch (err) {
+    if (err.code === '23505' && err.constraint === 'idx_employees_company_employee_code') return res.status(409).json({ error: 'Employee ID is already in use' });
     console.error(err);
     res.status(500).json({ error: 'Could not update employee' });
   }

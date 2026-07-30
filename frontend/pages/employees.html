@@ -182,6 +182,7 @@
         <div class="form-group"><label class="form-label required">First Name</label><input type="text" id="f-first" class="form-control"></div>
         <div class="form-group"><label class="form-label required">Last Name</label><input type="text" id="f-last" class="form-control"></div>
         <div class="form-group"><label class="form-label required">Email</label><input type="email" id="f-email" class="form-control"></div>
+        <div class="form-group"><label class="form-label required">Employee ID</label><input type="text" id="f-employee-code" class="form-control" maxlength="50" placeholder="e.g. EMP-001"></div>
         <div class="form-group"><label class="form-label required">Password</label><input type="password" id="f-pass" class="form-control" placeholder="Temporary password"></div>
         <div class="form-group"><label class="form-label">Role</label>
           <select id="f-role" class="form-control form-select">
@@ -334,6 +335,7 @@ async function loadEmployees() {
           <div>
             <div class="emp-name">${employeeName}</div>
             <div class="emp-title">${e.job_title || 'No job title'}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px">${e.employee_code || 'Employee ID not assigned'}</div>
           </div>
         </div>
         <span class="employment-chip">${type.label}</span>
@@ -376,6 +378,7 @@ async function createEmployee() {
       first_name:    document.getElementById('f-first').value,
       last_name:     document.getElementById('f-last').value,
       email:         document.getElementById('f-email').value,
+      employee_code: document.getElementById('f-employee-code').value,
       password:      document.getElementById('f-pass').value,
       role:          document.getElementById('f-role').value,
       employment_type: document.getElementById('f-employment-type').value,
