@@ -174,6 +174,7 @@ CREATE TABLE payroll (
   ssnit_employee NUMERIC(12,2) DEFAULT 0,
   ssnit_employer NUMERIC(12,2) DEFAULT 0,
   other_deductions NUMERIC(12,2) DEFAULT 0,
+  benefit_deductions NUMERIC(12,2) NOT NULL DEFAULT 0,
   deductions    NUMERIC(12,2) DEFAULT 0,
   net_salary    NUMERIC(12,2) GENERATED ALWAYS AS (base_salary + allowances + overtime_pay - deductions) STORED,
   status        VARCHAR(20) DEFAULT 'pending'

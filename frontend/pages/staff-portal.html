@@ -3093,7 +3093,7 @@
         const pay = await api.get(`/payroll/${id}`);
         const month = new Date(Number(pay.year), Number(pay.month) - 1, 1)
           .toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-        const gross = Number(pay.base_salary || 0) + Number(pay.allowances || 0);
+        const gross = Number(pay.base_salary || 0) + Number(pay.allowances || 0) + Number(pay.overtime_pay || 0);
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
         overlay.innerHTML = `
@@ -3116,10 +3116,12 @@
                 <h4>Earnings</h4>
                 <div class="detail-row"><span>Base salary</span><span>${fmt.currency(pay.base_salary)}</span></div>
                 <div class="detail-row"><span>Allowances</span><span>+${fmt.currency(pay.allowances)}</span></div>
+                <div class="detail-row"><span>Overtime</span><span>+${fmt.currency(pay.overtime_pay || 0)}</span></div>
                 <div class="detail-row total"><span>Gross pay</span><span>${fmt.currency(gross)}</span></div>
               </div>
               <div class="detail-section">
                 <h4>Deductions</h4>
+                <div class="detail-row"><span>Benefits contribution</span><span>-${fmt.currency(pay.benefit_deductions || 0)}</span></div>
                 <div class="detail-row"><span>Total deductions</span><span>-${fmt.currency(pay.deductions)}</span></div>
               </div>
               <div class="net-salary-box">
