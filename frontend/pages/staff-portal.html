@@ -1781,6 +1781,20 @@
         <article class="staff-panel">
           <div class="staff-panel-header">
             <div>
+              <h3>Medical Information</h3>
+              <span>Private medical conditions or workplace accommodations</span>
+            </div>
+            <button class="btn btn-outline btn-sm" type="button" onclick="editProfileCard('medical')">Edit</button>
+          </div>
+          <div class="staff-panel-body">
+            <div class="profile-list" id="profile-medical-list"></div>
+            <p style="margin:12px 0 0;color:var(--text-muted);font-size:.75rem">Only you and HR administrators can view this information.</p>
+          </div>
+        </article>
+
+        <article class="staff-panel">
+          <div class="staff-panel-header">
+            <div>
               <h3>Personal Info</h3>
               <span>Your core staff record</span>
             </div>
@@ -2593,7 +2607,7 @@
       const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
       setText('profile-avatar-name', fullName || 'Staff member');
       setText('profile-avatar-role', profile.job_title || titleCase(profile.role || 'staff'));
-      ['education', 'experience', 'emergency', 'bank', 'personal'].forEach((section) => {
+      ['education', 'experience', 'emergency', 'bank', 'medical', 'personal'].forEach((section) => {
         setProfileList(profileCardConfig(section).target, profileCardRows(section, profile));
       });
       setProfileList('profile-employment-list', [
@@ -2675,6 +2689,12 @@
             { name: 'bank_branch', label: 'Branch' }
           ]
         },
+        medical: {
+          target: 'profile-medical-list',
+          fields: [
+            { name: 'medical_conditions', label: 'Medical conditions or accommodations', type: 'textarea' }
+          ]
+        },
         personal: {
           target: 'profile-personal-list',
           fields: [
@@ -2720,6 +2740,9 @@
           ['Account name', profile.bank_account_name || fullName],
           ['Account number', profile.bank_account_number],
           ['Branch', profile.bank_branch]
+        ],
+        medical: [
+          ['Medical conditions or accommodations', profile.medical_conditions || 'Not provided', 'stack']
         ],
         personal: [
           ['Full name', fullName],
