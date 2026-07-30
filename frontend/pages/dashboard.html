@@ -548,26 +548,12 @@
           </div>
         </article>
 
-        <article class="dash-panel">
-          <div class="dash-panel-header">
-            <div>
-              <h2>Upcoming Events</h2>
-              <span>Interviews, onboarding, and benefits dates</span>
-            </div>
-          </div>
-          <div class="dash-panel-body">
-            <div class="event-list" id="event-list">
-              <div class="loading-minimal">Loading events...</div>
-            </div>
-          </div>
-        </article>
       </aside>
     </section>
   </main>
 </div>
 
 <script src="../js/api.js"></script>
-<script src="../js/hr-suite-data.js"></script>
 <script>
 const user = requireAuth();
 if (!user) throw new Error('redirect');
@@ -620,7 +606,6 @@ async function loadDashboard() {
     renderTodos(data);
     renderDashboardAttendance(data);
     renderBirthdays(stats);
-    renderEvents();
     loadNotifCount();
     if (results.some((result) => result.status === 'rejected')) {
       toast('Some dashboard information could not be refreshed. Please try again.', 'warning');
@@ -632,7 +617,6 @@ async function loadDashboard() {
     document.getElementById('todo-list').innerHTML = '<div class="empty-minimal">To do items are unavailable right now.</div>';
     document.getElementById('today-list').innerHTML = '<div class="empty-minimal">Today\'s snapshot is unavailable right now.</div>';
     document.getElementById('birthday-list').innerHTML = '<div class="empty-minimal">Birthdays are unavailable right now.</div>';
-    document.getElementById('event-list').innerHTML = '<div class="empty-minimal">Events are unavailable right now.</div>';
     document.getElementById('dashboard-attendance').innerHTML = '<div class="empty-minimal">Attendance is unavailable right now.</div>';
     toast(err.message || 'Could not load dashboard', 'error');
   }
@@ -726,9 +710,6 @@ function renderAttention({ stats, leaveQueue, teamSummary, payrollRows }) {
   const pendingPayroll = countByStatus(payrollRows, 'pending');
   const reviewed = (teamSummary || []).filter((person) => Number(person.review_count || 0) > 0).length;
   const reviewsDue = Math.max(total - reviewed, 0);
-  const onboardingOpen = (window.hrSuiteData?.onboarding?.checklist || []).filter((task) => !task.done).length;
-  const benefitsOpen = (window.hrSuiteData?.benefits?.events || []).filter((event) => !event.status.includes('Ready')).length;
-
   const items = [
     {
       title: pendingLeave ? `${plural(pendingLeave, 'leave request')} needs review` : 'Leave queue is clear',
@@ -750,20 +731,6 @@ function renderAttention({ stats, leaveQueue, teamSummary, payrollRows }) {
       badge: reviewsDue ? 'Due' : 'Done',
       tone: reviewsDue ? 'danger' : 'good',
       href: 'performance.html'
-    },
-    {
-      title: `${plural(onboardingOpen, 'onboarding task')} open`,
-      detail: 'Track first-week setup, access, and manager handoffs.',
-      badge: 'Onboarding',
-      tone: onboardingOpen ? 'warn' : 'good',
-      href: 'onboarding.html'
-    },
-    {
-      title: `${plural(benefitsOpen, 'benefits change')} pending`,
-      detail: 'Review plan updates before payroll sync.',
-      badge: 'Benefits',
-      tone: benefitsOpen ? 'warn' : 'good',
-      href: 'benefits.html'
     }
   ];
 
@@ -786,14 +753,12 @@ function renderToday({ stats, leaveQueue, payrollRows }) {
   const upcomingLeave = (leaveQueue || []).filter((row) => row.status === 'approved' && row.start_date >= today).length;
   const recentHires = (stats.recent_hires || []).length;
   const birthdays = (stats.upcoming_birthdays || []).length;
-  const nextStart = window.hrSuiteData?.onboarding?.cohorts?.[0];
   const processedPayroll = countByStatus(payrollRows, 'processed') + countByStatus(payrollRows, 'paid');
 
   const rows = [
     ['On leave today', onLeave, `${upcomingLeave} upcoming approved periods`, 'leave.html'],
     ['People moments', birthdays, `${recentHires} recent hires to follow up`, 'employees.html'],
-    ['Payroll processed', processedPayroll, 'current month records', 'payroll.html'],
-    ['Next start', nextStart ? nextStart.status : 'None', nextStart ? `${nextStart.name} - ${fmt.date(nextStart.startDate)}` : 'No starts scheduled', 'onboarding.html']
+    ['Payroll processed', processedPayroll, 'current month records', 'payroll.html']
   ];
 
   document.getElementById('today-list').innerHTML = rows.map(([title, value, detail, href]) => `
@@ -873,39 +838,6 @@ function renderBirthdays(stats) {
         </div>
       </div>
       <div class="item-meta"><span class="mini-badge">${escapeHtml(birthdayLabel(employee.date_of_birth))}</span></div>
-    </div>
-  `).join('');
-}
-
-function renderEvents() {
-  const benefits = (window.hrSuiteData?.benefits?.events || []).slice(0, 2).map((event) => ({
-    title: event.event,
-    detail: `${event.employee} - ${event.plan}`,
-    date: event.due,
-    badge: event.status
-  }));
-  const onboarding = (window.hrSuiteData?.onboarding?.cohorts || []).slice(0, 1).map((event) => ({
-    title: `${event.name} starts`,
-    detail: `${event.role} - ${event.department}`,
-    date: event.startDate,
-    badge: event.status
-  }));
-  const rows = [...benefits, ...onboarding]
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-    .slice(0, 5);
-  const target = document.getElementById('event-list');
-  if (!rows.length) {
-    target.innerHTML = '<div class="empty-minimal">No upcoming events.</div>';
-    return;
-  }
-
-  target.innerHTML = rows.map((event) => `
-    <div class="event-item">
-      <div>
-        <strong>${escapeHtml(event.title)}</strong>
-        <span>${escapeHtml(event.detail)} - ${fmt.date(event.date)}</span>
-      </div>
-      <div class="item-meta"><span class="mini-badge">${escapeHtml(event.badge)}</span></div>
     </div>
   `).join('');
 }
