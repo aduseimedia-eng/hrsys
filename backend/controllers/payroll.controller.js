@@ -82,7 +82,8 @@ exports.processMonth = async (req, res) => {
       `SELECT e.id, e.salary, e.employment_type,
               COALESCE(ot.overtime_hours, 0) AS overtime_hours,
               COALESCE(ot.overtime_hours, 0) * COALESCE(os.hourly_rate, 0) AS overtime_pay,
-              COALESCE(benefits.employee_cost, 0) AS benefit_deductions
+              COALESCE(benefits.employee_cost, 0) AS benefit_deductions,
+              COALESCE(loans.repayment, 0) AS loan_deductions
        FROM employees e
        LEFT JOIN company_overtime_settings os ON os.company_id=e.company_id
        LEFT JOIN LATERAL (
@@ -97,6 +98,12 @@ exports.processMonth = async (req, res) => {
          WHERE b.company_id=e.company_id AND b.is_active=true
            AND b.eligible_employment_type IN ('all', e.employment_type)
        ) benefits ON true
+       LEFT JOIN LATERAL (
+         SELECT SUM(LEAST(l.monthly_repayment, l.remaining_balance)) AS repayment
+         FROM employee_loans l
+         WHERE l.company_id=e.company_id AND l.employee_id=e.id AND l.status='active'
+           AND l.start_date <= make_date($2::int, $1::int, 1)
+       ) loans ON true
        WHERE e.company_id = $3
          AND e.is_active = true
          AND NOT EXISTS (
@@ -114,12 +121,21 @@ exports.processMonth = async (req, res) => {
       const overtimeHours = Number(emp.overtime_hours || 0);
       const overtimePay = Number(emp.overtime_pay || 0).toFixed(2);
       const benefitDeductions = Number(emp.benefit_deductions || 0).toFixed(2);
+      const loanDeductions = Number(emp.loan_deductions || 0).toFixed(2);
       const compliance = calculateMonthlyPayroll({ basicSalary: Number(emp.salary) + Number(overtimePay), allowances });
       await db.query(
-        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, overtime_hours, overtime_pay, tax, ssnit_employee, ssnit_employer, other_deductions, benefit_deductions, deductions, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'processed')`,
-        [req.user.company_id, emp.id, month, year, emp.salary, allowances, overtimeHours, overtimePay, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.otherDeductions, benefitDeductions, Number(compliance.deductions) + Number(benefitDeductions)]
+        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, overtime_hours, overtime_pay, tax, ssnit_employee, ssnit_employer, other_deductions, benefit_deductions, loan_deductions, deductions, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'processed')`,
+        [req.user.company_id, emp.id, month, year, emp.salary, allowances, overtimeHours, overtimePay, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.otherDeductions, benefitDeductions, loanDeductions, Number(compliance.deductions) + Number(benefitDeductions) + Number(loanDeductions)]
       );
+      if (Number(loanDeductions) > 0) {
+        await db.query(
+          `UPDATE employee_loans SET remaining_balance=GREATEST(0, remaining_balance-LEAST(monthly_repayment, remaining_balance)),
+             status=CASE WHEN remaining_balance-LEAST(monthly_repayment, remaining_balance) <= 0 THEN 'paid' ELSE 'active' END
+           WHERE company_id=$1 AND employee_id=$2 AND status='active' AND start_date <= make_date($4::int, $3::int, 1)`,
+          [req.user.company_id, emp.id, month, year]
+        );
+      }
       // Notify employee
       await notifyEmployee({ companyId: req.user.company_id, employeeId: emp.id, type: 'payroll', message: 'Your payroll for this month has been processed. View your payslip.' });
     }
@@ -167,7 +183,7 @@ exports.updatePayroll = async (req, res) => {
            allowances=$2,
            tax=$3,
            other_deductions=$4,
-           deductions=$5 + ssnit_employee + benefit_deductions,
+           deductions=$5 + ssnit_employee + benefit_deductions + loan_deductions,
            status=$6,
            paid_at=CASE WHEN $6='paid' THEN COALESCE(paid_at, NOW()) ELSE NULL END
        WHERE id=$7 AND company_id=$8

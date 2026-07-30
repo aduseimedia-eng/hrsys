@@ -487,6 +487,7 @@ function buildSidebar(activePage) {
     { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager','employee'] },
+    { page: 'loans',       icon: walletIcon(),     label: 'Loans',        roles: ['admin','manager','employee'] },
     { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
     { page: 'documents',   icon: docIcon(),        label: 'Documents',    roles: ['admin','manager','employee'] },
     { page: 'performance', icon: starIcon(),       label: 'Performance',  roles: ['admin','manager','employee'] },
@@ -522,6 +523,8 @@ function buildSidebar(activePage) {
           ? appUrl('/pages/calendar.html')
           : item.page === 'benefits'
             ? appUrl('/pages/benefits.html')
+            : item.page === 'loans'
+              ? appUrl('/pages/loans.html')
         : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
       : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page));
     return `<a href="${href}" class="nav-item ${active}">

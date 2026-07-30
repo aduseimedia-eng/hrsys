@@ -1,0 +1,2 @@
+const router = require('express').Router(); const ctrl = require('../controllers/loans.controller'); const auth = require('../middleware/auth'); const rbac = require('../middleware/rbac');
+router.get('/', auth, ctrl.getAll); router.post('/', auth, rbac('admin','manager'), ctrl.create); router.patch('/:id/cancel', auth, rbac('admin','manager'), ctrl.cancel); module.exports = router;

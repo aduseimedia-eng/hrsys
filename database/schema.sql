@@ -175,6 +175,7 @@ CREATE TABLE payroll (
   ssnit_employer NUMERIC(12,2) DEFAULT 0,
   other_deductions NUMERIC(12,2) DEFAULT 0,
   benefit_deductions NUMERIC(12,2) NOT NULL DEFAULT 0,
+  loan_deductions NUMERIC(12,2) NOT NULL DEFAULT 0,
   deductions    NUMERIC(12,2) DEFAULT 0,
   net_salary    NUMERIC(12,2) GENERATED ALWAYS AS (base_salary + allowances + overtime_pay - deductions) STORED,
   status        VARCHAR(20) DEFAULT 'pending'
@@ -197,6 +198,15 @@ CREATE TABLE benefits (
   enrollment_info TEXT, is_active BOOLEAN NOT NULL DEFAULT true,
   created_by INT REFERENCES employees(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE employee_loans (
+  id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  principal_amount NUMERIC(12,2) NOT NULL, remaining_balance NUMERIC(12,2) NOT NULL,
+  monthly_repayment NUMERIC(12,2) NOT NULL, start_date DATE NOT NULL, reason TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active','paid','cancelled')),
+  approved_by INT REFERENCES employees(id) ON DELETE SET NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE documents (

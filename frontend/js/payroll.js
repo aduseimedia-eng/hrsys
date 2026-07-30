@@ -97,6 +97,7 @@ async function viewPayslip(id) {
         <div class="detail-row"><span>Tax</span><span class="negative">-${fmt.currency(s.tax ?? s.deductions)}</span></div>
         <div class="detail-row"><span>SSNIT (employee)</span><span class="negative">-${fmt.currency(s.ssnit_employee || 0)}</span></div>
         <div class="detail-row"><span>Benefits contribution</span><span class="negative">-${fmt.currency(s.benefit_deductions || 0)}</span></div>
+        <div class="detail-row"><span>Loan repayment</span><span class="negative">-${fmt.currency(s.loan_deductions || 0)}</span></div>
         <div class="detail-row"><span>Other deductions</span><span class="negative">-${fmt.currency(s.other_deductions || 0)}</span></div>
         <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
@@ -185,6 +186,7 @@ function payslipHtml(s) {
         <div class="detail-row"><span>Tax</span><span class="negative">-${fmt.currency(s.tax ?? s.deductions)}</span></div>
         <div class="detail-row"><span>SSNIT (employee)</span><span class="negative">-${fmt.currency(s.ssnit_employee || 0)}</span></div>
         <div class="detail-row"><span>Benefits contribution</span><span class="negative">-${fmt.currency(s.benefit_deductions || 0)}</span></div>
+        <div class="detail-row"><span>Loan repayment</span><span class="negative">-${fmt.currency(s.loan_deductions || 0)}</span></div>
         <div class="detail-row"><span>Other deductions</span><span class="negative">-${fmt.currency(s.other_deductions || 0)}</span></div>
         <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
