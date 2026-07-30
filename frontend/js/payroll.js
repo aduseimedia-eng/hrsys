@@ -12,6 +12,7 @@ if (user.role === 'admin') {
 
   document.getElementById('admin-payroll-actions').innerHTML =
     `<button class="btn btn-outline" onclick="downloadAllPayslips()">Download All PDF</button>
+     <button class="btn btn-outline" onclick="showOvertimeRateModal()">Overtime Rate</button>
      <button class="btn btn-primary" onclick="showProcessModal()">Process Payroll</button>`;
 
   const mSel = document.getElementById('pr-month');
@@ -44,6 +45,7 @@ async function loadMyPayslips() {
       <div class="payslip-body">
         <div class="payslip-row"><span style="color:var(--text-muted)">Base Salary</span><span>${fmt.currency(s.base_salary)}</span></div>
         <div class="payslip-row"><span style="color:var(--text-muted)">Allowances</span><span style="color:var(--success-fg)">+${fmt.currency(s.allowances)}</span></div>
+        ${Number(s.overtime_pay || 0) ? `<div class="payslip-row"><span style="color:var(--text-muted)">Overtime (${Number(s.overtime_hours || 0).toFixed(2)} h)</span><span style="color:var(--success-fg)">+${fmt.currency(s.overtime_pay)}</span></div>` : ''}
         <div class="payslip-row"><span style="color:var(--text-muted)">Deductions</span><span style="color:var(--danger-fg)">-${fmt.currency(s.deductions)}</span></div>
         <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:.8rem;color:var(--text-muted)">Net Pay</span>
@@ -86,7 +88,8 @@ async function viewPayslip(id) {
         <h4>Earnings</h4>
         <div class="detail-row"><span>Base Salary</span><span class="positive">${fmt.currency(s.base_salary)}</span></div>
         <div class="detail-row"><span>Allowances</span><span class="positive">+${fmt.currency(s.allowances)}</span></div>
-        <div class="detail-row total"><span>Gross Pay</span><span>${fmt.currency(parseFloat(s.base_salary)+parseFloat(s.allowances))}</span></div>
+        <div class="detail-row"><span>Overtime (${Number(s.overtime_hours || 0).toFixed(2)} h)</span><span class="positive">+${fmt.currency(s.overtime_pay || 0)}</span></div>
+        <div class="detail-row total"><span>Gross Pay</span><span>${fmt.currency(parseFloat(s.base_salary)+parseFloat(s.allowances)+parseFloat(s.overtime_pay || 0))}</span></div>
       </div>
 
       <div class="detail-section">
@@ -144,7 +147,7 @@ function printPayslip() {
 
 function payslipHtml(s) {
   const monthName = months[s.month - 1];
-  const gross = Number(s.base_salary || 0) + Number(s.allowances || 0);
+  const gross = Number(s.base_salary || 0) + Number(s.allowances || 0) + Number(s.overtime_pay || 0);
   return `
     <section class="payslip-detail printable-slip">
       <div class="payslip-detail-header">
@@ -173,6 +176,7 @@ function payslipHtml(s) {
         <h4>Earnings</h4>
         <div class="detail-row"><span>Base Salary</span><span class="positive">${fmt.currency(s.base_salary)}</span></div>
         <div class="detail-row"><span>Allowances</span><span class="positive">+${fmt.currency(s.allowances)}</span></div>
+        <div class="detail-row"><span>Overtime (${Number(s.overtime_hours || 0).toFixed(2)} h)</span><span class="positive">+${fmt.currency(s.overtime_pay || 0)}</span></div>
         <div class="detail-row total"><span>Gross Pay</span><span>${fmt.currency(gross)}</span></div>
       </div>
       <div class="detail-section">
@@ -242,7 +246,7 @@ async function loadAllPayroll() {
       <td><div style="display:flex;align-items:center;gap:10px">${avatarEl({ first_name: r.employee_name?.split(' ')[0] || '?', last_name: r.employee_name?.split(' ')[1] || '', photo_url: r.photo_url }, 'sm')}<span style="font-weight:500">${r.employee_name}</span></div></td>
       <td><span class="badge badge-neutral">${payrollTypeLabel(r)}</span></td>
       <td>${r.department_name || '-'}</td>
-      <td>${fmt.currency(Number(r.base_salary || 0) + Number(r.allowances || 0))}</td>
+      <td>${fmt.currency(Number(r.base_salary || 0) + Number(r.allowances || 0) + Number(r.overtime_pay || 0))}</td>
       <td style="color:var(--danger-fg)">-${fmt.currency(r.deductions)}</td>
       <td style="font-weight:600">${fmt.currency(r.net_salary)}</td>
       <td>${fmt.statusBadge(r.status)}</td>
@@ -362,6 +366,22 @@ function showProcessModal() {
   document.getElementById('process-payroll-confirm').checked = false;
   toggleProcessPayrollButton();
   document.getElementById('process-payroll-modal').style.display = 'flex';
+}
+
+async function showOvertimeRateModal() {
+  try {
+    const settings = await api.get('/attendance/overtime/settings');
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `<div class="modal" style="max-width:440px"><div class="modal-header"><h3>Overtime rate</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div><div class="modal-body"><p style="color:var(--text-secondary);margin-bottom:16px">Approved overtime is paid at this hourly rate when payroll is processed.</p><div class="form-group"><label class="form-label">Hourly overtime rate (₵)</label><input id="overtime-hourly-rate" type="number" class="form-control" min="0" step="0.01" value="${Number(settings.hourly_rate || 0)}"></div><p style="font-size:.8rem;color:var(--text-muted)">Employees are prompted for an overtime reason after clocking out later than ${String(settings.late_clock_out_after || '17:30').slice(0,5)}.</p></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="saveOvertimeRate(this)">Save rate</button></div></div>`;
+    document.body.appendChild(overlay);
+  } catch (error) { toast(error.message || 'Could not load overtime settings', 'error'); }
+}
+async function saveOvertimeRate(button) {
+  try {
+    await api.put('/attendance/overtime/settings', { hourly_rate: Number(document.getElementById('overtime-hourly-rate').value) });
+    button.closest('.modal-overlay').remove(); toast('Overtime hourly rate saved', 'success');
+  } catch (error) { toast(error.message || 'Could not save overtime rate', 'error'); }
 }
 
 function closeProcessPayrollModal() {

@@ -2,6 +2,7 @@
 const db = require('../config/db');
 
 const ATTENDANCE_TIME_ZONE = process.env.ATTENDANCE_TIME_ZONE || 'Africa/Accra';
+const DEFAULT_OVERTIME_CUTOFF = '17:30:00';
 
 function formatExportDate(value) {
   if (!value) return '';
@@ -85,10 +86,121 @@ exports.clockOut = async (req, res) => {
        WHERE company_id=$5 AND employee_id=$6 AND work_date=$7 RETURNING *`,
       [new Date(), location.latitude, location.longitude, location.accuracy, req.user.company_id, req.user.id, today]
     );
-    res.json(updated[0]);
+    const attendance = updated[0];
+    const cutoff = await db.query(
+      `SELECT COALESCE((SELECT late_clock_out_after FROM company_overtime_settings WHERE company_id=$1), TIME '${DEFAULT_OVERTIME_CUTOFF}') AS late_clock_out_after`,
+      [req.user.company_id]
+    );
+    const cutoffTime = cutoff.rows[0].late_clock_out_after;
+    const overtime = await db.query(
+      `SELECT ROUND(GREATEST(0, EXTRACT(EPOCH FROM ($1::timestamptz - (($2::date + $3::time) AT TIME ZONE $4))) / 3600)::numeric, 2) AS hours`,
+      [attendance.clock_out, attendance.work_date, cutoffTime, ATTENDANCE_TIME_ZONE]
+    );
+    attendance.overtime_eligible = Number(overtime.rows[0].hours) > 0;
+    attendance.overtime_hours = Number(overtime.rows[0].hours);
+    res.json(attendance);
   } catch (err) {
     res.status(500).json({ error: 'Could not clock out' });
   }
+};
+
+// Employee: submit overtime after an eligible late clock-out.
+exports.submitOvertime = async (req, res) => {
+  try {
+    const reason = String(req.body.reason || '').trim();
+    if (reason.length < 3 || reason.length > 1000) return res.status(400).json({ error: 'Please enter an overtime reason between 3 and 1000 characters' });
+    const { rows } = await db.query(
+      `SELECT a.id, a.work_date,
+              ROUND(GREATEST(0, EXTRACT(EPOCH FROM (a.clock_out - ((a.work_date + COALESCE(s.late_clock_out_after, TIME '${DEFAULT_OVERTIME_CUTOFF}')) AT TIME ZONE $3))) / 3600)::numeric, 2) AS overtime_hours
+       FROM attendance a
+       LEFT JOIN company_overtime_settings s ON s.company_id=a.company_id
+       WHERE a.id=$1 AND a.company_id=$2 AND a.employee_id=$4 AND a.clock_out IS NOT NULL`,
+      [req.body.attendance_id, req.user.company_id, ATTENDANCE_TIME_ZONE, req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Attendance record not found' });
+    const attendance = rows[0];
+    if (Number(attendance.overtime_hours) <= 0) return res.status(400).json({ error: 'Overtime can only be submitted after the configured late clock-out time' });
+    const saved = await db.query(
+      `INSERT INTO overtime_requests (company_id, attendance_id, employee_id, work_date, reason, overtime_hours)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [req.user.company_id, attendance.id, req.user.id, attendance.work_date, reason, attendance.overtime_hours]
+    );
+    res.status(201).json(saved.rows[0]);
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'An overtime form has already been submitted for this attendance record' });
+    console.error(err);
+    res.status(500).json({ error: 'Could not submit overtime form' });
+  }
+};
+
+exports.getMyOvertime = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT o.*, COALESCE(s.hourly_rate, 0) AS hourly_rate
+       FROM overtime_requests o LEFT JOIN company_overtime_settings s ON s.company_id=o.company_id
+       WHERE o.company_id=$1 AND o.employee_id=$2 ORDER BY o.work_date DESC`,
+      [req.user.company_id, req.user.id]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: 'Could not fetch overtime forms' }); }
+};
+
+exports.getOvertimeReport = async (req, res) => {
+  try {
+    const { month, year, status } = req.query;
+    const params = [req.user.company_id];
+    let where = 'WHERE o.company_id=$1';
+    if (month) { params.push(month); where += ` AND EXTRACT(MONTH FROM o.work_date)=$${params.length}`; }
+    if (year) { params.push(year); where += ` AND EXTRACT(YEAR FROM o.work_date)=$${params.length}`; }
+    if (status) { params.push(status); where += ` AND o.status=$${params.length}`; }
+    const { rows } = await db.query(
+      `SELECT o.*, CONCAT(e.first_name, ' ', e.last_name) AS employee_name, e.job_title,
+              COALESCE(s.hourly_rate, 0) AS hourly_rate
+       FROM overtime_requests o JOIN employees e ON e.id=o.employee_id
+       LEFT JOIN company_overtime_settings s ON s.company_id=o.company_id
+       ${where} ORDER BY o.work_date DESC, o.created_at DESC`, params
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: 'Could not fetch overtime report' }); }
+};
+
+exports.updateOvertimeStatus = async (req, res) => {
+  try {
+    const status = req.body.status;
+    if (!['approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Status must be approved or rejected' });
+    const { rows } = await db.query(
+      `UPDATE overtime_requests SET status=$1, approved_by=$2, approved_at=NOW()
+       WHERE id=$3 AND company_id=$4 AND status='pending' RETURNING *`,
+      [status, req.user.id, req.params.id, req.user.company_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Pending overtime request not found' });
+    res.json(rows[0]);
+  } catch (err) { res.status(500).json({ error: 'Could not update overtime request' }); }
+};
+
+exports.getOvertimeSettings = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT COALESCE((SELECT hourly_rate FROM company_overtime_settings WHERE company_id=$1), 0) AS hourly_rate,
+              COALESCE((SELECT late_clock_out_after FROM company_overtime_settings WHERE company_id=$1), TIME '${DEFAULT_OVERTIME_CUTOFF}') AS late_clock_out_after`,
+      [req.user.company_id]
+    );
+    res.json(rows[0]);
+  } catch (err) { res.status(500).json({ error: 'Could not fetch overtime settings' }); }
+};
+
+exports.updateOvertimeSettings = async (req, res) => {
+  try {
+    const hourlyRate = Number(req.body.hourly_rate);
+    if (!Number.isFinite(hourlyRate) || hourlyRate < 0) return res.status(400).json({ error: 'Enter a valid non-negative hourly overtime rate' });
+    const { rows } = await db.query(
+      `INSERT INTO company_overtime_settings (company_id, hourly_rate, updated_at)
+       VALUES ($1,$2,NOW())
+       ON CONFLICT (company_id) DO UPDATE SET hourly_rate=EXCLUDED.hourly_rate, updated_at=NOW()
+       RETURNING *`, [req.user.company_id, hourlyRate]
+    );
+    res.json(rows[0]);
+  } catch (err) { res.status(500).json({ error: 'Could not save overtime settings' }); }
 };
 
 // ─── Get my attendance status today ──────────────────────────

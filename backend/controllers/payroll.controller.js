@@ -79,7 +79,17 @@ exports.processMonth = async (req, res) => {
 
     // Get all active employees not yet in payroll for this period
     const { rows: emps } = await db.query(
-      `SELECT e.id, e.salary FROM employees e
+      `SELECT e.id, e.salary,
+              COALESCE(ot.overtime_hours, 0) AS overtime_hours,
+              COALESCE(ot.overtime_hours, 0) * COALESCE(os.hourly_rate, 0) AS overtime_pay
+       FROM employees e
+       LEFT JOIN company_overtime_settings os ON os.company_id=e.company_id
+       LEFT JOIN LATERAL (
+         SELECT SUM(overtime_hours) AS overtime_hours
+         FROM overtime_requests o
+         WHERE o.company_id=e.company_id AND o.employee_id=e.id AND o.status='approved'
+           AND EXTRACT(MONTH FROM o.work_date)=$1 AND EXTRACT(YEAR FROM o.work_date)=$2
+       ) ot ON true
        WHERE e.company_id = $3
          AND e.is_active = true
          AND NOT EXISTS (
@@ -94,11 +104,13 @@ exports.processMonth = async (req, res) => {
 
     for (const emp of emps) {
       const allowances = (emp.salary * allowanceRate).toFixed(2);
-      const compliance = calculateMonthlyPayroll({ basicSalary: emp.salary, allowances });
+      const overtimeHours = Number(emp.overtime_hours || 0);
+      const overtimePay = Number(emp.overtime_pay || 0).toFixed(2);
+      const compliance = calculateMonthlyPayroll({ basicSalary: Number(emp.salary) + Number(overtimePay), allowances });
       await db.query(
-        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, tax, ssnit_employee, ssnit_employer, other_deductions, deductions, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'processed')`,
-        [req.user.company_id, emp.id, month, year, emp.salary, allowances, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.otherDeductions, compliance.deductions]
+        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, overtime_hours, overtime_pay, tax, ssnit_employee, ssnit_employer, other_deductions, deductions, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'processed')`,
+        [req.user.company_id, emp.id, month, year, emp.salary, allowances, overtimeHours, overtimePay, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.otherDeductions, compliance.deductions]
       );
       // Notify employee
       await notifyEmployee({ companyId: req.user.company_id, employeeId: emp.id, type: 'payroll', message: 'Your payroll for this month has been processed. View your payslip.' });

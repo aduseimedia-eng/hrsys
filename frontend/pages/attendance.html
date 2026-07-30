@@ -100,8 +100,8 @@
       </div>
       <div class="table-container">
         <table>
-          <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Duration</th><th>Status</th></tr></thead>
-          <tbody id="my-tbody"><tr><td colspan="5"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+          <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Duration</th><th>Overtime</th><th>Status</th></tr></thead>
+          <tbody id="my-tbody"><tr><td colspan="6"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -127,8 +127,25 @@
           <tbody id="hr-tbody"><tr><td colspan="7"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
         </table>
       </div>
+      <div style="margin-top:28px">
+        <h3 style="margin-bottom:6px">Overtime requests</h3>
+        <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:12px">Review late clock-out overtime before it is included in payroll.</p>
+        <div class="table-container"><table><thead><tr><th>Employee</th><th>Date</th><th>Hours</th><th>Reason</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="overtime-tbody"></tbody></table></div>
+      </div>
     </div>
   </main>
+</div>
+
+<div id="overtime-modal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header"><h3>Late clock-out</h3><button class="modal-close" onclick="closeOvertimeModal()">×</button></div>
+    <div class="modal-body">
+      <p id="overtime-hours-note" style="color:var(--text-secondary);margin-bottom:16px"></p>
+      <div class="form-group"><label class="form-label" for="overtime-reason">Reason for clocking out late</label><textarea id="overtime-reason" class="form-control" rows="4" maxlength="1000" placeholder="Describe the overtime work completed"></textarea></div>
+      <p style="font-size:.8rem;color:var(--text-muted);margin:12px 0 0">Submit this form to HR for approval. Only approved overtime is added to payroll.</p>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeOvertimeModal()">Not overtime</button><button class="btn btn-primary" onclick="submitOvertime()">Submit overtime</button></div>
+  </div>
 </div>
 
 <script src="../js/api.js"></script>
@@ -181,10 +198,11 @@ async function clockAction(type) {
   try {
     toast('Getting your precise location…', 'info');
     const location = await requestAttendanceLocation();
-    await api.post(`/attendance/clock-${type}`, location);
+    const attendance = await api.post(`/attendance/clock-${type}`, location);
     toast(`Clocked ${type} at ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`, 'success');
     await loadTodayStatus();
     await loadMyHistory();
+    if (type === 'out' && attendance.overtime_eligible) openOvertimeModal(attendance);
   } catch(e) { toast(e.message, 'error'); }
 }
 
@@ -194,15 +212,17 @@ async function loadMyHistory() {
   let qs = '?limit=60';
   if (from) qs += `&from=${from}`;
   if (to)   qs += `&to=${to}`;
-  const rows = await api.get(`/attendance/my-history${qs}`);
+  const [rows, overtime] = await Promise.all([api.get(`/attendance/my-history${qs}`), api.get('/attendance/overtime/mine')]);
+  const overtimeByAttendance = new Map(overtime.map(item => [Number(item.attendance_id), item]));
   const tbody = document.getElementById('my-tbody');
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>No records found</p></div></td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>No records found</p></div></td></tr>`; return; }
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td>${fmt.date(r.work_date)}</td>
       <td>${r.clock_in ? fmt.time(r.clock_in) : '—'}</td>
       <td>${r.clock_out ? fmt.time(r.clock_out) : '—'}</td>
       <td>${fmt.duration(r.clock_in, r.clock_out)}</td>
+      <td>${overtimeByAttendance.has(Number(r.id)) ? `<span class="badge badge-${overtimeByAttendance.get(Number(r.id)).status === 'approved' ? 'success' : overtimeByAttendance.get(Number(r.id)).status === 'rejected' ? 'danger' : 'warning'}">${Number(overtimeByAttendance.get(Number(r.id)).overtime_hours).toFixed(2)} h · ${overtimeByAttendance.get(Number(r.id)).status}</span>` : '—'}</td>
       <td>${fmt.statusBadge(r.status)}</td>
     </tr>`).join('');
 }
@@ -300,8 +320,32 @@ function switchTab(tab) {
   if (tab === 'hr') loadHrReport();
 }
 
+let pendingOvertimeAttendance = null;
+function openOvertimeModal(attendance) {
+  pendingOvertimeAttendance = attendance.id;
+  document.getElementById('overtime-reason').value = '';
+  document.getElementById('overtime-hours-note').textContent = `You clocked out after the overtime threshold. ${Number(attendance.overtime_hours).toFixed(2)} overtime hour(s) will be submitted for HR approval.`;
+  document.getElementById('overtime-modal').style.display = 'flex';
+}
+function closeOvertimeModal() { document.getElementById('overtime-modal').style.display = 'none'; pendingOvertimeAttendance = null; }
+async function submitOvertime() {
+  try {
+    await api.post('/attendance/overtime', { attendance_id: pendingOvertimeAttendance, reason: document.getElementById('overtime-reason').value });
+    closeOvertimeModal(); toast('Overtime request submitted to HR', 'success'); loadMyHistory();
+  } catch (error) { toast(error.message || 'Could not submit overtime', 'error'); }
+}
+function overtimeStatusBadge(status) { return fmt.statusBadge(status); }
+function escapeHtml(value) { return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function loadOvertimeReport() {
+  if (!['admin','manager'].includes(user.role)) return;
+  const rows = await api.get('/attendance/overtime/report');
+  document.getElementById('overtime-tbody').innerHTML = rows.length ? rows.map(r => `<tr><td>${escapeHtml(r.employee_name)}</td><td>${fmt.date(r.work_date)}</td><td>${Number(r.overtime_hours).toFixed(2)} h</td><td>${escapeHtml(r.reason)}</td><td>${fmt.currency(Number(r.overtime_hours) * Number(r.hourly_rate))}</td><td>${overtimeStatusBadge(r.status)}</td><td>${r.status === 'pending' ? `<button class="btn btn-success btn-sm" onclick="updateOvertime(${r.id}, 'approved')">Approve</button> <button class="btn btn-outline btn-sm" onclick="updateOvertime(${r.id}, 'rejected')">Reject</button>` : '—'}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><p>No overtime requests</p></div></td></tr>';
+}
+async function updateOvertime(id, status) { try { await api.patch(`/attendance/overtime/${id}/status`, { status }); toast(`Overtime ${status}`, 'success'); loadOvertimeReport(); } catch (error) { toast(error.message, 'error'); } }
+
 loadTodayStatus();
 loadMyHistory();
+if (['admin','manager'].includes(user.role)) loadOvertimeReport();
 </script>
 </body>
 </html>

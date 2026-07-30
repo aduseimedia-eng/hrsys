@@ -137,6 +137,28 @@ CREATE TABLE leave_requests (
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE company_overtime_settings (
+  company_id INT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  hourly_rate NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (hourly_rate >= 0),
+  late_clock_out_after TIME NOT NULL DEFAULT TIME '17:30',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE overtime_requests (
+  id SERIAL PRIMARY KEY,
+  company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  attendance_id INT NOT NULL UNIQUE REFERENCES attendance(id) ON DELETE CASCADE,
+  employee_id INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  work_date DATE NOT NULL,
+  reason TEXT NOT NULL CHECK (char_length(trim(reason)) BETWEEN 3 AND 1000),
+  overtime_hours NUMERIC(6,2) NOT NULL CHECK (overtime_hours > 0),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  approved_by INT REFERENCES employees(id) ON DELETE SET NULL,
+  approved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_overtime_requests_company_period ON overtime_requests(company_id, work_date, status);
+
 CREATE TABLE payroll (
   id            SERIAL PRIMARY KEY,
   company_id    INT NOT NULL DEFAULT 1 REFERENCES companies(id) ON DELETE CASCADE,
@@ -145,12 +167,14 @@ CREATE TABLE payroll (
   year          SMALLINT NOT NULL,
   base_salary   NUMERIC(12,2) NOT NULL,
   allowances    NUMERIC(12,2) DEFAULT 0,
+  overtime_hours NUMERIC(8,2) NOT NULL DEFAULT 0,
+  overtime_pay NUMERIC(12,2) NOT NULL DEFAULT 0,
   tax           NUMERIC(12,2) DEFAULT 0,
   ssnit_employee NUMERIC(12,2) DEFAULT 0,
   ssnit_employer NUMERIC(12,2) DEFAULT 0,
   other_deductions NUMERIC(12,2) DEFAULT 0,
   deductions    NUMERIC(12,2) DEFAULT 0,
-  net_salary    NUMERIC(12,2) GENERATED ALWAYS AS (base_salary + allowances - deductions) STORED,
+  net_salary    NUMERIC(12,2) GENERATED ALWAYS AS (base_salary + allowances + overtime_pay - deductions) STORED,
   status        VARCHAR(20) DEFAULT 'pending'
                   CHECK (status IN ('pending','processed','paid')),
   paid_at       TIMESTAMPTZ,
