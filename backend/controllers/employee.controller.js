@@ -113,7 +113,7 @@ exports.getById = async (req, res) => {
 
     const emp = rows[0];
     delete emp.password_hash;
-    if (req.user.role !== 'admin' && req.user.id !== parseInt(id)) delete emp.salary;
+    if (req.user.role !== 'admin' && req.user.id !== parseInt(id)) { delete emp.salary; delete emp.medical_conditions; }
     res.json(emp);
   } catch (err) {
     res.status(500).json({ error: 'Could not fetch employee' });
@@ -196,6 +196,7 @@ exports.update = async (req, res) => {
 
     const adminFields = [
       'first_name', 'last_name', 'phone', 'address', 'date_of_birth',
+      'medical_conditions',
       'department_id', 'manager_id', 'job_title', 'salary', 'role', 'employment_type', 'hire_date', 'employee_code',
       'education_information', 'education_level', 'education_institution', 'education_field', 'graduation_year',
       'experience', 'previous_company', 'previous_job_title', 'experience_years', 'experience_summary',
@@ -205,6 +206,7 @@ exports.update = async (req, res) => {
     ];
     const selfFields = [
       'first_name', 'last_name', 'phone', 'address', 'date_of_birth',
+      'medical_conditions',
       'education_information', 'education_level', 'education_institution', 'education_field', 'graduation_year',
       'experience', 'previous_company', 'previous_job_title', 'experience_years', 'experience_summary',
       'emergency_contact_name', 'emergency_contact_relationship',
@@ -253,7 +255,7 @@ exports.update = async (req, res) => {
     const { rows } = await db.query(
       `UPDATE employees SET ${updates.join(', ')} WHERE id=$${params.length} AND company_id=$${params.length + 1}
        RETURNING id, employee_code, first_name, last_name, email, role, job_title, phone, address,
-                 date_of_birth, hire_date, department_id, manager_id, salary, photo_url, employment_type,
+                 date_of_birth, medical_conditions, hire_date, department_id, manager_id, salary, photo_url, employment_type,
                  education_information, education_level, education_institution, education_field, graduation_year,
                  experience, previous_company, previous_job_title, experience_years, experience_summary,
                  emergency_contact_name, emergency_contact_relationship,

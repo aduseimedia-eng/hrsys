@@ -349,6 +349,14 @@ async function loadProfile() {
           </div>
         </div>
 
+        ${(isOwn || isAdmin) ? `<div class="card">
+          <div class="card-header"><h3>Medical Information</h3></div>
+          <div class="card-body">
+            ${infoRow('Medical conditions', emp.medical_conditions || 'Not provided')}
+            <p style="margin:10px 0 8px;color:var(--text-muted);font-size:.75rem">This sensitive information is only visible to you and HR administrators.</p>
+          </div>
+        </div>` : ''}
+
         <div class="card">
           <div class="card-header"><h3>Bank Information</h3></div>
           <div class="card-body">
@@ -518,6 +526,7 @@ function showEditModal() {
           <div class="form-group"><label class="form-label">Phone</label><input type="text" id="e-phone" class="form-control" value="${emp.phone || ''}"></div>
           <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="e-dob" class="form-control" value="${emp.date_of_birth ? emp.date_of_birth.split('T')[0] : ''}"></div>
           <div class="form-group span-2"><label class="form-label">Address</label><textarea id="e-address" class="form-control" rows="2">${emp.address || ''}</textarea></div>
+          <div class="form-group span-2"><label class="form-label">Medical conditions or accommodations</label><textarea id="e-medical-conditions" class="form-control" rows="3" placeholder="Optional — share only information relevant to workplace support">${safe(emp.medical_conditions || '')}</textarea><small style="color:var(--text-muted)">Visible only to you and HR administrators.</small></div>
           <div class="form-group"><label class="form-label">Qualification</label><input type="text" id="e-education-level" class="form-control" value="${emp.education_level || emp.education_information || ''}"></div>
           <div class="form-group"><label class="form-label">Institution</label><input type="text" id="e-education-institution" class="form-control" value="${emp.education_institution || ''}"></div>
           <div class="form-group"><label class="form-label">Field of Study</label><input type="text" id="e-education-field" class="form-control" value="${emp.education_field || ''}"></div>
@@ -596,6 +605,7 @@ async function saveEdit(id) {
       phone:         document.getElementById('e-phone').value,
       address:       document.getElementById('e-address').value,
       date_of_birth: document.getElementById('e-dob').value,
+      medical_conditions: document.getElementById('e-medical-conditions').value,
       education_level: document.getElementById('e-education-level').value,
       education_institution: document.getElementById('e-education-institution').value,
       education_field: document.getElementById('e-education-field').value,
