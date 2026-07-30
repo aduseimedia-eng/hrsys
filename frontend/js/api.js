@@ -492,6 +492,7 @@ function buildSidebar(activePage) {
     { page: 'documents',   icon: docIcon(),        label: 'Documents',    roles: ['admin','manager','employee'] },
     { page: 'performance', icon: starIcon(),       label: 'Performance',  roles: ['admin','manager','employee'] },
     { page: 'training',    icon: checkIcon(),      label: 'Training Register', roles: ['admin','manager','employee'] },
+    { page: 'probation',   icon: clockIcon(),      label: 'Probation Tracker', roles: ['admin','manager','employee'] },
     { section: 'HR Tools', roles: ['admin','manager'] },
     { page: 'employees',   icon: usersIcon(),      label: 'Employees',    roles: ['admin','manager'] },
     { page: 'departments', icon: orgIcon(),        label: 'Departments',  roles: ['admin'] },
@@ -528,6 +529,8 @@ function buildSidebar(activePage) {
               ? appUrl('/pages/loans.html')
               : item.page === 'training'
                 ? appUrl('/pages/training.html')
+                : item.page === 'probation'
+                  ? appUrl('/pages/probation.html')
         : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
       : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page));
     return `<a href="${href}" class="nav-item ${active}">

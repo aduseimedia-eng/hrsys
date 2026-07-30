@@ -59,6 +59,7 @@ app.use('/api/todos',         require('./routes/todos.routes'));
 app.use('/api/tickets',       require('./routes/tickets.routes'));
 app.use('/api/queries',       require('./routes/queries.routes'));
 app.use('/api/training',      require('./routes/training.routes'));
+app.use('/api/probation',     require('./routes/probation.routes'));
 app.use('/api/billing',       require('./routes/billing.routes'));
 app.use('/api/company-calendar', require('./routes/company-calendar.routes'));
 app.use('/api/schedules',     require('./routes/schedules.routes'));
