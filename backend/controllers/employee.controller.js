@@ -201,6 +201,7 @@ exports.update = async (req, res) => {
     const adminFields = [
       'first_name', 'last_name', 'phone', 'address', 'date_of_birth',
       'medical_conditions',
+      'pension_id',
       'department_id', 'manager_id', 'job_title', 'salary', 'role', 'employment_type', 'hire_date', 'employee_code',
       'education_information', 'education_level', 'education_institution', 'education_field', 'graduation_year',
       'experience', 'previous_company', 'previous_job_title', 'experience_years', 'experience_summary',
@@ -211,6 +212,7 @@ exports.update = async (req, res) => {
     const selfFields = [
       'first_name', 'last_name', 'phone', 'address', 'date_of_birth',
       'medical_conditions',
+      'pension_id',
       'education_information', 'education_level', 'education_institution', 'education_field', 'graduation_year',
       'experience', 'previous_company', 'previous_job_title', 'experience_years', 'experience_summary',
       'emergency_contact_name', 'emergency_contact_relationship',

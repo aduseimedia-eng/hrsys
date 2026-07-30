@@ -352,7 +352,7 @@ exports.getMe = async (req, res) => {
     const { rows } = await db.query(
       `SELECT e.id, e.company_id, c.name AS company_name, c.slug AS company_slug,
               e.first_name, e.last_name, e.email, e.role, e.job_title,
-              e.phone, e.address, e.date_of_birth, e.hire_date, e.photo_url,
+              e.phone, e.address, e.date_of_birth, e.hire_date, e.photo_url, e.employee_code, e.employment_type, e.medical_conditions, e.pension_id,
               e.education_information, e.education_level, e.education_institution,
               e.education_field, e.graduation_year, e.experience,
               e.previous_company, e.previous_job_title, e.experience_years, e.experience_summary,
