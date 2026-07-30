@@ -497,6 +497,7 @@ function buildSidebar(activePage) {
     { section: 'HR Tools', roles: ['admin','manager'] },
     { page: 'employees',   icon: usersIcon(),      label: 'Employees',    roles: ['admin','manager'] },
     { page: 'disciplinary', icon: docIcon(),       label: 'Disciplinary Register', roles: ['admin','manager'] },
+    { page: 'operations', icon: briefcaseIcon(),   label: 'Operations Registers', roles: ['admin','manager'] },
     { page: 'departments', icon: orgIcon(),        label: 'Departments',  roles: ['admin'] },
     { page: 'orgchart',    icon: orgIcon(),        label: 'Org Chart',    roles: ['admin','manager','employee'] },
     { page: 'settings',    icon: settingsIcon(),   label: 'Settings',     roles: ['admin','employee'] },
