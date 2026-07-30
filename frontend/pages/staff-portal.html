@@ -2171,6 +2171,10 @@
             <div class="loading-state"><div class="spinner"></div><span>Loading reviews...</span></div>
           </div>
         </article>
+        <article class="staff-panel">
+          <div class="staff-panel-header"><div><h3>HR Queries</h3><span>Questions sent to you by HR</span></div></div>
+          <div class="staff-panel-body" id="staff-query-list"><div class="loading-state"><div class="spinner"></div><span>Loading HR queries...</span></div></div>
+        </article>
       </section>
 
       <section class="staff-grid" data-staff-page="orgchart">
@@ -2379,6 +2383,7 @@
       payroll: [],
       documents: [],
       reviews: [],
+      queries: [],
       orgTree: [],
       directory: [],
       announcements: [],
@@ -2494,12 +2499,13 @@
       try {
         const profile = await api.get('/auth/me');
         const isItDepartment = profile.department_name === 'IT Department';
-        const [leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, messageUnread, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
+        const [leaves, leaveBalance, payroll, documents, reviews, queries, announcements, notifications, messageUnread, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
           api.get('/leave/mine'),
           api.get('/leave/balance'),
           api.get('/payroll/mine'),
           api.get('/documents/mine'),
           api.get('/performance/mine'),
+          api.get('/queries/mine'),
           api.get('/notifications/announcements'),
           api.get('/notifications/mine'),
           api.get('/messages/unread-count'),
@@ -2511,7 +2517,7 @@
           api.get('/employees/directory'),
         ]);
 
-        portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, announcements, notifications, messageUnreadCount: messageUnread.count, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
+        portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, queries, announcements, notifications, messageUnreadCount: messageUnread.count, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
         renderShellUser(profile);
         renderProfile(profile);
         renderProfileAvatar(profile);
@@ -2527,6 +2533,7 @@
         renderStaffTickets();
         renderStaffOrgChart();
         renderReviews();
+        renderStaffQueries();
         renderStaffEvents();
         renderAnnouncements();
         renderNotifications();
@@ -3448,6 +3455,38 @@
           </div>
         </div>
       `).join('');
+    }
+
+    function renderStaffQueries() {
+      const target = document.getElementById('staff-query-list');
+      if (!target) return;
+      const rows = (portalState.queries || []).filter((query) => Number(query.recipient_employee_id) === Number(currentUser.id));
+      if (!rows.length) { target.innerHTML = emptyBlock('No HR queries have been sent to you.'); return; }
+      target.innerHTML = rows.map((query) => `
+        <div class="staff-row">
+          <div><strong>${safe(query.subject)}</strong><span>${safe(query.description)}</span>${query.response ? `<span><strong>Your response:</strong> ${safe(query.response)}</span>` : ''}</div>
+          <div class="row-meta">${fmt.statusBadge(query.status)}<small>${fmt.datetime(query.created_at)}</small>${query.response ? '' : `<button class="btn btn-outline btn-sm" type="button" onclick="openStaffQueryResponse(${query.id})">Respond</button>`}</div>
+        </div>`).join('');
+    }
+
+    function openStaffQueryResponse(id) {
+      const query = (portalState.queries || []).find((item) => Number(item.id) === Number(id));
+      if (!query) return;
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `<div class="modal"><div class="modal-header"><h3>Respond to HR query</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">x</button></div><div class="modal-body"><p style="margin-bottom:12px"><strong>${safe(query.subject)}</strong><br><span style="color:var(--text-secondary)">${safe(query.description)}</span></p><div class="form-group"><label class="form-label">Your response</label><textarea id="staff-query-response" class="form-control" rows="5"></textarea></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="saveStaffQueryResponse(${query.id})">Send response</button></div></div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function saveStaffQueryResponse(id) {
+      try {
+        const response = document.getElementById('staff-query-response').value.trim();
+        if (!response) { toast('Write a response first', 'warning'); return; }
+        await api.patch(`/queries/${id}`, { status: 'resolved', response });
+        document.querySelector('.modal-overlay')?.remove();
+        toast('Response sent to HR', 'success');
+        await loadPortal();
+      } catch (err) { toast(err.message || 'Could not send response', 'error'); }
     }
 
     function renderAnnouncements() {
