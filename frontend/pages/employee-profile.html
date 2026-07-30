@@ -250,11 +250,12 @@ function optionList(options, selectedValue, placeholder = '— Select —') {
 
 async function loadProfile() {
   try {
-    const [emp, deptRows, promotions, contracts] = await Promise.all([
+    const [emp, deptRows, promotions, contracts, benefits] = await Promise.all([
       api.get(`/employees/${empId}`),
       api.get('/employees/departments'),
       api.get(`/employees/${empId}/promotions`),
-      api.get(`/contracts/employee/${empId}`)
+      api.get(`/contracts/employee/${empId}`),
+      api.get('/benefits?include_inactive=true')
     ]);
     departments = deptRows || [];
     document.getElementById('page-title').textContent = `${emp.first_name} ${emp.last_name}`;
@@ -307,7 +308,7 @@ async function loadProfile() {
             <button type="button" onclick="showEmployeeLeaveHistory(${emp.id})">Time Off</button>
             <button type="button" onclick="showEmployeePerformance(${emp.id})">Performance</button>
             <button type="button" onclick="window.location.href=appUrl('/pages/training.html')">Training</button>
-            <button type="button" onclick="window.location.href=appUrl('/pages/benefits.html')">Benefits</button>
+            <button type="button" onclick="document.getElementById('benefits-information').scrollIntoView({behavior:'smooth'})">Benefits</button>
           </nav>
         </div>
         <div class="profile-actions">
@@ -357,6 +358,16 @@ async function loadProfile() {
         <div class="card">
           <div class="card-header"><h3>Contract Information</h3></div>
           <div class="card-body">${contracts.length ? contracts.slice(0, 2).map(contract => `${infoRow('Contract', contract.contract_type)}${infoRow('Expiry date', fmt.date(contract.end_date))}${infoRow('Status', contract.status)}${infoRow('Notice period', `${contract.notice_days} days`)}`).join('') : '<div class="info-row"><span class="label">Contract</span><span class="value">Not recorded</span></div>'}</div>
+        </div>
+
+        <div class="card" id="benefits-information">
+          <div class="card-header"><h3>Benefits Information</h3></div>
+          <div class="card-body">
+            ${infoRow('Pension ID', emp.pension_id || 'Not recorded')}
+            ${benefits.filter(benefit => benefit.is_active && (!benefit.eligible_employment_type || benefit.eligible_employment_type === 'all' || benefit.eligible_employment_type === emp.employment_type)).length
+              ? benefits.filter(benefit => benefit.is_active && (!benefit.eligible_employment_type || benefit.eligible_employment_type === 'all' || benefit.eligible_employment_type === emp.employment_type)).map(benefit => infoRow(benefit.name, `Available${Number(benefit.employee_cost || 0) > 0 ? ` · ${fmt.currency(benefit.employee_cost)}/month` : ''}`)).join('')
+              : infoRow('Benefits overview', 'No eligible benefits assigned')}
+          </div>
         </div>
 
         <div class="card">
@@ -589,6 +600,7 @@ function showEditModal() {
           <div class="form-group"><label class="form-label">Bank Name</label><input type="text" id="e-bank-name" class="form-control" value="${emp.bank_name || ''}"></div>
           <div class="form-group"><label class="form-label">Account Name</label><input type="text" id="e-bank-account-name" class="form-control" value="${emp.bank_account_name || ''}"></div>
           <div class="form-group"><label class="form-label">Account Number</label><input type="text" id="e-bank-account-number" class="form-control" value="${emp.bank_account_number || ''}"></div>
+          <div class="form-group"><label class="form-label">Pension ID</label><input type="text" id="e-pension-id" class="form-control" maxlength="100" value="${safe(emp.pension_id || '')}" placeholder="Employee pension identifier"></div>
           <div class="form-group"><label class="form-label">Bank Branch</label><input type="text" id="e-bank-branch" class="form-control" value="${emp.bank_branch || ''}"></div>
           ${isAdmin ? `
           <div class="form-group"><label class="form-label">Department</label><select id="e-department" class="form-control form-select">${optionList(departments.map((department) => ({ value: department.id, label: department.name })), emp.department_id)}</select></div>
@@ -668,6 +680,7 @@ async function saveEdit(id) {
       bank_name: document.getElementById('e-bank-name').value,
       bank_account_name: document.getElementById('e-bank-account-name').value,
       bank_account_number: document.getElementById('e-bank-account-number').value,
+      pension_id: document.getElementById('e-pension-id').value,
       bank_branch: document.getElementById('e-bank-branch').value
     };
     if (isAdmin) {
