@@ -61,6 +61,7 @@ app.use('/api/queries',       require('./routes/queries.routes'));
 app.use('/api/training',      require('./routes/training.routes'));
 app.use('/api/probation',     require('./routes/probation.routes'));
 app.use('/api/contracts',     require('./routes/contracts.routes'));
+app.use('/api/disciplinary',  require('./routes/disciplinary.routes'));
 app.use('/api/billing',       require('./routes/billing.routes'));
 app.use('/api/company-calendar', require('./routes/company-calendar.routes'));
 app.use('/api/schedules',     require('./routes/schedules.routes'));

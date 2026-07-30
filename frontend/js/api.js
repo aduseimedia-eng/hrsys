@@ -496,6 +496,7 @@ function buildSidebar(activePage) {
     { page: 'contracts',   icon: docIcon(),        label: 'Contract Expiry', roles: ['admin','manager','employee'] },
     { section: 'HR Tools', roles: ['admin','manager'] },
     { page: 'employees',   icon: usersIcon(),      label: 'Employees',    roles: ['admin','manager'] },
+    { page: 'disciplinary', icon: docIcon(),       label: 'Disciplinary Register', roles: ['admin','manager'] },
     { page: 'departments', icon: orgIcon(),        label: 'Departments',  roles: ['admin'] },
     { page: 'orgchart',    icon: orgIcon(),        label: 'Org Chart',    roles: ['admin','manager','employee'] },
     { page: 'settings',    icon: settingsIcon(),   label: 'Settings',     roles: ['admin','employee'] },
