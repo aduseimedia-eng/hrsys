@@ -520,6 +520,8 @@ function buildSidebar(activePage) {
         ? appUrl('/pages/messages.html')
         : item.page === 'calendar'
           ? appUrl('/pages/calendar.html')
+          : item.page === 'benefits'
+            ? appUrl('/pages/benefits.html')
         : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
       : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page));
     return `<a href="${href}" class="nav-item ${active}">
