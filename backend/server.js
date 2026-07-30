@@ -7,6 +7,7 @@ const cors     = require('cors');
 const helmet   = require('helmet');
 const morgan   = require('morgan');
 const path     = require('path');
+const { startBirthdayNotifier } = require('./services/birthday.service');
 
 const app = express();
 
@@ -87,4 +88,5 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+startBirthdayNotifier();
 app.listen(PORT, () => console.log(`🚀 KenadHR API running on port ${PORT}`));

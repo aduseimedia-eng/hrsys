@@ -18,7 +18,8 @@ function titleFor(type) {
     payroll: 'Payslip ready',
     review: 'Performance review',
     it_ticket: 'IT ticket update',
-    welcome: 'Welcome to KenadHR'
+    welcome: 'Welcome to KenadHR',
+    birthday: 'Birthday wishes'
   };
   return titles[type] || 'KenadHR update';
 }
@@ -57,12 +58,15 @@ async function sendToEmployee({ companyId, employeeId, type, message, link }) {
   return rows.length;
 }
 
-async function notifyEmployee({ companyId, employeeId, type, message, link = null }) {
+async function notifyEmployee({ companyId, employeeId, type, message, link = null, eventKey = null }) {
   const { rows } = await db.query(
-    `INSERT INTO notifications (company_id, employee_id, type, message, link)
-     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [companyId, employeeId, type, message, link]
+    `INSERT INTO notifications (company_id, employee_id, type, message, link, event_key)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (company_id, employee_id, event_key) WHERE event_key IS NOT NULL DO NOTHING
+     RETURNING *`,
+    [companyId, employeeId, type, message, link, eventKey]
   );
+  if (!rows.length) return null;
   await sendToEmployee({ companyId, employeeId, type, message, link });
   return rows[0];
 }

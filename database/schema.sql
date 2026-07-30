@@ -219,12 +219,15 @@ CREATE TABLE notifications (
   type         VARCHAR(50) NOT NULL,
   message      TEXT NOT NULL,
   link         VARCHAR(300),
+  event_key    VARCHAR(120),
   is_read      BOOLEAN DEFAULT FALSE,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_notifications_employee_recent
   ON notifications(company_id, employee_id, created_at DESC);
+CREATE UNIQUE INDEX idx_notifications_event_once
+  ON notifications(company_id, employee_id, event_key) WHERE event_key IS NOT NULL;
 
 CREATE TABLE push_subscriptions (
   id              SERIAL PRIMARY KEY,
