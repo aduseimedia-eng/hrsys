@@ -7,6 +7,8 @@ const MONTHLY_PAYE_BANDS = [
 
 const EMPLOYEE_SSNIT_RATE = 0.055;
 const EMPLOYER_SSNIT_RATE = 0.13;
+// SSNIT 2026 maximum insurable earnings: GH¢69,000 annually (GH¢5,750 monthly).
+const MONTHLY_SSNIT_CAP = 5750;
 const money = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
 function calculatePaye(chargeableIncome) {
@@ -24,11 +26,12 @@ function calculatePaye(chargeableIncome) {
 function calculateMonthlyPayroll({ basicSalary, allowances = 0, otherDeductions = 0 }) {
   const base = Math.max(0, Number(basicSalary) || 0);
   const earnings = Math.max(0, Number(allowances) || 0);
-  const ssnitEmployee = money(base * EMPLOYEE_SSNIT_RATE);
-  const ssnitEmployer = money(base * EMPLOYER_SSNIT_RATE);
+  const ssnitBase = Math.min(base, MONTHLY_SSNIT_CAP);
+  const ssnitEmployee = money(ssnitBase * EMPLOYEE_SSNIT_RATE);
+  const ssnitEmployer = money(ssnitBase * EMPLOYER_SSNIT_RATE);
   const payeTax = calculatePaye(base + earnings - ssnitEmployee);
   const other = Math.max(0, Number(otherDeductions) || 0);
   return { ssnitEmployee, ssnitEmployer, payeTax, otherDeductions: money(other), deductions: money(ssnitEmployee + payeTax + other) };
 }
 
-module.exports = { EMPLOYEE_SSNIT_RATE, EMPLOYER_SSNIT_RATE, MONTHLY_PAYE_BANDS, calculatePaye, calculateMonthlyPayroll };
+module.exports = { EMPLOYEE_SSNIT_RATE, EMPLOYER_SSNIT_RATE, MONTHLY_SSNIT_CAP, MONTHLY_PAYE_BANDS, calculatePaye, calculateMonthlyPayroll };
