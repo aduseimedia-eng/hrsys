@@ -1052,14 +1052,6 @@
     .profile-health-note { color: #5f6e86; font-size: .78rem; line-height: 1.5; }
     .profile-employment-list { display: grid; gap: 10px; }
     .profile-employment-list .profile-item { padding-bottom: 10px; }
-    .staff-main .staff-grid.profile-section-grid.staff-profile-workspace[data-staff-page].staff-page-active { display:grid; grid-template-columns:260px minmax(0,1fr); gap:22px; }
-    .staff-profile-vitals { position:sticky; top:18px; padding:20px; align-self:start; background:var(--bg-surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-sm); }
-    .staff-profile-vitals .avatar { width:112px; height:112px; font-size:2rem; border-radius:16px; margin-bottom:14px; }
-    .staff-profile-vitals h2 { margin:0 0 4px; font-size:1.08rem; }.staff-profile-vitals p { margin:0; color:var(--text-secondary); font-size:.84rem; }
-    .staff-vitals-list { margin-top:17px; padding-top:10px; border-top:1px solid var(--border); }.staff-vital { display:flex; gap:8px; padding:7px 0; color:var(--text-secondary); font-size:.81rem; line-height:1.35; }.staff-vital b { color:#08752a; }
-    .staff-profile-banner { padding:27px 30px 0; border-radius:22px; background:#08752a; color:#fff; }.staff-profile-banner-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }.staff-profile-banner h1 { margin:0; color:#fff; font-size:2rem; }.staff-profile-banner p { margin:7px 0 17px; color:rgba(255,255,255,.82); }.staff-profile-tabs { display:flex; gap:23px; flex-wrap:wrap; }.staff-profile-tabs button { padding:0 0 13px; border:0; border-bottom:3px solid transparent; background:transparent; color:rgba(255,255,255,.82); font-weight:750; cursor:pointer; }.staff-profile-tabs button.active,.staff-profile-tabs button:hover { color:#fff; border-bottom-color:#fff; }
-    .staff-profile-tab-panel { display:none; padding-top:24px; }.staff-profile-tab-panel.active { display:block; }.staff-profile-tab-panel .staff-grid { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }.staff-profile-tab-panel .staff-panel { background:var(--bg-surface); }.staff-benefits-title { display:flex; align-items:center; gap:10px; margin:0 0 17px; color:#08752a; font-size:1.45rem; }.staff-benefits-title span { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; background:#e8f6eb; }.staff-benefit-field,.staff-benefit-overview { padding:22px; border:1px solid var(--border); border-radius:16px; background:var(--bg-surface); box-shadow:var(--shadow-sm); }.staff-benefit-field { margin-bottom:18px; }.staff-benefit-field label { display:block; margin-bottom:8px; font-weight:700; }.staff-benefit-field .form-control { max-width:310px; }.staff-benefit-overview h3 { margin:0 0 15px; color:#08752a; }.staff-benefit-row { display:flex; justify-content:space-between; gap:16px; padding:15px 0; border-bottom:1px solid var(--border); }.staff-benefit-row:last-child { border-bottom:0; }.staff-benefit-row strong { display:block; }.staff-benefit-row span { display:block; margin-top:3px; color:var(--text-secondary); font-size:.83rem; }.staff-benefit-status { align-self:center; color:#08752a; font-size:.8rem; font-weight:800; }
-    @media(max-width:900px){.staff-main .staff-grid.profile-section-grid.staff-profile-workspace[data-staff-page].staff-page-active{grid-template-columns:1fr}.staff-profile-vitals{position:static}.staff-profile-tabs{gap:14px}.staff-profile-tab-panel .staff-grid{grid-template-columns:1fr}}
 
     .document-form {
       display: grid;
@@ -1681,29 +1673,11 @@
         </div>
       </section>
 
-      <section class="staff-grid profile-section-grid staff-profile-workspace" data-staff-page="profile">
-        <aside class="staff-profile-vitals">
-          <div id="profile-avatar-preview"><div class="avatar">--</div></div>
-          <h2 id="profile-avatar-name">Staff member</h2>
-          <p id="profile-avatar-role">Staff profile</p>
-          <label class="btn btn-outline btn-sm" style="margin-top:13px">Change photo<input type="file" accept="image/*" style="display:none" onchange="uploadStaffAvatar(this.files[0])"></label>
-          <div class="staff-vitals-list" id="staff-profile-vitals-list"></div>
-        </aside>
-        <div class="staff-profile-stage">
-          <header class="staff-profile-banner">
-            <div class="staff-profile-banner-head"><div><h1 id="staff-profile-name">Staff member</h1><p id="staff-profile-subtitle">Your employee profile</p></div><button class="btn btn-outline btn-sm" type="button" onclick="editProfileCard('personal')" style="background:#fff;color:#08752a;border-color:#fff">Request a Change</button></div>
-            <nav class="staff-profile-tabs" aria-label="My profile sections">
-              <button class="active" type="button" data-profile-tab="personal" onclick="setStaffProfileTab('personal')">Personal</button>
-              <button type="button" data-profile-tab="job" onclick="setStaffProfileTab('job')">Job</button>
-              <button type="button" data-profile-tab="timeoff" onclick="setStaffProfileTab('timeoff')">Time Off</button>
-              <button type="button" data-profile-tab="emergency" onclick="setStaffProfileTab('emergency')">Emergency</button>
-              <button type="button" data-profile-tab="performance" onclick="setStaffProfileTab('performance')">Performance</button>
-              <button type="button" data-profile-tab="training" onclick="setStaffProfileTab('training')">Training</button>
-              <button type="button" data-profile-tab="benefits" onclick="setStaffProfileTab('benefits')">Benefits</button>
-            </nav>
-          </header>
-          <div class="staff-profile-tab-panel active" data-profile-panel="personal">
-          <div class="staff-grid profile-section-grid">
+      <section class="staff-grid profile-section-grid" data-staff-page="profile">
+        <article class="staff-panel" id="profile-avatar-panel">
+          <div class="staff-panel-header"><div><h3>Profile Avatar</h3><span>Your staff photo</span></div></div>
+          <div class="staff-panel-body"><div class="staff-profile-summary"><div id="profile-avatar-preview"><div class="avatar">--</div></div><div><strong id="profile-avatar-name">Staff member</strong><span id="profile-avatar-role" style="display:block;color:var(--text-muted);font-size:.82rem;margin-top:4px">Staff profile</span><label class="btn btn-outline btn-sm" style="margin-top:12px">Change Avatar<input type="file" accept="image/*" style="display:none" onchange="uploadStaffAvatar(this.files[0])"></label></div></div></div>
+        </article>
         <article class="staff-panel">
           <div class="staff-panel-header">
             <div>
@@ -1815,15 +1789,6 @@
             <div class="profile-list" id="profile-personal-list"></div>
           </div>
         </article>
-          </div>
-          </div>
-          <div class="staff-profile-tab-panel" data-profile-panel="job"><article class="staff-panel"><div class="staff-panel-header"><div><h3>Employment Record</h3><span>Your current role details</span></div></div><div class="staff-panel-body"><div class="profile-list" id="profile-job-tab-list"></div></div></article></div>
-          <div class="staff-profile-tab-panel" data-profile-panel="timeoff"><article class="staff-panel"><div class="staff-panel-header"><div><h3>Time Off</h3><span>View leave balances and requests</span></div></div><div class="staff-panel-body"><button class="btn btn-primary" type="button" onclick="goToStaffPage('leave')">Open Time Off</button></div></article></div>
-          <div class="staff-profile-tab-panel" data-profile-panel="emergency"><article class="staff-panel"><div class="staff-panel-header"><div><h3>Emergency Contact</h3><span>Who HR should contact when needed</span></div><button class="btn btn-outline btn-sm" type="button" onclick="editProfileCard('emergency')">Edit</button></div><div class="staff-panel-body"><div class="profile-list" id="profile-emergency-tab-list"></div></div></article></div>
-          <div class="staff-profile-tab-panel" data-profile-panel="performance"><article class="staff-panel"><div class="staff-panel-header"><div><h3>Performance</h3><span>Your reviews and HR queries</span></div></div><div class="staff-panel-body"><button class="btn btn-primary" type="button" onclick="goToStaffPage('performance')">Open Performance</button></div></article></div>
-          <div class="staff-profile-tab-panel" data-profile-panel="training"><article class="staff-panel"><div class="staff-panel-header"><div><h3>Training</h3><span>Your learning and certificates</span></div></div><div class="staff-panel-body"><button class="btn btn-primary" type="button" onclick="window.location.href='training.html'">Open Training</button></div></article></div>
-          <div class="staff-profile-tab-panel" data-profile-panel="benefits"><h2 class="staff-benefits-title"><span>♥</span>Benefits</h2><div class="staff-benefit-field"><label for="staff-pension-id">Pension ID#</label><input id="staff-pension-id" class="form-control" maxlength="100" placeholder="Enter your pension ID"><button class="btn btn-primary btn-sm" style="margin-top:12px" type="button" onclick="saveStaffPensionId()">Save Pension ID</button></div><div class="staff-benefit-overview"><h3>Benefits Overview</h3><div id="staff-benefits-overview"></div></div></div>
-        </div>
       </section>
 
       <section class="metric-grid staff-page-active" id="staff-kpis" data-staff-page="overview" aria-label="Staff metrics">
