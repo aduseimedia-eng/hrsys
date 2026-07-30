@@ -36,10 +36,10 @@
     }
 
     .profile-hero {
-      background: linear-gradient(120deg, #1d2b4d 0%, #2865d9 100%);
+      background: linear-gradient(120deg, #08752a 0%, #118334 100%);
       border: 1px solid rgba(255,255,255,.14);
       border-radius: 18px;
-      padding: 28px 30px;
+      padding: 28px 30px 18px;
       color: #fff;
       display: flex;
       align-items: center;
@@ -55,7 +55,7 @@
       flex-shrink: 0;
       z-index: 1;
     }
-    .profile-hero .avatar { border: 4px solid rgba(255,255,255,.22); box-shadow: 0 12px 28px rgba(15,31,77,.24); }
+    .profile-hero .avatar { border: 4px solid rgba(255,255,255,.22); box-shadow: 0 12px 28px rgba(9,67,27,.28); }
     .profile-hero .avatar-wrap .edit-photo-btn {
       position: absolute;
       bottom: 0; right: 0;
@@ -64,7 +64,7 @@
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer;
-      border: 2px solid var(--navy-950);
+      border: 2px solid #075b22;
       transition: background var(--duration);
     }
     .profile-hero .avatar-wrap .edit-photo-btn:hover { background: var(--amber-400); }
@@ -75,6 +75,9 @@
     .profile-meta { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
     .profile-meta-item { display: flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid rgba(255,255,255,.13); border-radius: 8px; background: rgba(10,23,66,.14); font-size: .76rem; color: rgba(255,255,255,.8); }
     .profile-meta-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .profile-tabs { display:flex; gap:22px; flex-wrap:wrap; margin-top:19px; padding-top:14px; border-top:1px solid rgba(255,255,255,.18); }
+    .profile-tabs button { padding:0 0 8px; border:0; border-bottom:3px solid transparent; background:transparent; color:rgba(255,255,255,.82); font-size:.86rem; font-weight:750; cursor:pointer; }
+    .profile-tabs button.active, .profile-tabs button:hover { color:#fff; border-bottom-color:#fff; }
 
     .profile-actions { position:relative;z-index:1;margin-left:auto;display:flex;gap:8px;flex-shrink:0;align-self:flex-start; }
     .profile-actions .btn { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.15); }
@@ -270,6 +273,14 @@ async function loadProfile() {
             ${emp.phone ? `<div class="profile-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.66A2 2 0 012 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>${emp.phone}</div>` : ''}
             ${emp.hire_date ? `<div class="profile-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Joined ${fmt.date(emp.hire_date)}</div>` : ''}
           </div>
+          <nav class="profile-tabs" aria-label="Employee profile sections">
+            <button type="button" class="active" onclick="document.getElementById('personal-information').scrollIntoView({behavior:'smooth'})">Personal</button>
+            <button type="button" onclick="document.getElementById('work-information').scrollIntoView({behavior:'smooth'})">Job</button>
+            <button type="button" onclick="showEmployeeLeaveHistory(${emp.id})">Time Off</button>
+            <button type="button" onclick="showEmployeePerformance(${emp.id})">Performance</button>
+            <button type="button" onclick="window.location.href=appUrl('/pages/training.html')">Training</button>
+            <button type="button" onclick="window.location.href=appUrl('/pages/benefits.html')">Benefits</button>
+          </nav>
         </div>
         <div class="profile-actions">
           <button type="button" class="btn btn-sm" onclick="goBackToEmployees()">Back to Employees</button>
@@ -290,7 +301,7 @@ async function loadProfile() {
       <!-- Details grid -->
       <div class="profile-grid">
         <!-- Personal info -->
-        <div class="card">
+        <div class="card" id="personal-information">
           <div class="card-header"><h3>Personal Information</h3></div>
           <div class="card-body">
             <div class="info-row"><span class="label">Full Name</span><span class="value">${emp.first_name} ${emp.last_name}</span></div>
@@ -302,7 +313,7 @@ async function loadProfile() {
         </div>
 
         <!-- Work info -->
-        <div class="card">
+        <div class="card" id="work-information">
           <div class="card-header"><h3>Work Information</h3></div>
           <div class="card-body">
             <div class="info-row"><span class="label">Department</span><span class="value">${emp.department_name || '—'}</span></div>
