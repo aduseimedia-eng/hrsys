@@ -18,6 +18,7 @@ function titleFor(type) {
     payroll: 'Payslip ready',
     review: 'Performance review',
     it_ticket: 'IT ticket update',
+    employee_query: 'Employee query update',
     welcome: 'Welcome to KenadHR',
     birthday: 'Birthday wishes'
   };

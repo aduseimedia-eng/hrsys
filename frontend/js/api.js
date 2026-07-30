@@ -483,6 +483,7 @@ function buildSidebar(activePage) {
     { page: 'attendance',  icon: clockIcon(),      label: 'Attendance',   roles: ['admin','employee'] },
     { page: 'todos',       icon: checkIcon(),      label: 'To Do List',    roles: ['admin','manager','employee'] },
     { page: 'tickets',     icon: chatIcon(),       label: 'Tickets',       roles: ['admin','manager','employee'] },
+    { page: 'queries',     icon: chatIcon(),       label: 'Employee Queries', roles: ['admin','manager','employee'] },
     { page: 'leave',       icon: calendarIcon(),   label: 'Leave',        roles: ['admin','manager','employee'] },
     { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
