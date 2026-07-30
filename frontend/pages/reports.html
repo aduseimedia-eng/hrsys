@@ -165,7 +165,7 @@
       <article class="suite-kpi"><span>Loading</span><div><strong>--</strong><small>Fetching reports</small></div></article>
     </section>
 
-    <section class="report-grid-wide">
+    <section class="report-grid-wide" style="grid-template-columns:1fr">
       <article class="suite-panel">
         <div class="suite-panel-header">
           <div>
@@ -186,24 +186,6 @@
         </div>
       </article>
 
-      <article class="suite-panel">
-        <div class="suite-panel-header">
-          <div>
-            <h3>Readiness Score</h3>
-            <span>Weighted from approvals, attendance, payroll, and review coverage</span>
-          </div>
-        </div>
-        <div class="suite-panel-body">
-          <div class="report-score">
-            <div class="report-ring" id="readiness-ring" style="--score:0"><span id="readiness-score">--</span></div>
-            <div>
-              <strong id="readiness-label">Loading</strong>
-              <p class="text-muted text-sm" id="readiness-detail" style="margin-top:6px">Collecting report inputs...</p>
-            </div>
-          </div>
-          <div class="report-insights" id="report-insights"></div>
-        </div>
-      </article>
     </section>
 
     <section class="suite-grid">
@@ -219,43 +201,17 @@
         </div>
       </article>
 
-      <article class="suite-panel">
-        <div class="suite-panel-header">
-          <div>
-            <h3>Saved Reports</h3>
-            <span>Quick views for common HR questions</span>
-          </div>
-        </div>
-        <div class="suite-panel-body">
-          <div class="report-runner" id="saved-report-list"></div>
-        </div>
-      </article>
-    </section>
-
-    <section class="suite-grid">
-      <article class="suite-panel">
-        <div class="suite-panel-header">
-          <div>
-            <h3>Workflow Automations</h3>
-            <span>Rules that reduce manual follow-up</span>
-          </div>
-        </div>
-        <div class="suite-panel-body" id="automation-list"></div>
-      </article>
-
     </section>
   </main>
 </div>
 
 <script src="../js/api.js"></script>
-<script src="../js/hr-suite-data.js"></script>
 <script>
 const user = requireAuth();
 if (!user) throw new Error('redirect');
 buildSidebar('reports');
 loadNotifCount();
 
-const suiteReports = window.hrSuiteData?.reports || { savedReports: [], automations: [], questions: [] };
 const state = {
   stats: {},
   employees: [],
@@ -319,19 +275,14 @@ function renderShell() {
   const pendingLeave = state.leave.filter((row) => row.status === 'pending').length;
   const reviewed = state.performance.filter((row) => Number(row.review_count || 0) > 0).length;
   const reviewCoverage = total ? Math.round((reviewed / total) * 100) : 0;
-  const activeAutomations = suiteReports.automations.filter((item) => item.status === 'Active').length;
-
   setText('hero-headcount', total);
   setText('hero-leave', pendingLeave);
   setText('hero-reviews', `${reviewCoverage}%`);
   setText('report-title', `${total} employees, ${pendingLeave} leave approval${pendingLeave === 1 ? '' : 's'} open`);
-  setText('report-subtitle', `${state.departments.length} departments tracked. ${activeAutomations} workflow automation${activeAutomations === 1 ? '' : 's'} active.`);
+  setText('report-subtitle', `${state.departments.length} departments tracked from your company records.`);
 
   renderKpis();
-  renderReadiness();
   renderDepartmentChart();
-  renderSavedReports();
-  renderAutomations();
 }
 
 function renderKpis() {
@@ -352,8 +303,6 @@ function renderKpis() {
     { label: 'Attendance today', value: present + late, note: `${late} late arrivals` },
     { label: 'Review coverage', value: `${reviewCoverage}%`, note: `${reviewed}/${total || 0} reviewed` },
     { label: 'Payroll', value: latestPayroll ? shortMoney(latestPayroll.total_net) : '--', note: payrollNote },
-    { label: 'Open reports', value: suiteReports.savedReports.length, note: 'saved views' },
-    { label: 'Automations', value: suiteReports.automations.filter((item) => item.status === 'Active').length, note: 'active workflows' },
     { label: 'On leave today', value: Number(state.stats.on_leave_today || state.attendance.summary?.['on-leave'] || 0), note: 'attendance signal' }
   ];
 
@@ -362,49 +311,6 @@ function renderKpis() {
       <span>${escapeHtml(metric.label)}</span>
       <div><strong>${escapeHtml(metric.value)}</strong><small>${escapeHtml(metric.note)}</small></div>
     </article>
-  `).join('');
-}
-
-function renderReadiness() {
-  const total = Math.max(Number(state.stats.total_employees || state.employees.length || 0), 1);
-  const pendingLeave = state.leave.filter((row) => row.status === 'pending').length;
-  const attendanceCount = Object.values(state.attendance.summary || {}).reduce((sum, value) => sum + Number(value || 0), 0);
-  const reviewed = state.performance.filter((row) => Number(row.review_count || 0) > 0).length;
-  const reviewCoverage = reviewed / total;
-  const latestPayroll = state.payrollSummary[0];
-  const payrollCoverage = latestPayroll ? Number(latestPayroll.paid_count || 0) / Math.max(Number(latestPayroll.employee_count || 0), 1) : (user.role === 'admin' ? 0 : .8);
-  const leaveScore = Math.max(0, 1 - pendingLeave / total);
-  const attendanceScore = Math.min(1, attendanceCount / total);
-  const score = Math.round((leaveScore * .28 + attendanceScore * .22 + reviewCoverage * .25 + payrollCoverage * .25) * 100);
-
-  document.getElementById('readiness-ring').style.setProperty('--score', score);
-  setText('readiness-score', `${score}%`);
-  setText('readiness-label', score >= 85 ? 'Leadership-ready' : score >= 70 ? 'Needs a few updates' : 'Action needed');
-  setText('readiness-detail', `${pendingLeave} pending leave request${pendingLeave === 1 ? '' : 's'}, ${Math.round(reviewCoverage * 100)}% review coverage, ${attendanceCount}/${total} attendance records today.`);
-
-  const insights = [
-    {
-      title: pendingLeave ? 'Leave approvals need attention' : 'Leave queue is clear',
-      detail: pendingLeave ? `${pendingLeave} request${pendingLeave === 1 ? '' : 's'} waiting for a decision.` : 'No pending leave requests in the current queue.',
-      tone: pendingLeave ? 'warn' : 'good'
-    },
-    {
-      title: reviewCoverage >= .8 ? 'Reviews are in good shape' : 'Performance coverage is low',
-      detail: `${reviewed} of ${total} active employees have at least one review.`,
-      tone: reviewCoverage >= .8 ? 'good' : 'warn'
-    },
-    {
-      title: latestPayroll ? 'Payroll summary available' : 'Payroll summary unavailable',
-      detail: latestPayroll ? `${shortMoney(latestPayroll.total_net)} net payroll in latest cycle.` : (user.role === 'admin' ? 'Process payroll to unlock payroll reporting.' : 'Payroll metrics are restricted to HR/Admin.'),
-      tone: latestPayroll ? 'good' : 'warn'
-    }
-  ];
-
-  document.getElementById('report-insights').innerHTML = insights.map((item) => `
-    <div class="report-insight">
-      <strong>${escapeHtml(item.title)}</strong>
-      <span>${escapeHtml(item.detail)}</span>
-    </div>
   `).join('');
 }
 
@@ -419,43 +325,6 @@ function renderDepartmentChart() {
         <strong>${count}</strong>
       </div>`;
   }).join('') || '<div class="suite-empty">No departments found.</div>';
-}
-
-function renderSavedReports() {
-  const reports = [
-    { title: 'Executive snapshot', type: 'executive', owner: 'Leadership', cadence: 'Daily' },
-    { title: 'Headcount by department', type: 'headcount', owner: 'HR/Admin', cadence: 'Weekly' },
-    { title: 'Leave requests', type: 'leave', owner: 'Managers', cadence: 'Daily' },
-    { title: 'Attendance today', type: 'attendance', owner: 'HR/Admin', cadence: 'Daily' },
-    { title: 'Performance coverage', type: 'performance', owner: 'Managers', cadence: 'Monthly' },
-    { title: 'Payroll readiness', type: 'payroll', owner: 'Account Department', cadence: 'Monthly' }
-  ];
-
-  document.getElementById('saved-report-list').innerHTML = reports.map((report) => `
-    <div class="suite-row">
-      <div>
-        <strong>${escapeHtml(report.title)}</strong>
-        <span>${escapeHtml(report.owner)} - ${escapeHtml(report.cadence)}</span>
-      </div>
-      <div class="suite-meta">
-        <button class="btn btn-outline btn-sm" type="button" onclick="runReport('${report.type}')">Run</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderAutomations() {
-  document.getElementById('automation-list').innerHTML = suiteReports.automations.map((automation) => `
-    <div class="suite-row">
-      <div>
-        <strong>${escapeHtml(automation.title)}</strong>
-        <span>Trigger: ${escapeHtml(automation.trigger)} - ${automation.runs} runs</span>
-      </div>
-      <div class="suite-meta">
-        <span class="suite-pill ${automation.status === 'Active' ? 'good' : 'warn'}">${escapeHtml(automation.status)}</span>
-      </div>
-    </div>
-  `).join('');
 }
 
 function runSelectedReport() {
@@ -549,13 +418,13 @@ function buildReport(type) {
   const reviewed = state.performance.filter((row) => Number(row.review_count || 0) > 0).length;
   const late = Number(state.attendance.summary?.late || 0);
   const rows = [
-    { area: 'Headcount', signal: `${total} active employees`, status: total ? 'Ready' : 'Needs data', owner: 'HR/Admin' },
-    { area: 'Leave', signal: `${pendingLeave} pending request${pendingLeave === 1 ? '' : 's'}`, status: pendingLeave ? 'Review' : 'Clear', owner: 'CEO/Managers' },
-    { area: 'Attendance', signal: `${late} late arrival${late === 1 ? '' : 's'} today`, status: late ? 'Watch' : 'Clear', owner: 'HR/Admin' },
-    { area: 'Performance', signal: `${percent(reviewed, total || 1)} reviewed`, status: reviewed >= total * .8 ? 'Ready' : 'Needs reviews', owner: 'Managers' },
-    { area: 'Payroll', signal: state.payrollSummary[0] ? `${shortMoney(state.payrollSummary[0].total_net)} latest net` : 'No summary available', status: state.payrollSummary[0] ? 'Ready' : 'Restricted', owner: 'Account Department' }
+    { area: 'Headcount', signal: `${total} active employees`, status: total ? 'Available' : 'No data' },
+    { area: 'Leave', signal: `${pendingLeave} pending request${pendingLeave === 1 ? '' : 's'}`, status: pendingLeave ? 'Pending' : 'Clear' },
+    { area: 'Attendance', signal: `${late} late arrival${late === 1 ? '' : 's'} today`, status: late ? 'Attention' : 'Clear' },
+    { area: 'Performance', signal: `${percent(reviewed, total || 1)} reviewed`, status: reviewed ? 'Available' : 'No reviews' },
+    { area: 'Payroll', signal: state.payrollSummary[0] ? `${shortMoney(state.payrollSummary[0].total_net)} latest net` : 'No summary available', status: state.payrollSummary[0] ? 'Available' : 'No data' }
   ];
-  return reportConfig('Executive snapshot', 'Current leadership-ready people operations summary', ['area', 'signal', 'status', 'owner'], rows);
+  return reportConfig('Executive snapshot', 'Current people operations summary', ['area', 'signal', 'status'], rows);
 }
 
 function reportConfig(title, meta, columns, rows) {
