@@ -535,6 +535,7 @@ function showEditModal() {
           <div class="form-group"><label class="form-label">Department</label><select id="e-department" class="form-control form-select">${optionList(departments.map((department) => ({ value: department.id, label: department.name })), emp.department_id)}</select></div>
           <div class="form-group"><label class="form-label">Job Title</label><select id="e-title" class="form-control form-select">${optionList(JOB_TITLES, emp.job_title)}</select></div>
           <div class="form-group"><label class="form-label">Employment Type</label><select id="e-employment-type" class="form-control form-select">${optionList(EMPLOYMENT_TYPES, emp.employment_type)}</select></div>
+          <div class="form-group"><label class="form-label">Hire Date</label><input type="date" id="e-hire-date" class="form-control" value="${emp.hire_date ? emp.hire_date.split('T')[0] : ''}"></div>
           <div class="form-group"><label class="form-label">Salary</label><input type="number" id="e-salary" class="form-control" value="${emp.salary || ''}"></div>
           <div class="form-group"><label class="form-label required">Employee ID</label><input type="text" id="e-employee-code" class="form-control" maxlength="50" value="${emp.employee_code || ''}" placeholder="e.g. EMP-001"></div>
           ` : ''}
@@ -577,6 +578,7 @@ async function saveEdit(id) {
       body.department_id = document.getElementById('e-department')?.value || null;
       body.job_title = document.getElementById('e-title')?.value;
       body.employment_type = document.getElementById('e-employment-type')?.value;
+      body.hire_date = document.getElementById('e-hire-date')?.value;
       body.salary    = document.getElementById('e-salary')?.value;
       body.employee_code = document.getElementById('e-employee-code')?.value;
     }
