@@ -320,6 +320,11 @@
       text-align: center;
       font-size: .86rem;
     }
+    .dashboard-chart { display:grid; gap:12px; }
+    .dashboard-chart-row { display:grid; grid-template-columns:110px minmax(0,1fr) 34px; align-items:center; gap:10px; font-size:.8rem; }
+    .dashboard-chart-row span:first-child { color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .dashboard-chart-bar { height:9px; border-radius:99px; background:var(--navy-50); overflow:hidden; }
+    .dashboard-chart-bar i { display:block; height:100%; border-radius:inherit; background:var(--navy-500); }
 
     .loading-minimal {
       padding: 24px;
@@ -461,6 +466,11 @@
     <section class="dashboard-workspace">
       <div class="workspace-primary">
         <article class="dash-panel">
+          <div class="dash-panel-header"><div><h2>Workforce Mix</h2><span>Active employees by employment type</span></div><a href="employees.html" class="btn btn-outline btn-sm">Employees</a></div>
+          <div class="dash-panel-body"><div class="dashboard-chart" id="workforce-chart"><div class="loading-minimal">Loading workforce data...</div></div></div>
+        </article>
+
+        <article class="dash-panel">
           <div class="dash-panel-header">
             <div>
               <h2>Needs Attention</h2>
@@ -548,6 +558,11 @@
           </div>
         </article>
 
+        <article class="dash-panel">
+          <div class="dash-panel-header"><div><h2>Upcoming Expiries</h2><span>Documents expiring in the next 30 days</span></div><a href="documents.html" class="btn btn-outline btn-sm">Documents</a></div>
+          <div class="dash-panel-body"><div class="today-list" id="expiry-list"><div class="loading-minimal">Loading expiries...</div></div></div>
+        </article>
+
       </aside>
     </section>
   </main>
@@ -600,6 +615,8 @@ async function loadDashboard() {
 
     const data = { stats, leaveQueue, teamSummary, payrollRows, announcements, todos, attendanceSummary, attendanceRows };
     renderMetrics(data);
+    renderWorkforceChart(stats);
+    renderExpiries(stats);
     renderAttention(data);
     renderToday(data);
     renderAnnouncements(announcements);
@@ -617,6 +634,8 @@ async function loadDashboard() {
     document.getElementById('todo-list').innerHTML = '<div class="empty-minimal">To do items are unavailable right now.</div>';
     document.getElementById('today-list').innerHTML = '<div class="empty-minimal">Today\'s snapshot is unavailable right now.</div>';
     document.getElementById('birthday-list').innerHTML = '<div class="empty-minimal">Birthdays are unavailable right now.</div>';
+    document.getElementById('workforce-chart').innerHTML = '<div class="empty-minimal">Workforce chart is unavailable right now.</div>';
+    document.getElementById('expiry-list').innerHTML = '<div class="empty-minimal">Expiry information is unavailable right now.</div>';
     document.getElementById('dashboard-attendance').innerHTML = '<div class="empty-minimal">Attendance is unavailable right now.</div>';
     toast(err.message || 'Could not load dashboard', 'error');
   }
@@ -687,6 +706,12 @@ function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows }) {
       value: `${reviewCoverage}%`,
       note: `${reviewed}/${total} employees covered`,
       tone: reviewCoverage >= 80 ? '' : 'danger'
+    },
+    {
+      label: 'Expiries',
+      value: (stats.upcoming_expiries || []).length,
+      note: 'documents due within 30 days',
+      tone: (stats.upcoming_expiries || []).length ? 'warn' : ''
     }
   ];
 
@@ -701,6 +726,18 @@ function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows }) {
       </div>
     </article>
   `).join('');
+}
+
+function renderWorkforceChart(stats) {
+  const labels = { staff: 'Staff', contractual: 'Contractual', national_service: 'National service', internship: 'Internship' };
+  const rows = stats.employment_type_breakdown || [];
+  const max = Math.max(...rows.map(row => Number(row.count || 0)), 1);
+  document.getElementById('workforce-chart').innerHTML = rows.length ? rows.map(row => `<div class="dashboard-chart-row"><span>${escapeHtml(labels[row.employment_type] || row.employment_type || 'Unspecified')}</span><div class="dashboard-chart-bar"><i style="width:${Math.max(5, Math.round(Number(row.count || 0) / max * 100))}%"></i></div><strong>${Number(row.count || 0)}</strong></div>`).join('') : '<div class="empty-minimal">No active employee records yet.</div>';
+}
+
+function renderExpiries(stats) {
+  const rows = stats.upcoming_expiries || [];
+  document.getElementById('expiry-list').innerHTML = rows.length ? rows.map(row => `<a class="today-item" href="documents.html"><div><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.employee_name)} · ${escapeHtml(row.doc_type || 'Document')}</span></div><div class="item-meta"><span class="mini-badge warn">${fmt.date(row.expiry_date)}</span></div></a>`).join('') : '<div class="empty-minimal">No document expiries in the next 30 days.</div>';
 }
 
 function renderAttention({ stats, leaveQueue, teamSummary, payrollRows }) {

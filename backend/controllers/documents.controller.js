@@ -6,7 +6,7 @@ const fs   = require('fs');
 exports.upload = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const { doc_type, shared_with } = req.body;
+    const { doc_type, shared_with, expiry_date } = req.body;
     const title = String(req.body.title || req.file.originalname).trim();
     const employeeId = req.body.employee_id || req.user.id;
     const shareWithHr = req.body.share_with_hr !== 'false';
@@ -21,11 +21,11 @@ exports.upload = async (req, res) => {
 
     const fileData = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
     const { rows } = await db.query(
-      `INSERT INTO documents (company_id, employee_id, doc_type, title, file_path, original_name, file_size, mime_type, file_data, share_with_hr, shared_with)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      `INSERT INTO documents (company_id, employee_id, doc_type, title, file_path, original_name, file_size, mime_type, file_data, share_with_hr, shared_with, expiry_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [req.user.company_id, employeeId, doc_type || 'other',
        title, `/uploads/documents/${req.file.filename}`,
-       req.file.originalname, req.file.size, req.file.mimetype || null, fileData, shareWithHr, shared_with || null]
+       req.file.originalname, req.file.size, req.file.mimetype || null, fileData, shareWithHr, shared_with || null, expiry_date || null]
     );
     if (req.file.path) fs.unlink(req.file.path, () => {});
     res.status(201).json(rows[0]);

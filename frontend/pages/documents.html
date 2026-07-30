@@ -168,6 +168,11 @@
           <option value="other">Other</option>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label">Expiry Date</label>
+        <input type="date" id="doc-expiry" class="form-control">
+        <div class="form-hint">Optional. Expiring documents appear on the HR dashboard 30 days before expiry.</div>
+      </div>
       <div class="form-group" id="owner-field" style="display:none">
         <label class="form-label">Document Owner</label>
         <select id="doc-owner" class="form-control form-select"></select>
@@ -297,6 +302,7 @@ async function uploadDocument() {
     form.append('document', file);
     form.append('doc_type', type);
     form.append('title', title);
+    form.append('expiry_date', document.getElementById('doc-expiry').value);
     form.append('share_with_hr', document.getElementById('doc-share-hr').checked ? 'true' : 'false');
     form.append('shared_with', document.getElementById('doc-share-with').value);
     if (user.role === 'admin') form.append('employee_id', document.getElementById('doc-owner').value || user.id);

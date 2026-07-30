@@ -11,7 +11,7 @@ exports.getDashboard = async (req, res) => {
     const month = new Date().getMonth() + 1;
     const year  = new Date().getFullYear();
 
-    const [total, present, onLeave, payroll, birthdays, recent] = await Promise.all([
+    const [total, present, onLeave, payroll, birthdays, recent, employmentTypes, expiries] = await Promise.all([
       db.query("SELECT COUNT(*) FROM employees WHERE company_id=$1 AND is_active = true", [req.user.company_id]),
       db.query("SELECT COUNT(*) FROM attendance WHERE company_id=$1 AND work_date = $2 AND status = 'present'", [req.user.company_id, today]),
       db.query("SELECT COUNT(*) FROM leave_requests WHERE company_id=$1 AND status='approved' AND $2 BETWEEN start_date AND end_date", [req.user.company_id, today]),
@@ -29,7 +29,9 @@ exports.getDashboard = async (req, res) => {
         `SELECT id, first_name, last_name, photo_url, job_title, hire_date
          FROM employees WHERE company_id = $1 AND is_active = true ORDER BY hire_date DESC LIMIT 5`,
         [req.user.company_id]
-      )
+      ),
+      db.query(`SELECT employment_type, COUNT(*)::int AS count FROM employees WHERE company_id=$1 AND is_active=true GROUP BY employment_type`, [req.user.company_id]),
+      db.query(`SELECT d.id, d.title, d.doc_type, d.expiry_date, CONCAT(e.first_name,' ',e.last_name) AS employee_name FROM documents d JOIN employees e ON e.id=d.employee_id WHERE d.company_id=$1 AND d.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' ORDER BY d.expiry_date ASC LIMIT 8`, [req.user.company_id])
     ]);
 
     res.json({
@@ -38,7 +40,9 @@ exports.getDashboard = async (req, res) => {
       on_leave_today:    parseInt(onLeave.rows[0].count),
       payroll_this_month: parseFloat(payroll.rows[0].total || 0),
       upcoming_birthdays: birthdays.rows,
-      recent_hires:       recent.rows
+      recent_hires:       recent.rows,
+      employment_type_breakdown: employmentTypes.rows,
+      upcoming_expiries: expiries.rows
     });
   } catch (err) {
     console.error(err);
