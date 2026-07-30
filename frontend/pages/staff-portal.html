@@ -1793,6 +1793,11 @@
         </article>
 
         <article class="staff-panel">
+          <div class="staff-panel-header"><div><h3>Contract Information</h3><span>Your contract expiry and notice period</span></div></div>
+          <div class="staff-panel-body"><div class="profile-list" id="profile-contract-list"></div></div>
+        </article>
+
+        <article class="staff-panel">
           <div class="staff-panel-header">
             <div>
               <h3>Personal Info</h3>
@@ -2499,13 +2504,14 @@
       try {
         const profile = await api.get('/auth/me');
         const isItDepartment = profile.department_name === 'IT Department';
-        const [leaves, leaveBalance, payroll, documents, reviews, queries, announcements, notifications, messageUnread, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
+        const [leaves, leaveBalance, payroll, documents, reviews, queries, contracts, announcements, notifications, messageUnread, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory] = await Promise.all([
           api.get('/leave/mine'),
           api.get('/leave/balance'),
           api.get('/payroll/mine'),
           api.get('/documents/mine'),
           api.get('/performance/mine'),
           api.get('/queries/mine'),
+          api.get('/contracts/mine'),
           api.get('/notifications/announcements'),
           api.get('/notifications/mine'),
           api.get('/messages/unread-count'),
@@ -2517,7 +2523,7 @@
           api.get('/employees/directory'),
         ]);
 
-        portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, queries, announcements, notifications, messageUnreadCount: messageUnread.count, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
+        portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, queries, contracts, announcements, notifications, messageUnreadCount: messageUnread.count, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
         renderShellUser(profile);
         renderProfile(profile);
         renderProfileAvatar(profile);
@@ -2625,6 +2631,13 @@
         ['Hire date', profile.hire_date ? fmt.date(profile.hire_date) : ''],
         ['Line manager', profile.manager_name || 'HR team']
       ]);
+      const contracts = portalState.contracts || [];
+      setProfileList('profile-contract-list', contracts.length ? contracts.slice(0, 2).flatMap((contract) => [
+        ['Contract', contract.contract_type],
+        ['Expiry date', contract.end_date ? fmt.date(contract.end_date) : 'Not recorded'],
+        ['Notice period', `${contract.notice_days || 0} days`],
+        ['Status', contract.status]
+      ]) : [['Contract', 'Not recorded']]);
       renderProfileHealth(profile);
     }
 
