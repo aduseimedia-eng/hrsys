@@ -323,8 +323,9 @@
     .dashboard-chart { display:grid; gap:12px; }
     .dashboard-chart-row { display:grid; grid-template-columns:110px minmax(0,1fr) 34px; align-items:center; gap:10px; font-size:.8rem; }
     .dashboard-chart-row span:first-child { color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .dashboard-chart-bar { height:9px; border-radius:99px; background:var(--navy-50); overflow:hidden; }
-    .dashboard-chart-bar i { display:block; height:100%; border-radius:inherit; background:var(--navy-500); }
+    .dashboard-chart-bar { height:14px; border-radius:99px; background:var(--navy-50); overflow:hidden; box-shadow:inset 0 0 0 1px rgba(30,64,175,.06); }
+    .dashboard-chart-bar i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--navy-500),var(--mint-500)); }
+    .dashboard-chart-bar i.late { background:linear-gradient(90deg,#f59e0b,#fbbf24); }.dashboard-chart-bar i.leave { background:linear-gradient(90deg,#64748b,#94a3b8); }
 
     .loading-minimal {
       padding: 24px;
@@ -644,7 +645,9 @@ async function loadDashboard() {
 function renderDashboardAttendance({ attendanceSummary, attendanceRows }) {
   const summary = attendanceSummary?.summary || {};
   const present = Number(summary.present || 0);
+  const late = Number(summary.late || 0);
   const onLeave = Number(summary['on-leave'] || 0);
+  const absent = Number(summary.absent || 0);
   const rows = (attendanceRows || []).slice(0, 5);
   const target = document.getElementById('dashboard-attendance');
   const list = rows.length ? rows.map((row) => {
@@ -660,7 +663,13 @@ function renderDashboardAttendance({ attendanceSummary, attendanceRows }) {
       <div class="attendance-summary-cell"><span>Present</span><strong>${present}</strong></div>
       <div class="attendance-summary-cell leave"><span>On leave</span><strong>${onLeave}</strong></div>
     </div>
+    <div class="dashboard-chart" style="margin:0 0 16px">${attendanceBars([{label:'Present',value:present,cls:''},{label:'Late',value:late,cls:'late'},{label:'On leave',value:onLeave,cls:'leave'},{label:'Absent',value:absent,cls:'leave'}])}</div>
     <div class="attendance-list">${list}</div>`;
+}
+
+function attendanceBars(rows) {
+  const max = Math.max(...rows.map(row => row.value), 1);
+  return rows.map(row => `<div class="dashboard-chart-row"><span>${row.label}</span><div class="dashboard-chart-bar"><i class="${row.cls}" style="width:${row.value ? Math.max(7,Math.round(row.value/max*100)) : 0}%"></i></div><strong>${row.value}</strong></div>`).join('');
 }
 
 function updateHeader() {
@@ -732,7 +741,7 @@ function renderWorkforceChart(stats) {
   const labels = { staff: 'Staff', contractual: 'Contractual', national_service: 'National service', internship: 'Internship' };
   const rows = stats.employment_type_breakdown || [];
   const max = Math.max(...rows.map(row => Number(row.count || 0)), 1);
-  document.getElementById('workforce-chart').innerHTML = rows.length ? rows.map(row => `<div class="dashboard-chart-row"><span>${escapeHtml(labels[row.employment_type] || row.employment_type || 'Unspecified')}</span><div class="dashboard-chart-bar"><i style="width:${Math.max(5, Math.round(Number(row.count || 0) / max * 100))}%"></i></div><strong>${Number(row.count || 0)}</strong></div>`).join('') : '<div class="empty-minimal">No active employee records yet.</div>';
+  document.getElementById('workforce-chart').innerHTML = rows.length ? rows.map(row => `<div class="dashboard-chart-row"><span>${escapeHtml(labels[row.employment_type] || row.employment_type || 'Unspecified')}</span><div class="dashboard-chart-bar"><i style="width:${Math.max(7, Math.round(Number(row.count || 0) / max * 100))}%"></i></div><strong>${Number(row.count || 0)}</strong></div>`).join('') : '<div class="empty-minimal">No active employee records yet.</div>';
 }
 
 function renderExpiries(stats) {
