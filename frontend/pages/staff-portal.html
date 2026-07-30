@@ -1052,6 +1052,12 @@
     .profile-health-note { color: #5f6e86; font-size: .78rem; line-height: 1.5; }
     .profile-employment-list { display: grid; gap: 10px; }
     .profile-employment-list .profile-item { padding-bottom: 10px; }
+    .staff-profile-reference-header { grid-column:1 / -1; min-height:210px; position:relative; overflow:visible; padding:34px 34px 24px 238px; border-radius:20px; background:#08752a; color:#fff; }
+    .staff-profile-reference-header h2 { margin:0; color:#fff; font-size:2rem; }.staff-profile-reference-header p { margin:8px 0 0; color:rgba(255,255,255,.82); font-size:.92rem; }
+    .staff-profile-reference-avatar { position:absolute; left:30px; top:30px; }.staff-profile-reference-avatar .avatar { width:166px; height:166px; border-radius:16px; font-size:2.8rem; border:5px solid rgba(255,255,255,.14); box-shadow:0 10px 25px rgba(0,0,0,.22); }
+    .staff-profile-reference-tabs { display:flex; gap:20px; flex-wrap:wrap; margin-top:86px; font-size:.88rem; font-weight:750; }.staff-profile-reference-tabs span { padding-bottom:8px; border-bottom:3px solid transparent; }.staff-profile-reference-tabs span:first-child { border-bottom-color:#fff; }
+    #profile-avatar-panel .staff-profile-summary { display:block; } #profile-avatar-panel #profile-avatar-preview { display:none; } #profile-avatar-panel #profile-avatar-name,#profile-avatar-panel #profile-avatar-role,#profile-avatar-panel label { display:none !important; }
+    @media(max-width:700px){.staff-profile-reference-header{min-height:250px;padding:175px 22px 20px}.staff-profile-reference-avatar{left:22px;top:22px}.staff-profile-reference-avatar .avatar{width:130px;height:130px}.staff-profile-reference-tabs{margin-top:22px;gap:13px}}
 
     .document-form {
       display: grid;
@@ -1674,9 +1680,15 @@
       </section>
 
       <section class="staff-grid profile-section-grid" data-staff-page="profile">
+        <header class="staff-profile-reference-header">
+          <div class="staff-profile-reference-avatar" id="profile-avatar-preview"><div class="avatar">--</div></div>
+          <h2 id="staff-profile-reference-name">Staff member</h2>
+          <p id="staff-profile-reference-role">Your employee profile</p>
+          <div class="staff-profile-reference-tabs" aria-label="Profile sections"><span>Personal</span><span>Job</span><span>Time Off</span><span>Emergency</span><span>Performance</span><span>Training</span><span>Benefits</span></div>
+        </header>
         <article class="staff-panel" id="profile-avatar-panel">
-          <div class="staff-panel-header"><div><h3>Profile Avatar</h3><span>Your staff photo</span></div></div>
-          <div class="staff-panel-body"><div class="staff-profile-summary"><div id="profile-avatar-preview"><div class="avatar">--</div></div><div><strong id="profile-avatar-name">Staff member</strong><span id="profile-avatar-role" style="display:block;color:var(--text-muted);font-size:.82rem;margin-top:4px">Staff profile</span><label class="btn btn-outline btn-sm" style="margin-top:12px">Change Avatar<input type="file" accept="image/*" style="display:none" onchange="uploadStaffAvatar(this.files[0])"></label></div></div></div>
+          <div class="staff-panel-header"><div><h3>Vitals</h3><span>Your core staff details</span></div></div>
+          <div class="staff-panel-body"><div class="staff-profile-summary"><div><strong id="profile-avatar-name">Staff member</strong><span id="profile-avatar-role" style="display:block;color:var(--text-muted);font-size:.82rem;margin-top:4px">Staff profile</span><label class="btn btn-outline btn-sm" style="margin-top:12px">Change Avatar<input type="file" accept="image/*" style="display:none" onchange="uploadStaffAvatar(this.files[0])"></label></div></div><div class="profile-list" id="profile-vitals-list" style="margin-top:12px"></div></div>
         </article>
         <article class="staff-panel">
           <div class="staff-panel-header">
@@ -2602,6 +2614,13 @@
       const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
       setText('profile-avatar-name', fullName || 'Staff member');
       setText('profile-avatar-role', profile.job_title || titleCase(profile.role || 'staff'));
+      setText('staff-profile-reference-name', fullName || 'Staff member');
+      setText('staff-profile-reference-role', `${profile.job_title || titleCase(profile.role || 'staff')}${profile.department_name ? ' · ' + profile.department_name : ''}`);
+      setProfileList('profile-vitals-list', [
+        ['Staff ID', profile.employee_code || (profile.id ? `EMP-${String(profile.id).padStart(4, '0')}` : '')],
+        ['Email', profile.email || ''], ['Phone', profile.phone || ''], ['Department', profile.department_name || ''],
+        ['Employment type', typeLabel(profile.employment_type || 'staff')], ['Line manager', profile.manager_name || 'HR team']
+      ]);
       setText('staff-profile-name', fullName || 'Staff member');
       setText('staff-profile-subtitle', `${profile.job_title || titleCase(profile.role || 'staff')}${profile.department_name ? ' · ' + profile.department_name : ''}`);
       const vitals = document.getElementById('staff-profile-vitals-list');
