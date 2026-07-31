@@ -2540,7 +2540,7 @@
         renderStaffQueries();
         renderStaffEvents();
         renderAnnouncements();
-        renderNotifications();
+        renderStaffNotifications();
         renderAnnouncementIndicators();
         renderMessageIndicators();
         renderNextLeave();
@@ -2571,7 +2571,7 @@
         replaceNotificationsCache(notifications);
         knownStaffNotificationIds = new Set(notifications.map((notification) => Number(notification.id)));
         renderAnnouncements();
-        renderNotifications();
+        renderStaffNotifications();
         renderAnnouncementIndicators();
         renderMessageIndicators();
         loadNotifCount();
@@ -3623,7 +3623,7 @@
       `).join('');
     }
 
-    function renderNotifications() {
+    function renderStaffNotifications() {
       const rows = [...portalState.notifications]
         .sort((left, right) => Number(right.type === 'announcement') - Number(left.type === 'announcement'))
         .slice(0, 6);
@@ -3662,7 +3662,7 @@
         portalState.notifications = portalState.notifications.map((alert) => (
           alert.id === id ? { ...alert, is_read: true } : alert
         ));
-        renderNotifications();
+        renderStaffNotifications();
       } catch (err) {
         toast(err.message || 'Could not open notification', 'error');
       }
@@ -3711,7 +3711,7 @@
         alert.type === 'announcement' && !alert.is_read ? { ...alert, is_read: true } : alert
       ));
       renderOverview();
-      renderNotifications();
+      renderStaffNotifications();
       renderAnnouncementIndicators();
 
       try {
