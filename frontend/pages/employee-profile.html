@@ -136,6 +136,19 @@
     .profile-grid .card-header { padding:15px 18px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,#fbfcff,#f6f8ff); }
     .profile-grid .card-header h3 { color:var(--text-primary);font-size:.82rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase; }
     .profile-grid .card-body { padding:8px 18px; }
+    .profile-grid .card[data-profile-tab] { display:none; }
+    .profile-grid[data-profile-active="personal"] .card[data-profile-tab="personal"],
+    .profile-grid[data-profile-active="job"] .card[data-profile-tab="job"],
+    .profile-grid[data-profile-active="timeoff"] .card[data-profile-tab="timeoff"],
+    .profile-grid[data-profile-active="emergency"] .card[data-profile-tab="emergency"],
+    .profile-grid[data-profile-active="performance"] .card[data-profile-tab="performance"],
+    .profile-grid[data-profile-active="training"] .card[data-profile-tab="training"],
+    .profile-grid[data-profile-active="benefits"] .card[data-profile-tab="benefits"],
+    .profile-grid[data-profile-active="more"] .card[data-profile-tab="more"] { display:block; }
+    .profile-grid .profile-wide { grid-column:1/-1; }
+    .profile-record-list { display:grid; gap:10px; padding:8px 0; }
+    .profile-record { display:flex; justify-content:space-between; gap:18px; padding:13px 0; border-bottom:1px solid var(--border); }
+    .profile-record:last-child { border-bottom:0; }.profile-record strong { display:block; font-size:.88rem; }.profile-record small { display:block; margin-top:4px; color:var(--text-secondary); line-height:1.4; }.profile-record-meta { text-align:right; flex-shrink:0; }
     .info-row {
       display: flex;
       justify-content: space-between;
@@ -250,12 +263,15 @@ function optionList(options, selectedValue, placeholder = '— Select —') {
 
 async function loadProfile() {
   try {
-    const [emp, deptRows, promotions, contracts, benefits] = await Promise.all([
+    const [emp, deptRows, promotions, contracts, benefits, leaveRows, reviewRows, trainingRows] = await Promise.all([
       api.get(`/employees/${empId}`),
       api.get('/employees/departments'),
       api.get(`/employees/${empId}/promotions`),
       api.get(`/contracts/employee/${empId}`),
-      api.get('/benefits?include_inactive=true')
+      api.get('/benefits?include_inactive=true'),
+      api.get(currentUser.role === 'employee' ? '/leave/mine' : `/leave?employee_id=${empId}`),
+      api.get(`/performance/employee/${empId}`),
+      api.get(currentUser.role === 'employee' ? '/training/mine' : '/training')
     ]);
     departments = deptRows || [];
     document.getElementById('page-title').textContent = `${emp.first_name} ${emp.last_name}`;
@@ -303,12 +319,14 @@ async function loadProfile() {
             ${emp.hire_date ? `<div class="profile-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Joined ${fmt.date(emp.hire_date)}</div>` : ''}
           </div>
           <nav class="profile-tabs" aria-label="Employee profile sections">
-            <button type="button" class="active" onclick="document.getElementById('personal-information').scrollIntoView({behavior:'smooth'})">Personal</button>
-            <button type="button" onclick="document.getElementById('work-information').scrollIntoView({behavior:'smooth'})">Job</button>
-            <button type="button" onclick="showEmployeeLeaveHistory(${emp.id})">Time Off</button>
-            <button type="button" onclick="showEmployeePerformance(${emp.id})">Performance</button>
-            <button type="button" onclick="window.location.href=appUrl('/pages/training.html')">Training</button>
-            <button type="button" onclick="document.getElementById('benefits-information').scrollIntoView({behavior:'smooth'})">Benefits</button>
+            <button type="button" class="active" data-profile-tab-button="personal" onclick="setEmployeeProfileTab('personal')">Personal</button>
+            <button type="button" data-profile-tab-button="job" onclick="setEmployeeProfileTab('job')">Job</button>
+            <button type="button" data-profile-tab-button="timeoff" onclick="setEmployeeProfileTab('timeoff')">Time Off</button>
+            <button type="button" data-profile-tab-button="emergency" onclick="setEmployeeProfileTab('emergency')">Emergency</button>
+            <button type="button" data-profile-tab-button="performance" onclick="setEmployeeProfileTab('performance')">Performance</button>
+            <button type="button" data-profile-tab-button="training" onclick="setEmployeeProfileTab('training')">Training</button>
+            <button type="button" data-profile-tab-button="benefits" onclick="setEmployeeProfileTab('benefits')">Benefits</button>
+            <button type="button" data-profile-tab-button="more" onclick="setEmployeeProfileTab('more')">More</button>
           </nav>
         </div>
         <div class="profile-actions">
@@ -328,9 +346,9 @@ async function loadProfile() {
       </section>
 
       <!-- Details grid -->
-      <div class="profile-grid">
+      <div class="profile-grid" id="employee-profile-grid" data-profile-active="personal">
         <!-- Personal info -->
-        <div class="card" id="personal-information">
+        <div class="card" id="personal-information" data-profile-tab="personal">
           <div class="card-header"><h3>Personal Information</h3></div>
           <div class="card-body">
             <div class="info-row"><span class="label">Full Name</span><span class="value">${emp.first_name} ${emp.last_name}</span></div>
@@ -342,7 +360,7 @@ async function loadProfile() {
         </div>
 
         <!-- Work info -->
-        <div class="card" id="work-information">
+        <div class="card" id="work-information" data-profile-tab="job">
           <div class="card-header"><h3>Work Information</h3></div>
           <div class="card-body">
             <div class="info-row"><span class="label">Department</span><span class="value">${emp.department_name || '—'}</span></div>
@@ -355,12 +373,12 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" data-profile-tab="job">
           <div class="card-header"><h3>Contract Information</h3></div>
           <div class="card-body">${contracts.length ? contracts.slice(0, 2).map(contract => `${infoRow('Contract', contract.contract_type)}${infoRow('Expiry date', fmt.date(contract.end_date))}${infoRow('Status', contract.status)}${infoRow('Notice period', `${contract.notice_days} days`)}`).join('') : '<div class="info-row"><span class="label">Contract</span><span class="value">Not recorded</span></div>'}</div>
         </div>
 
-        <div class="card" id="benefits-information">
+        <div class="card profile-wide" id="benefits-information" data-profile-tab="benefits">
           <div class="card-header"><h3>Benefits Information</h3></div>
           <div class="card-body">
             ${infoRow('Pension ID', emp.pension_id || 'Not recorded')}
@@ -370,7 +388,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" data-profile-tab="personal">
           <div class="card-header"><h3>Education Information</h3></div>
           <div class="card-body">
             ${infoRow('Qualification', emp.education_level || emp.education_information)}
@@ -382,7 +400,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" data-profile-tab="personal">
           <div class="card-header"><h3>Experience</h3></div>
           <div class="card-body">
             ${infoRow('Previous Company', emp.previous_company)}
@@ -395,7 +413,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card">
+        <div class="card profile-wide" data-profile-tab="emergency">
           <div class="card-header"><h3>Emergency Contact</h3></div>
           <div class="card-body">
             ${infoRow('Name', emp.emergency_contact_name)}
@@ -405,7 +423,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        ${(isOwn || isAdmin) ? `<div class="card">
+        ${(isOwn || isAdmin) ? `<div class="card" data-profile-tab="personal">
           <div class="card-header"><h3>Medical Information</h3></div>
           <div class="card-body">
             ${infoRow('Medical conditions', emp.medical_conditions || 'Not provided')}
@@ -413,7 +431,7 @@ async function loadProfile() {
           </div>
         </div>` : ''}
 
-        <div class="card">
+        <div class="card" data-profile-tab="personal">
           <div class="card-header"><h3>Bank Information</h3></div>
           <div class="card-body">
             ${infoRow('Bank Name', emp.bank_name)}
@@ -423,8 +441,23 @@ async function loadProfile() {
           </div>
         </div>
 
+        <div class="card profile-wide" data-profile-tab="timeoff">
+          <div class="card-header"><h3>Time Off History</h3></div>
+          <div class="card-body"><div class="profile-record-list">${leaveRows.length ? leaveRows.map(row => `<div class="profile-record"><div><strong>${safe(employmentTypeLabel(row.leave_type))}</strong><small>${safe(row.reason || 'No reason recorded')}</small></div><div class="profile-record-meta">${fmt.statusBadge(row.status)}<small>${fmt.date(row.start_date)} – ${fmt.date(row.end_date)}</small></div></div>`).join('') : '<div class="empty-state"><p>No time-off records for this employee.</p></div>'}</div></div>
+        </div>
+
+        <div class="card profile-wide" data-profile-tab="performance">
+          <div class="card-header"><h3>Performance History</h3></div>
+          <div class="card-body"><div class="profile-record-list">${reviewRows.length ? reviewRows.map(row => `<div class="profile-record"><div><strong>${safe(row.period || 'Performance review')}</strong><small>${safe(row.comments || 'No comments recorded')}</small></div><div class="profile-record-meta"><strong>${Number(row.rating || 0).toFixed(1)} / 5</strong><small>${fmt.date(row.review_date)} · ${safe(row.reviewer_name || 'Reviewer')}</small></div></div>`).join('') : '<div class="empty-state"><p>No performance reviews for this employee.</p></div>'}</div></div>
+        </div>
+
+        <div class="card profile-wide" data-profile-tab="training">
+          <div class="card-header"><h3>Training Register</h3></div>
+          <div class="card-body"><div class="profile-record-list">${trainingRows.filter(row => Number(row.employee_id) === Number(emp.id)).length ? trainingRows.filter(row => Number(row.employee_id) === Number(emp.id)).map(row => `<div class="profile-record"><div><strong>${safe(row.course_title)}</strong><small>${safe(row.provider || row.training_type || 'Training record')}</small></div><div class="profile-record-meta">${fmt.statusBadge(row.status)}<small>${row.completion_date ? fmt.date(row.completion_date) : row.start_date ? fmt.date(row.start_date) : 'Date not recorded'}</small></div></div>`).join('') : '<div class="empty-state"><p>No training records for this employee.</p></div>'}</div></div>
+        </div>
+
         <!-- Quick links -->
-        <div class="card" style="grid-column:1/-1">
+        <div class="card profile-wide" data-profile-tab="more">
           <div class="card-header"><h3>Quick Access</h3></div>
           <div class="card-body">
             <div class="quick-access-actions">
@@ -449,6 +482,16 @@ async function loadProfile() {
     document.getElementById('profile-content').innerHTML =
       `<div class="empty-state"><h4>Profile not found</h4><p>${e.message}</p></div>`;
   }
+}
+
+function setEmployeeProfileTab(tab) {
+  const allowed = ['personal','job','timeoff','emergency','performance','training','benefits','more'];
+  const selected = allowed.includes(tab) ? tab : 'personal';
+  const grid = document.getElementById('employee-profile-grid');
+  if (grid) grid.dataset.profileActive = selected;
+  document.querySelectorAll('[data-profile-tab-button]').forEach(button => {
+    button.classList.toggle('active', button.dataset.profileTabButton === selected);
+  });
 }
 
 async function showEmployeeLeaveHistory(employeeId) {
