@@ -732,6 +732,13 @@ function warmNotificationsCache() {
   if (!notificationsCache && !notificationsRequest) getNotifications().catch(() => {});
 }
 
+function replaceNotificationsCache(rows) {
+  notificationsCache = Array.isArray(rows) ? rows.slice() : [];
+  notificationsRequest = null;
+}
+
+window.replaceNotificationsCache = replaceNotificationsCache;
+
 async function loadNotifCount() {
   try {
     bindNotificationButtons();

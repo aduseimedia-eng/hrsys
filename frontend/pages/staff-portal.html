@@ -2518,6 +2518,7 @@
         ]);
 
         portalState = { profile, leaves, leaveBalance, payroll, documents, reviews, benefits, queries, contracts, announcements, notifications, messageUnreadCount: messageUnread.count, todos, tickets, attendanceToday, attendanceHistory, orgTree, directory };
+        replaceNotificationsCache(notifications);
         renderShellUser(profile);
         renderProfile(profile);
         renderProfileAvatar(profile);
@@ -2555,14 +2556,16 @@
           api.get('/leave/mine'),
           api.get('/leave/balance')
         ]);
-        const newAnnouncements = notifications.filter((notification) => (
-          notification.type === 'announcement' && !knownStaffNotificationIds.has(Number(notification.id))
+        const newNotifications = notifications.filter((notification) => (
+          !notification.is_read && !knownStaffNotificationIds.has(Number(notification.id))
         ));
+        const newAnnouncements = newNotifications.filter((notification) => notification.type === 'announcement');
         portalState.notifications = notifications;
         portalState.announcements = announcements;
         portalState.messageUnreadCount = messageUnread.count;
         portalState.leaves = leaves;
         portalState.leaveBalance = leaveBalance;
+        replaceNotificationsCache(notifications);
         knownStaffNotificationIds = new Set(notifications.map((notification) => Number(notification.id)));
         renderAnnouncements();
         renderNotifications();
@@ -2576,6 +2579,9 @@
         if (staffNotificationsReady && newAnnouncements.length) {
           const count = newAnnouncements.length;
           toast(`${count} new HR announcement${count === 1 ? '' : 's'}`, 'info', 6000);
+        } else if (staffNotificationsReady && newNotifications.length) {
+          const latest = newNotifications[0];
+          toast(latest.message || 'You have a new HR notification', 'info', 6000);
         }
         staffNotificationsReady = true;
       } catch (error) {
