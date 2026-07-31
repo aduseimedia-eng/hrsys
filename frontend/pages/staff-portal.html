@@ -2263,7 +2263,10 @@
               <h3>HR updates &amp; notifications</h3>
               <span id="alert-summary">Important updates from HR</span>
             </div>
-            <button class="btn btn-sm btn-outline" type="button" id="mark-alerts-read">Mark Read</button>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+              <button class="btn btn-sm btn-outline" type="button" onclick="openNotificationsPanel()">Device alerts</button>
+              <button class="btn btn-sm btn-outline" type="button" id="mark-alerts-read">Mark Read</button>
+            </div>
           </div>
           <div class="staff-panel-body" id="notification-list">
             <div class="loading-state"><div class="spinner"></div><span>Loading notifications...</span></div>
@@ -2344,7 +2347,7 @@
     </nav>
   </div>
 
-  <script src="../js/api.js"></script>
+  <script src="../js/api.js?v=notification-refresh-2"></script>
   <script src="../js/hr-suite-data.js"></script>
   <script>
     const currentUser = requireStaffAuth();
