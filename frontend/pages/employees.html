@@ -328,7 +328,7 @@ async function loadEmployees() {
     const type = employmentTypeMeta(e.employment_type || 'staff');
     const employeeName = `${e.first_name} ${e.last_name}`;
     return `
-    <div class="emp-card ${type.className}" onclick="window.location.href='employee-profile.html?id=${e.id}'">
+    <div class="emp-card ${type.className}" onclick="window.location.href='employee-profile.html?id=${e.id}&v=${Date.now()}'">
       <div class="emp-card-top">
         <div class="emp-person">
           ${avatarEl(e, 'md')}
@@ -347,8 +347,8 @@ async function loadEmployees() {
       </div>
       <div class="emp-contact"><span>${e.email || 'No email address'}</span><span>${e.phone || 'No phone number'}</span></div>
       <div class="emp-card-actions">
-        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}'">View</button>
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}'">Manage</button>
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}&v=${Date.now()}'">View</button>
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}&v=${Date.now()}'">Manage</button>
       </div>
     </div>`;
   }).join('');
