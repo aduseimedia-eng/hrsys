@@ -46,11 +46,11 @@ exports.listTransactions = async (req, res) => {
   } catch { res.status(500).json({ error: 'Could not fetch transactions' }); }
 };
 exports.createTransaction = async (req, res) => {
-  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`INSERT INTO financial_transactions(company_id,transaction_type,category,transaction_date,title,payee_or_source,reference_no,amount,due_date,status,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`, [req.user.company_id, ...transactionValues(req.body), req.user.id]); res.status(201).json(rows[0]);
+  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`INSERT INTO financial_transactions(company_id,transaction_type,category,transaction_date,title,payee_or_source,reference_no,amount,due_date,status,notes,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12) RETURNING *`, [req.user.company_id, ...transactionValues(req.body), req.user.id]); res.status(201).json(rows[0]);
   } catch { res.status(500).json({ error: 'Could not save transaction' }); }
 };
 exports.updateTransaction = async (req, res) => {
-  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`UPDATE financial_transactions SET transaction_type=$1,category=$2,transaction_date=$3,title=$4,payee_or_source=$5,reference_no=$6,amount=$7,due_date=$8,status=$9,notes=$10,updated_at=NOW() WHERE id=$11 AND company_id=$12 RETURNING *`, [...transactionValues(req.body), req.params.id, req.user.company_id]); if (!rows.length) return res.status(404).json({ error: 'Transaction not found' }); res.json(rows[0]);
+  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`UPDATE financial_transactions SET transaction_type=$1,category=$2,transaction_date=$3,title=$4,payee_or_source=$5,reference_no=$6,amount=$7,due_date=$8,status=$9,notes=$10,updated_by=$11,updated_at=NOW() WHERE id=$12 AND company_id=$13 RETURNING *`, [...transactionValues(req.body), req.user.id, req.params.id, req.user.company_id]); if (!rows.length) return res.status(404).json({ error: 'Transaction not found' }); res.json(rows[0]);
   } catch { res.status(500).json({ error: 'Could not update transaction' }); }
 };
 
@@ -59,9 +59,9 @@ exports.uploadReceipt = async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Choose a receipt image or PDF to upload' });
     const { rows } = await db.query(
       `UPDATE financial_transactions
-       SET receipt_name=$1, receipt_mime_type=$2, receipt_size=$3, receipt_data=$4, updated_at=NOW()
-       WHERE id=$5 AND company_id=$6 RETURNING id, receipt_name, receipt_mime_type, receipt_size`,
-      [req.file.originalname, req.file.mimetype, req.file.size, req.file.buffer, req.params.id, req.user.company_id]
+       SET receipt_name=$1, receipt_mime_type=$2, receipt_size=$3, receipt_data=$4, updated_by=$5, updated_at=NOW()
+       WHERE id=$6 AND company_id=$7 RETURNING id, receipt_name, receipt_mime_type, receipt_size`,
+      [req.file.originalname, req.file.mimetype, req.file.size, req.file.buffer, req.user.id, req.params.id, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Transaction not found' });
     res.json(rows[0]);

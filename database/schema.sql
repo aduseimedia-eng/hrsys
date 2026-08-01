@@ -211,10 +211,34 @@ CREATE TABLE financial_transactions (
   amount NUMERIC(14,2) NOT NULL CHECK (amount >= 0), due_date DATE,
   status VARCHAR(20) NOT NULL DEFAULT 'paid' CHECK (status IN ('draft', 'pending', 'paid', 'void')),
   notes TEXT, receipt_name VARCHAR(255), receipt_mime_type VARCHAR(150), receipt_size INT, receipt_data BYTEA,
-  created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+  created_by INT REFERENCES employees(id) ON DELETE SET NULL, updated_by INT REFERENCES employees(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_financial_transactions_company_period ON financial_transactions(company_id, transaction_date DESC);
+
+CREATE TABLE audit_logs (
+  id BIGSERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  actor_id INT REFERENCES employees(id) ON DELETE SET NULL, action VARCHAR(30) NOT NULL,
+  entity_type VARCHAR(60) NOT NULL, entity_id INT NOT NULL, summary TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_audit_logs_company_created ON audit_logs(company_id, created_at DESC);
+
+CREATE OR REPLACE FUNCTION audit_finance_and_payroll_changes()
+RETURNS TRIGGER AS $$
+DECLARE actor INT; item JSONB; description TEXT; record_company INT; record_id INT;
+BEGIN
+  IF TG_OP='DELETE' THEN item := to_jsonb(OLD); record_company := OLD.company_id; record_id := OLD.id;
+  ELSE item := to_jsonb(NEW); record_company := NEW.company_id; record_id := NEW.id; END IF;
+  actor := COALESCE(NULLIF(current_setting('app.actor_id', true), '')::INT, NULLIF(item->>'updated_by', '')::INT, NULLIF(item->>'created_by', '')::INT);
+  description := CASE WHEN TG_TABLE_NAME='financial_transactions' THEN COALESCE(item->>'title', 'Financial transaction') ELSE 'Payroll record' END;
+  INSERT INTO audit_logs(company_id, actor_id, action, entity_type, entity_id, summary)
+  VALUES (record_company, actor, lower(TG_OP), TG_TABLE_NAME, record_id, description);
+  RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_audit_financial_transactions AFTER INSERT OR UPDATE OR DELETE ON financial_transactions FOR EACH ROW EXECUTE FUNCTION audit_finance_and_payroll_changes();
+CREATE TRIGGER trg_audit_payroll AFTER INSERT OR UPDATE OR DELETE ON payroll FOR EACH ROW EXECUTE FUNCTION audit_finance_and_payroll_changes();
 
 CREATE TABLE employee_loans (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
