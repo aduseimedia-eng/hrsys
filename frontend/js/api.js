@@ -336,6 +336,23 @@ function requireRole(...roles) {
 
 // ─── Toast notification system ─────────────────────────────
 function toast(message, type = 'info', duration = 3500) {
+  if (type === 'success') {
+    document.getElementById('success-popup')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'success-popup';
+    overlay.className = 'success-popup-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'success-popup-title');
+    overlay.innerHTML = `<div class="success-popup-card"><div class="success-popup-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div><h3 id="success-popup-title">Success!</h3><p></p><button class="btn success-popup-dismiss" type="button">Dismiss</button></div>`;
+    overlay.querySelector('p').textContent = String(message || 'Your changes have been saved.');
+    const close = () => overlay.remove();
+    overlay.querySelector('.success-popup-dismiss').addEventListener('click', close);
+    document.body.appendChild(overlay);
+    overlay.querySelector('.success-popup-dismiss').focus();
+    return;
+  }
+
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
