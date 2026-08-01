@@ -29,6 +29,34 @@ function appUrl(path) {
 
 window.appUrl = appUrl;
 
+// Finance receipts require an authenticated request. Open the destination first so browsers
+// treat it as a user action, then load the downloaded blob into that tab.
+window.setTimeout(() => {
+  if (typeof window.viewReceipt !== 'function') return;
+  window.viewReceipt = async (id) => {
+    const viewer = window.open('', '_blank');
+    if (!viewer) {
+      toast('Allow pop-ups for this site to open receipt attachments.', 'warning');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/financials/transactions/${id}/receipt`, {
+        headers: { Authorization: `Bearer ${api.getToken()}` }
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not open receipt');
+      }
+      const objectUrl = URL.createObjectURL(await response.blob());
+      viewer.location.replace(objectUrl);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch (error) {
+      viewer.close();
+      toast(error.message || 'Could not open receipt', 'error');
+    }
+  };
+}, 0);
+
 function isAdminWorkspace() {
   return /\/pages\/workspace\.html$/i.test(window.location.pathname);
 }
