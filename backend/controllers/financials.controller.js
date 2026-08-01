@@ -1,50 +1,55 @@
 const db = require('../config/db');
 
-const expenseTypes = ['petty_cash', 'office_expense', 'vehicle_fuel', 'vehicle_maintenance', 'office_maintenance'];
-const billTypes = ['quarterly_rent', 'ecg_bill', 'ghana_water_bill', 'internet_telephone'];
+const categories = ['petty_cash', 'office_expense', 'rent', 'utilities', 'internet_telephone', 'vehicle_fuel', 'vehicle_maintenance', 'office_maintenance', 'payroll_adjustment', 'tax', 'other'];
+const statuses = ['draft', 'pending', 'paid', 'void'];
+
+function transactionValues(body) {
+  return [body.transaction_type, body.category, body.transaction_date, String(body.title || '').trim(),
+    String(body.payee_or_source || '').trim() || null, String(body.reference_no || '').trim() || null,
+    Number(body.amount), body.due_date || null, body.status || 'paid', String(body.notes || '').trim() || null];
+}
+function validate(body) {
+  const values = transactionValues(body);
+  if (!['income', 'expense'].includes(values[0])) return 'Choose income or expense';
+  if (!categories.includes(values[1])) return 'Choose a valid finance category';
+  if (!values[2] || !values[3]) return 'Date and description are required';
+  if (!Number.isFinite(values[6]) || values[6] < 0) return 'Enter a valid non-negative amount';
+  if (!statuses.includes(values[8])) return 'Choose a valid status';
+  return null;
+}
 
 exports.getSummary = async (req, res) => {
   try {
     const year = Number(req.query.year) || new Date().getFullYear();
     const month = Number(req.query.month) || new Date().getMonth() + 1;
-    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
-      return res.status(400).json({ error: 'Provide a valid month and year' });
-    }
-
+    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) return res.status(400).json({ error: 'Provide a valid month and year' });
     const companyId = req.user.company_id;
-    const [payroll, expenses, bills, recent] = await Promise.all([
-      db.query(`SELECT COALESCE(SUM(base_salary + allowances + overtime_pay + ssnit_employer), 0) AS total,
-                       COUNT(*) FILTER (WHERE status='paid') AS paid_count,
-                       COUNT(*) AS record_count
-                FROM payroll
-                WHERE company_id=$1 AND year=$2 AND month=$3`, [companyId, year, month]),
-      db.query(`SELECT register_type, COALESCE(SUM(amount), 0) AS total
-                FROM operations_register_entries
-                WHERE company_id=$1 AND register_type = ANY($2)
-                  AND EXTRACT(YEAR FROM entry_date)=$3 AND EXTRACT(MONTH FROM entry_date)=$4
-                GROUP BY register_type`, [companyId, expenseTypes, year, month]),
-      db.query(`SELECT id, register_type, title, contact_name, amount, due_date, status
-                FROM operations_register_entries
-                WHERE company_id=$1 AND register_type = ANY($2) AND status NOT IN ('paid', 'closed')
-                  AND due_date IS NOT NULL
-                ORDER BY due_date ASC LIMIT 8`, [companyId, billTypes]),
-      db.query(`SELECT id, register_type, entry_date, title, contact_name, reference_no, amount, status
-                FROM operations_register_entries
-                WHERE company_id=$1 AND register_type = ANY($2)
-                ORDER BY entry_date DESC, created_at DESC LIMIT 10`, [companyId, expenseTypes])
+    const [payroll, totals, bills, recent] = await Promise.all([
+      db.query(`SELECT COALESCE(SUM(base_salary + allowances + overtime_pay + ssnit_employer), 0) AS total, COUNT(*) FILTER (WHERE status='paid') AS paid_count, COUNT(*) AS record_count FROM payroll WHERE company_id=$1 AND year=$2 AND month=$3`, [companyId, year, month]),
+      db.query(`SELECT transaction_type, category, COALESCE(SUM(amount), 0) AS total FROM financial_transactions WHERE company_id=$1 AND status='paid' AND EXTRACT(YEAR FROM transaction_date)=$2 AND EXTRACT(MONTH FROM transaction_date)=$3 GROUP BY transaction_type, category`, [companyId, year, month]),
+      db.query(`SELECT * FROM financial_transactions WHERE company_id=$1 AND transaction_type='expense' AND status IN ('draft','pending') AND due_date IS NOT NULL ORDER BY due_date ASC LIMIT 8`, [companyId]),
+      db.query(`SELECT * FROM financial_transactions WHERE company_id=$1 AND EXTRACT(YEAR FROM transaction_date)=$2 AND EXTRACT(MONTH FROM transaction_date)=$3 ORDER BY transaction_date DESC, created_at DESC LIMIT 10`, [companyId, year, month])
     ]);
+    const byCategory = {}, total = { income: 0, expense: 0 };
+    totals.rows.forEach(row => { const amount = Number(row.total); total[row.transaction_type] += amount; if (row.transaction_type === 'expense') byCategory[row.category] = amount; });
+    res.json({ period: { year, month }, payroll: { total: Number(payroll.rows[0].total), paid_count: Number(payroll.rows[0].paid_count), record_count: Number(payroll.rows[0].record_count) }, transactions: { ...total, by_category: byCategory }, outstanding_bills: bills.rows, recent_transactions: recent.rows });
+  } catch (error) { console.error(error); res.status(500).json({ error: 'Could not fetch financial summary' }); }
+};
 
-    const expenseByType = Object.fromEntries(expenses.rows.map(row => [row.register_type, Number(row.total)]));
-    const expenseTotal = Object.values(expenseByType).reduce((sum, value) => sum + value, 0);
-    res.json({
-      period: { year, month },
-      payroll: { total: Number(payroll.rows[0].total), paid_count: Number(payroll.rows[0].paid_count), record_count: Number(payroll.rows[0].record_count) },
-      expenses: { total: expenseTotal, by_type: expenseByType },
-      outstanding_bills: bills.rows,
-      recent_expenses: recent.rows
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Could not fetch financial summary' });
-  }
+exports.listTransactions = async (req, res) => {
+  try {
+    const { year, month, type } = req.query; const params = [req.user.company_id]; let where = 'WHERE company_id=$1';
+    if (year) { params.push(year); where += ` AND EXTRACT(YEAR FROM transaction_date)=$${params.length}`; }
+    if (month) { params.push(month); where += ` AND EXTRACT(MONTH FROM transaction_date)=$${params.length}`; }
+    if (type) { params.push(type); where += ` AND transaction_type=$${params.length}`; }
+    const { rows } = await db.query(`SELECT * FROM financial_transactions ${where} ORDER BY transaction_date DESC, created_at DESC`, params); res.json(rows);
+  } catch { res.status(500).json({ error: 'Could not fetch transactions' }); }
+};
+exports.createTransaction = async (req, res) => {
+  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`INSERT INTO financial_transactions(company_id,transaction_type,category,transaction_date,title,payee_or_source,reference_no,amount,due_date,status,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`, [req.user.company_id, ...transactionValues(req.body), req.user.id]); res.status(201).json(rows[0]);
+  } catch { res.status(500).json({ error: 'Could not save transaction' }); }
+};
+exports.updateTransaction = async (req, res) => {
+  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`UPDATE financial_transactions SET transaction_type=$1,category=$2,transaction_date=$3,title=$4,payee_or_source=$5,reference_no=$6,amount=$7,due_date=$8,status=$9,notes=$10,updated_at=NOW() WHERE id=$11 AND company_id=$12 RETURNING *`, [...transactionValues(req.body), req.params.id, req.user.company_id]); if (!rows.length) return res.status(404).json({ error: 'Transaction not found' }); res.json(rows[0]);
+  } catch { res.status(500).json({ error: 'Could not update transaction' }); }
 };

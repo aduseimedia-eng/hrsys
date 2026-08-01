@@ -200,6 +200,21 @@ CREATE TABLE benefits (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE financial_transactions (
+  id SERIAL PRIMARY KEY,
+  company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('income', 'expense')),
+  category VARCHAR(50) NOT NULL,
+  transaction_date DATE NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  payee_or_source VARCHAR(180), reference_no VARCHAR(100),
+  amount NUMERIC(14,2) NOT NULL CHECK (amount >= 0), due_date DATE,
+  status VARCHAR(20) NOT NULL DEFAULT 'paid' CHECK (status IN ('draft', 'pending', 'paid', 'void')),
+  notes TEXT, created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_financial_transactions_company_period ON financial_transactions(company_id, transaction_date DESC);
+
 CREATE TABLE employee_loans (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   employee_id INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
