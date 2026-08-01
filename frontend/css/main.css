@@ -1125,8 +1125,8 @@ tbody tr:hover { background: #f7faff; }
   place-items: center;
   margin: 0 auto 16px;
   border-radius: 50%;
-  color: #168765;
-  background: #dcf8ec;
+  color: #2865d9;
+  background: #e8f0ff;
 }
 .success-popup-icon svg { width: 22px; height: 22px; }
 .success-popup-card h3 { margin: 0; color: #202a3d; font-size: 1rem; }
@@ -1134,9 +1134,9 @@ tbody tr:hover { background: #f7faff; }
 .success-popup-dismiss {
   width: 100%;
   justify-content: center;
-  background: #a5f0d5;
-  color: #185744;
-  box-shadow: none;
+  background: #3977ee;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(57, 119, 238, .22);
 }
 .success-popup-dismiss:hover,
-.success-popup-dismiss:focus-visible { background: #85e6c4; color: #124534; transform: none; }
+.success-popup-dismiss:focus-visible { background: #2865d9; color: #fff; transform: none; }
