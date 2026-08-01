@@ -486,6 +486,7 @@ function buildSidebar(activePage) {
     { page: 'leave',       icon: calendarIcon(),   label: 'Leave',        roles: ['admin','manager','employee'] },
     { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
+    { page: 'financials',  icon: chartIcon(),      label: 'Financials',   roles: ['admin'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager','employee'] },
     { page: 'loans',       icon: walletIcon(),     label: 'Loans',        roles: ['admin','manager'] },
     { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
