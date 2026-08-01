@@ -53,3 +53,37 @@ exports.updateTransaction = async (req, res) => {
   try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`UPDATE financial_transactions SET transaction_type=$1,category=$2,transaction_date=$3,title=$4,payee_or_source=$5,reference_no=$6,amount=$7,due_date=$8,status=$9,notes=$10,updated_at=NOW() WHERE id=$11 AND company_id=$12 RETURNING *`, [...transactionValues(req.body), req.params.id, req.user.company_id]); if (!rows.length) return res.status(404).json({ error: 'Transaction not found' }); res.json(rows[0]);
   } catch { res.status(500).json({ error: 'Could not update transaction' }); }
 };
+
+exports.uploadReceipt = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Choose a receipt image or PDF to upload' });
+    const { rows } = await db.query(
+      `UPDATE financial_transactions
+       SET receipt_name=$1, receipt_mime_type=$2, receipt_size=$3, receipt_data=$4, updated_at=NOW()
+       WHERE id=$5 AND company_id=$6 RETURNING id, receipt_name, receipt_mime_type, receipt_size`,
+      [req.file.originalname, req.file.mimetype, req.file.size, req.file.buffer, req.params.id, req.user.company_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Transaction not found' });
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Could not upload receipt' });
+  }
+};
+
+exports.viewReceipt = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT receipt_name, receipt_mime_type, receipt_data FROM financial_transactions WHERE id=$1 AND company_id=$2',
+      [req.params.id, req.user.company_id]
+    );
+    if (!rows.length || !rows[0].receipt_data) return res.status(404).json({ error: 'Receipt not found' });
+    const receipt = rows[0];
+    res.type(receipt.receipt_mime_type || 'application/octet-stream');
+    res.set('Content-Disposition', `inline; filename="${String(receipt.receipt_name || 'receipt').replace(/["\\]/g, '_')}"`);
+    res.send(receipt.receipt_data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Could not open receipt' });
+  }
+};

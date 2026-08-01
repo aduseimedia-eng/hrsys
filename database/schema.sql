@@ -210,7 +210,8 @@ CREATE TABLE financial_transactions (
   payee_or_source VARCHAR(180), reference_no VARCHAR(100),
   amount NUMERIC(14,2) NOT NULL CHECK (amount >= 0), due_date DATE,
   status VARCHAR(20) NOT NULL DEFAULT 'paid' CHECK (status IN ('draft', 'pending', 'paid', 'void')),
-  notes TEXT, created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+  notes TEXT, receipt_name VARCHAR(255), receipt_mime_type VARCHAR(150), receipt_size INT, receipt_data BYTEA,
+  created_by INT REFERENCES employees(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_financial_transactions_company_period ON financial_transactions(company_id, transaction_date DESC);
