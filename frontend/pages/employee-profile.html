@@ -464,6 +464,10 @@
       .profile-grid[data-profile-active="personal"] .profile-inline-editor {
         display: block;
       }
+      .profile-grid.profile-has-inline[data-profile-active="personal"]
+        .profile-personal-card {
+        display: none;
+      }
       .profile-inline-editor .modal {
         width: 100%;
         max-width: none;
@@ -483,6 +487,30 @@
         padding: 16px 22px;
         border-top: 1px solid var(--border);
         background: #fbfcff;
+      }
+      .profile-inline-editor .modal-header p {
+        margin: 5px 0 0;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+      .profile-inline-editor .form-grid {
+        gap: 16px 18px;
+      }
+      .form-section-title {
+        grid-column: 1 / -1;
+        margin: 8px 0 -2px;
+        padding-top: 17px;
+        border-top: 1px solid var(--border);
+        color: #08752a;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .form-section-title:first-child {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
       }
       .quick-access-panel {
         display: none;
@@ -1607,16 +1635,19 @@
       </div>
       <div class="modal-body">
         <div class="form-grid">
+          <div class="form-section-title">Personal information</div>
           <div class="form-group"><label class="form-label">First Name</label><input type="text" id="e-first" class="form-control" value="${emp.first_name || ""}"></div>
           <div class="form-group"><label class="form-label">Last Name</label><input type="text" id="e-last" class="form-control" value="${emp.last_name || ""}"></div>
           <div class="form-group"><label class="form-label">Phone</label><input type="text" id="e-phone" class="form-control" value="${emp.phone || ""}"></div>
           <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="e-dob" class="form-control" value="${emp.date_of_birth ? emp.date_of_birth.split("T")[0] : ""}"></div>
           <div class="form-group span-2"><label class="form-label">Address</label><textarea id="e-address" class="form-control" rows="2">${emp.address || ""}</textarea></div>
+          <div class="form-section-title">Social profiles</div>
           <div class="form-group"><label class="form-label">LinkedIn URL</label><input type="url" id="e-linkedin-url" class="form-control" value="${safe(emp.linkedin_url || "")}"></div>
           <div class="form-group"><label class="form-label">Instagram URL</label><input type="url" id="e-instagram-url" class="form-control" value="${safe(emp.instagram_url || "")}"></div>
           <div class="form-group"><label class="form-label">Facebook URL</label><input type="url" id="e-facebook-url" class="form-control" value="${safe(emp.facebook_url || "")}"></div>
           <div class="form-group"><label class="form-label">X URL</label><input type="url" id="e-twitter-url" class="form-control" value="${safe(emp.twitter_url || "")}"></div>
           <div class="form-group span-2"><label class="form-label">Medical conditions or accommodations</label><textarea id="e-medical-conditions" class="form-control" rows="3" placeholder="Optional — share only information relevant to workplace support">${safe(emp.medical_conditions || "")}</textarea><small style="color:var(--text-muted)">Visible only to you and HR administrators.</small></div>
+          <div class="form-section-title">Education and experience</div>
           <div class="form-group"><label class="form-label">Qualification</label><input type="text" id="e-education-level" class="form-control" value="${emp.education_level || emp.education_information || ""}"></div>
           <div class="form-group"><label class="form-label">Institution</label><input type="text" id="e-education-institution" class="form-control" value="${emp.education_institution || ""}"></div>
           <div class="form-group"><label class="form-label">Field of Study</label><input type="text" id="e-education-field" class="form-control" value="${emp.education_field || ""}"></div>
@@ -1625,6 +1656,7 @@
           <div class="form-group"><label class="form-label">Previous Role</label><input type="text" id="e-previous-job-title" class="form-control" value="${emp.previous_job_title || ""}"></div>
           <div class="form-group"><label class="form-label">Years of Experience</label><input type="text" id="e-experience-years" class="form-control" value="${emp.experience_years || ""}"></div>
           <div class="form-group span-2"><label class="form-label">Experience Summary</label><textarea id="e-experience-summary" class="form-control" rows="2">${emp.experience_summary || emp.experience || ""}</textarea></div>
+          <div class="form-section-title">Licensing and emergency contact</div>
           <div class="form-group"><label class="form-label">Driver's License Number</label><input type="text" id="e-license-number" class="form-control" value="${safe(emp.drivers_license_number || "")}"></div>
           <div class="form-group"><label class="form-label">Driver's License Class</label><input type="text" id="e-license-class" class="form-control" value="${safe(emp.drivers_license_class || "")}"></div>
           <div class="form-group"><label class="form-label">Driver's License Expiry</label><input type="date" id="e-license-expiry" class="form-control" value="${emp.drivers_license_expiry ? emp.drivers_license_expiry.split("T")[0] : ""}"></div>
@@ -1632,6 +1664,7 @@
           <div class="form-group"><label class="form-label">Relationship</label><input type="text" id="e-emergency-relationship" class="form-control" value="${emp.emergency_contact_relationship || ""}"></div>
           <div class="form-group"><label class="form-label">Emergency Phone</label><input type="text" id="e-emergency-phone" class="form-control" value="${emp.emergency_contact_phone || ""}"></div>
           <div class="form-group"><label class="form-label">Emergency Address</label><input type="text" id="e-emergency-address" class="form-control" value="${emp.emergency_contact_address || ""}"></div>
+          <div class="form-section-title">Bank and pension</div>
           <div class="form-group"><label class="form-label">Bank Name</label><input type="text" id="e-bank-name" class="form-control" value="${emp.bank_name || ""}"></div>
           <div class="form-group"><label class="form-label">Account Name</label><input type="text" id="e-bank-account-name" class="form-control" value="${emp.bank_account_name || ""}"></div>
           <div class="form-group"><label class="form-label">Account Number</label><input type="text" id="e-bank-account-number" class="form-control" value="${emp.bank_account_number || ""}"></div>
@@ -1670,7 +1703,14 @@
           modal.querySelector(".modal-close")?.remove();
           modal.querySelector(".modal-footer .btn-outline")?.remove();
           modal.querySelector(".modal-header h3").textContent =
-            "Profile Details";
+            "Personal information";
+          modal
+            .querySelector(".modal-header")
+            .insertAdjacentHTML(
+              "beforeend",
+              "<p>Update your details below, then save all changes when you are done.</p>",
+            );
+          editor.closest(".profile-grid")?.classList.add("profile-has-inline");
           editor.appendChild(modal);
           overlay.remove();
         }
