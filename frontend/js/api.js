@@ -42,6 +42,11 @@ function applyCompanyBranding() {
       root.style.setProperty('--navy-700', branding.primary_color);
     }
     if (branding.accent_color) root.style.setProperty('--mint-500', branding.accent_color);
+    const primary = branding.primary_color || '#174fae';
+    const accent = branding.accent_color || '#73bca7';
+    let themeStyle = document.getElementById('company-branding-overrides');
+    if (!themeStyle) { themeStyle = document.createElement('style'); themeStyle.id = 'company-branding-overrides'; document.head.appendChild(themeStyle); }
+    themeStyle.textContent = `:root{--brand:${primary};--accent:${primary};--navy-600:${primary};--navy-700:${primary};--mint-500:${accent}} .sidebar,.sidebar-logo{background:${primary}!important}.nav-item.active{background:color-mix(in srgb,${accent} 24%,transparent)!important;color:#fff!important}.btn-primary,.profile-inline-editor .modal-footer .btn-primary{background:${primary}!important;border-color:${primary}!important}.btn-primary:hover{filter:brightness(.9)}.tab-btn.active,.tabs .active{color:${primary}!important;border-color:${primary}!important}.badge-info{background:color-mix(in srgb,${primary} 12%,white)!important;color:${primary}!important}.profile-hero,.profile-main .profile-hero{background:${primary}!important}.profile-tabs button.active{color:${primary}!important}.profile-grid .card-header h3,.form-section-title{color:${primary}!important}.vital-mark{color:${primary}!important}`;
     document.querySelectorAll('.brand-logo').forEach((logo) => {
       logo.dataset.defaultSrc ||= logo.src;
       if (!branding.logo_url) { logo.src = logo.dataset.defaultSrc; return; }
