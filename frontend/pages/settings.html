@@ -295,10 +295,12 @@
       function brandingKey() {
         return `hrconnect.branding.${user.company_id}`;
       }
-      function loadBranding() {
-        const branding = JSON.parse(
-          localStorage.getItem(brandingKey()) || "{}",
-        );
+      async function loadBranding() {
+        let branding = JSON.parse(localStorage.getItem(brandingKey()) || "{}");
+        try {
+          branding = await api.get("/company/branding");
+          localStorage.setItem(brandingKey(), JSON.stringify(branding));
+        } catch (_) {}
         document.getElementById("brand-logo-url").value =
           branding.logo_url || "";
         document.getElementById("brand-primary").value =
@@ -323,13 +325,19 @@
         };
         reader.readAsDataURL(file);
       }
-      function saveBranding() {
+      async function saveBranding() {
         const branding = {
           logo_url: document.getElementById("brand-logo-url").value.trim(),
           primary_color: document.getElementById("brand-primary").value,
           accent_color: document.getElementById("brand-accent").value,
         };
-        localStorage.setItem(brandingKey(), JSON.stringify(branding));
+        try {
+          const saved = await api.put("/company/branding", branding);
+          localStorage.setItem(brandingKey(), JSON.stringify(saved));
+        } catch (error) {
+          toast(error.message || "Could not save company branding", "error");
+          return;
+        }
         applyCompanyBranding();
         buildSidebar("settings");
         toast("Company branding saved", "success");

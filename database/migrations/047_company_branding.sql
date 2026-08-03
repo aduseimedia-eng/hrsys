@@ -1,0 +1,2 @@
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS primary_color VARCHAR(16);
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS accent_color VARCHAR(16);

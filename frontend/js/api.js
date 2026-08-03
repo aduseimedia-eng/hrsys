@@ -38,6 +38,8 @@ function applyCompanyBranding() {
     if (branding.primary_color) {
       root.style.setProperty('--brand', branding.primary_color);
       root.style.setProperty('--accent', branding.primary_color);
+      root.style.setProperty('--navy-600', branding.primary_color);
+      root.style.setProperty('--navy-700', branding.primary_color);
     }
     if (branding.accent_color) root.style.setProperty('--mint-500', branding.accent_color);
     document.querySelectorAll('.brand-logo').forEach((logo) => {
@@ -52,6 +54,16 @@ function applyCompanyBranding() {
 }
 
 window.applyCompanyBranding = applyCompanyBranding;
+
+async function refreshCompanyBranding() {
+  const user = api.getUser();
+  if (!user?.company_id || !api.getToken()) return;
+  try {
+    const branding = await api.get('/company/branding');
+    localStorage.setItem(`hrconnect.branding.${user.company_id}`, JSON.stringify(branding));
+    applyCompanyBranding();
+  } catch (_) {}
+}
 
 // Finance receipts require an authenticated request. Open the destination first so browsers
 // treat it as a user action, then load the downloaded blob into that tab.
@@ -640,6 +652,7 @@ function buildSidebar(activePage) {
     </div>
   `;
   applyCompanyBranding();
+  refreshCompanyBranding();
   addPageBackButton(activePage);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
