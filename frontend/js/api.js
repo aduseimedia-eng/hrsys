@@ -40,7 +40,14 @@ function applyCompanyBranding() {
       root.style.setProperty('--accent', branding.primary_color);
     }
     if (branding.accent_color) root.style.setProperty('--mint-500', branding.accent_color);
-    if (branding.logo_url) document.querySelectorAll('.brand-logo').forEach((logo) => { logo.src = branding.logo_url; });
+    document.querySelectorAll('.brand-logo').forEach((logo) => {
+      logo.dataset.defaultSrc ||= logo.src;
+      if (!branding.logo_url) { logo.src = logo.dataset.defaultSrc; return; }
+      const candidate = new Image();
+      candidate.onload = () => { logo.src = branding.logo_url; };
+      candidate.onerror = () => { logo.src = logo.dataset.defaultSrc; };
+      candidate.src = branding.logo_url;
+    });
   } catch (_) {}
 }
 

@@ -190,6 +190,17 @@
                   oninput="previewBranding()"
                 />
               </div>
+              <div class="form-group span-2">
+                <label class="form-label">Or upload a logo</label>
+                <input
+                  id="brand-logo-file"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  class="form-control"
+                  onchange="loadBrandLogo(this.files[0])"
+                />
+                <p class="form-hint">PNG, JPG, WebP, or SVG.</p>
+              </div>
               <div class="form-group">
                 <label class="form-label">Primary color</label
                 ><input
@@ -301,7 +312,16 @@
         const primary = document.getElementById("brand-primary").value;
         const accent = document.getElementById("brand-accent").value;
         document.getElementById("brand-preview").innerHTML =
-          `${logo ? `<img src="${logo}" alt="Logo preview" style="width:42px;height:42px;object-fit:contain;border-radius:7px;background:#fff">` : '<div style="width:42px;height:42px;border-radius:7px;background:#fff;display:grid;place-items:center">Logo</div>'}<div><strong style="display:block;color:${primary}">Your company workspace</strong><small style="color:${accent}">Primary and accent preview</small></div>`;
+          `${logo ? `<img src="${logo}" alt="Logo preview" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:7px;background:#fff">` : '<div style="width:42px;height:42px;border-radius:7px;background:#fff;display:grid;place-items:center">Logo</div>'}<div><strong style="display:block;color:${primary}">Your company workspace</strong><small style="color:${accent}">Primary and accent preview</small></div>`;
+      }
+      function loadBrandLogo(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          document.getElementById("brand-logo-url").value = reader.result;
+          previewBranding();
+        };
+        reader.readAsDataURL(file);
       }
       function saveBranding() {
         const branding = {
