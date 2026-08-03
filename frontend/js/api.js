@@ -631,7 +631,10 @@ function addPageBackButton(activePage) {
   button.type = 'button';
   button.className = 'btn btn-outline btn-sm';
   button.dataset.pageBackButton = 'true';
-  button.textContent = '← Back';
+  button.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg><span>Back</span>';
+  button.style.display = 'inline-flex';
+  button.style.alignItems = 'center';
+  button.style.gap = '6px';
   button.setAttribute('aria-label', 'Go back to the previous page');
   button.onclick = () => {
     const targetWindow = window.top !== window.self ? window.top : window;
