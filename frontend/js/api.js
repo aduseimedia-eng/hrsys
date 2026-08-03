@@ -546,6 +546,7 @@ function buildSidebar(activePage) {
     { page: 'records', icon: docIcon(), label: 'Growth & Records', roles: ['admin', 'manager'] },
     { page: 'finance', icon: walletIcon(), label: 'Finance', roles: ['admin', 'manager'] },
     { page: 'administration', icon: settingsIcon(), label: 'Administration', roles: ['admin', 'manager'] },
+    { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
   ];
   const navItems = user.role === 'employee' ? employeeNavItems : managementNavItems;
 
