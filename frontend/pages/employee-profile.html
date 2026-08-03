@@ -209,10 +209,26 @@
     .profile-overview,.profile-grid { margin-left:272px; }
     .profile-overview { margin-top:22px; }.profile-overview-item { min-height:76px; padding:15px; border-radius:10px; }
     .profile-grid .card-header { background:#fff; }.profile-grid .card-header h3 { color:#08752a; }
-    .profile-grid[data-profile-active="personal"] { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+    .profile-grid[data-profile-active="personal"] { grid-template-columns:1fr; align-items:start; gap:18px; }
+    .profile-grid[data-profile-active="personal"]::before { content:'Personal'; display:block; color:#08752a; font:700 1.7rem Georgia,serif; margin:2px 0 0; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card,
     .profile-grid[data-profile-active="personal"] .profile-personal-wide { grid-column:1 / -1; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card .card-header,
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide .card-header { padding:20px 24px 12px; border-bottom:0; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card .card-header h3,
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide .card-header h3 { font-family:Georgia,serif; font-size:1.22rem; text-transform:none; letter-spacing:0; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card .card-body,
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide .card-body { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:17px 16px; padding:14px 24px 24px; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card .info-row,
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide .info-row { display:block; min-width:0; padding:0; border:0; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card .info-row:only-child,
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide .info-row:only-child { grid-column:1 / -1; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card .info-row .label,
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide .info-row .label { display:block; margin:0 0 6px; color:#39445a; font-size:.8rem; font-weight:650; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-card .info-row .value,
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide .info-row .value { display:block; max-width:none; min-height:42px; padding:10px 12px; overflow-wrap:anywhere; border:1px solid #dfe4eb; border-radius:9px; background:#fff; color:#26344e; font-size:.88rem; font-weight:500; text-align:left; }
     @media (max-width:900px) { .profile-vitals { position:static; width:auto; margin:16px 0; padding:16px; border:1px solid var(--border); border-radius:12px; background:#fff; } .profile-vitals::before { display:none; } .profile-vitals .avatar,.profile-vitals h3,.profile-vitals .vitals-role { display:block !important; } .profile-vitals .avatar { width:88px !important; height:88px !important; margin-bottom:10px; } .profile-overview,.profile-grid { margin-left:0; } }
-    @media (max-width:640px) { .profile-hero { min-height:0; padding:22px 18px 0; flex-direction:column; text-align:left; } .profile-hero .avatar-wrap .avatar { width:96px !important; height:96px !important; border-radius:16px !important; } .profile-hero h2 { font-size:1.65rem; } .profile-tabs { margin-top:20px; gap:8px; overflow-x:auto; } .profile-tabs button { padding:13px 10px; } .profile-grid[data-profile-active="personal"] { grid-template-columns:1fr; } }
+    @media (max-width:640px) { .profile-hero { min-height:0; padding:22px 18px 0; flex-direction:column; text-align:left; } .profile-hero .avatar-wrap .avatar { width:96px !important; height:96px !important; border-radius:16px !important; } .profile-hero h2 { font-size:1.65rem; } .profile-tabs { margin-top:20px; gap:8px; overflow-x:auto; } .profile-tabs button { padding:13px 10px; } .profile-grid[data-profile-active="personal"] .profile-personal-card .card-body,.profile-grid[data-profile-active="personal"] .profile-personal-wide .card-body { grid-template-columns:1fr; padding:14px 18px 20px; } }
   </style>
 </head>
 <body>
@@ -471,7 +487,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        ${(isOwn || isAdmin) ? `<div class="card" data-profile-tab="personal">
+        ${(isOwn || isAdmin) ? `<div class="card profile-personal-wide" data-profile-tab="personal">
           <div class="card-header"><h3>Medical Information</h3></div>
           <div class="card-body">
             ${infoRow('Medical conditions', emp.medical_conditions || 'Not provided')}
@@ -479,7 +495,7 @@ async function loadProfile() {
           </div>
         </div>` : ''}
 
-        <div class="card" data-profile-tab="personal">
+        <div class="card profile-personal-wide" data-profile-tab="personal">
           <div class="card-header"><h3>Bank Information</h3></div>
           <div class="card-body">
             ${infoRow('Bank Name', emp.bank_name)}
