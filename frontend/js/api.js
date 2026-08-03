@@ -533,6 +533,7 @@ function buildSidebar(activePage) {
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
     { page: 'financials',  icon: chartIcon(),      label: 'Financials',   roles: ['admin'] },
     { page: 'audit',       icon: docIcon(),        label: 'Audit History', roles: ['admin'] },
+    { page: 'assets',      icon: briefcaseIcon(),  label: 'Company Assets', roles: ['admin','manager'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager','employee'] },
     { page: 'loans',       icon: walletIcon(),     label: 'Loans',        roles: ['admin','manager'] },
     { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
