@@ -948,6 +948,228 @@
           padding: 14px 18px 20px;
         }
       }
+      /* Employee profile workspace: compact, form-first layout. */
+      .profile-workspace {
+        display: grid;
+        grid-template-columns: 292px minmax(0, 1fr);
+        gap: 38px;
+        align-items: start;
+      }
+      .profile-main {
+        min-width: 0;
+      }
+      .profile-vitals {
+        position: sticky;
+        top: 22px;
+        left: auto;
+        z-index: auto;
+        width: auto;
+        margin: 0;
+        padding: 18px 20px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .profile-vitals .avatar {
+        display: block !important;
+        width: 230px !important;
+        height: 150px !important;
+        margin: 0 0 18px !important;
+        border-radius: 0 0 22px 22px !important;
+        object-fit: cover;
+      }
+      .profile-vitals h3,
+      .profile-vitals .vitals-role {
+        display: none !important;
+      }
+      .profile-vitals::before {
+        content: "Vitals";
+        display: block;
+        margin: 0 0 18px;
+        color: #536078;
+        font: 800 0.95rem var(--font-display);
+      }
+      .vitals-list {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .vital-line {
+        gap: 10px;
+        padding: 7px 0;
+        font-size: 0.84rem;
+      }
+      .vital-mark {
+        display: grid;
+        place-items: center;
+        width: 16px;
+        color: #6d737c;
+      }
+      .vital-mark svg {
+        width: 15px;
+        height: 15px;
+      }
+      .profile-main .profile-hero {
+        min-height: 0;
+        margin: 0 0 40px;
+        padding: 0;
+        overflow: visible;
+        background: #087b2b !important;
+        border-radius: 0 0 24px 24px !important;
+        box-shadow: none !important;
+      }
+      .profile-main .profile-hero::after,
+      .profile-main .profile-hero .avatar-wrap,
+      .profile-main .profile-actions,
+      .profile-main .profile-meta {
+        display: none !important;
+      }
+      .profile-main .profile-hero > div:nth-child(2) {
+        width: 100%;
+        min-width: 0;
+      }
+      .profile-main .profile-hero > div:nth-child(2) > :not(.profile-tabs) {
+        display: none !important;
+      }
+      .profile-tabs {
+        width: 100%;
+        height: 60px;
+        margin: 0;
+        padding: 0 18px;
+        gap: 0;
+        overflow-x: auto;
+        border: 0;
+        align-items: stretch;
+      }
+      .profile-tabs button {
+        display: flex;
+        align-items: center;
+        padding: 0 28px;
+        border: 0 !important;
+        border-radius: 0;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+      .profile-tabs button.active {
+        color: #087b2b;
+        background: #fff;
+        border-radius: 0 0 0 14px;
+      }
+      .profile-tabs button:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .profile-tabs button.active:hover {
+        color: #087b2b;
+        background: #fff;
+      }
+      .profile-overview {
+        display: none !important;
+      }
+      .profile-grid {
+        margin: 0;
+      }
+      .profile-grid[data-profile-active="personal"]::before {
+        display: block;
+        margin: 0 0 22px;
+        color: #087b2b;
+        font: 800 1.85rem var(--font-display);
+      }
+      .profile-inline-editor .modal {
+        border: 0;
+        border-radius: 16px;
+        box-shadow: 0 4px 18px rgba(21, 52, 97, 0.12);
+      }
+      .profile-inline-editor .modal-header {
+        padding: 24px 28px 12px;
+        border: 0;
+      }
+      .profile-inline-editor .modal-header h3 {
+        color: #087b2b;
+        font: 800 1.45rem var(--font-display);
+      }
+      .profile-inline-editor .modal-body {
+        padding: 18px 28px 106px;
+      }
+      .profile-inline-editor .form-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px 16px;
+      }
+      .profile-inline-editor .form-group.span-2 {
+        grid-column: span 2;
+      }
+      .profile-inline-editor .modal-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        justify-content: flex-end;
+        min-height: 78px;
+        padding: 16px 28px;
+        background: rgba(255, 255, 255, 0.96);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -8px 20px rgba(20, 40, 80, 0.06);
+      }
+      .profile-inline-editor .modal-footer .btn-primary {
+        padding: 11px 24px;
+        border-radius: 999px;
+        background: #087b2b;
+      }
+      .profile-inline-editor .modal-footer .btn-outline {
+        border: 0;
+        color: #075bc6;
+        background: transparent;
+      }
+      .form-section-title {
+        margin: 12px 0 2px;
+        padding-top: 20px;
+        font-size: 0.78rem;
+        color: #087b2b;
+      }
+      .form-section-title:first-child {
+        margin-top: 0;
+      }
+      @media (max-width: 900px) {
+        .profile-workspace {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+        .profile-vitals {
+          display: none;
+        }
+        .profile-main .profile-hero {
+          margin-bottom: 24px;
+        }
+        .profile-inline-editor .form-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        .profile-tabs {
+          height: 54px;
+          padding: 0;
+        }
+        .profile-tabs button {
+          padding: 0 17px;
+          font-size: 0.82rem;
+        }
+        .profile-inline-editor .form-grid {
+          grid-template-columns: 1fr;
+        }
+        .profile-inline-editor .form-group.span-2 {
+          grid-column: auto;
+        }
+        .profile-inline-editor .modal-body {
+          padding: 16px 18px 96px;
+        }
+        .profile-inline-editor .modal-header {
+          padding: 20px 18px 8px;
+        }
+        .profile-inline-editor .modal-footer {
+          padding: 14px 18px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1701,15 +1923,21 @@
           const modal = overlay.querySelector(".modal");
           if (!editor || !modal) return;
           modal.querySelector(".modal-close")?.remove();
-          modal.querySelector(".modal-footer .btn-outline")?.remove();
           modal.querySelector(".modal-header h3").textContent =
-            "Personal information";
+            "Basic Information";
           modal
             .querySelector(".modal-header")
             .insertAdjacentHTML(
               "beforeend",
-              "<p>Update your details below, then save all changes when you are done.</p>",
+              "<p>Keep employee information accurate and up to date.</p>",
             );
+          const cancelButton = modal.querySelector(
+            ".modal-footer .btn-outline",
+          );
+          if (cancelButton) {
+            cancelButton.textContent = "Cancel";
+            cancelButton.onclick = () => loadProfile();
+          }
           editor.closest(".profile-grid")?.classList.add("profile-has-inline");
           editor.appendChild(modal);
           overlay.remove();
