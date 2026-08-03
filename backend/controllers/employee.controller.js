@@ -207,7 +207,8 @@ exports.update = async (req, res) => {
       'experience', 'previous_company', 'previous_job_title', 'experience_years', 'experience_summary',
       'emergency_contact_name', 'emergency_contact_relationship',
       'emergency_contact_phone', 'emergency_contact_address', 'bank_name', 'bank_account_name',
-      'bank_account_number', 'bank_branch'
+      'bank_account_number', 'bank_branch', 'linkedin_url', 'twitter_url', 'facebook_url',
+      'drivers_license_number', 'drivers_license_class', 'drivers_license_expiry'
     ];
     const selfFields = [
       'first_name', 'last_name', 'phone', 'address', 'date_of_birth',
@@ -217,10 +218,11 @@ exports.update = async (req, res) => {
       'experience', 'previous_company', 'previous_job_title', 'experience_years', 'experience_summary',
       'emergency_contact_name', 'emergency_contact_relationship',
       'emergency_contact_phone', 'emergency_contact_address', 'bank_name', 'bank_account_name',
-      'bank_account_number', 'bank_branch'
+      'bank_account_number', 'bank_branch', 'linkedin_url', 'twitter_url', 'facebook_url',
+      'drivers_license_number', 'drivers_license_class', 'drivers_license_expiry'
     ];
     const allowedFields = isAdmin ? adminFields : selfFields;
-    const nullableFields = new Set(['date_of_birth', 'department_id', 'manager_id', 'hire_date', 'salary']);
+    const nullableFields = new Set(['date_of_birth', 'department_id', 'manager_id', 'hire_date', 'salary', 'drivers_license_expiry']);
     const updates = [];
     const params = [];
 
@@ -266,7 +268,8 @@ exports.update = async (req, res) => {
                  experience, previous_company, previous_job_title, experience_years, experience_summary,
                  emergency_contact_name, emergency_contact_relationship,
                  emergency_contact_phone, emergency_contact_address, bank_name, bank_account_name,
-                 bank_account_number, bank_branch`,
+                 bank_account_number, bank_branch, linkedin_url, twitter_url, facebook_url,
+                 drivers_license_number, drivers_license_class, drivers_license_expiry`,
       [...params, req.user.company_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });

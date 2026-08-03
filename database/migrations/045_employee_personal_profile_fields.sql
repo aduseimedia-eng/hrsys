@@ -1,0 +1,6 @@
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS linkedin_url VARCHAR(300);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS twitter_url VARCHAR(300);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS facebook_url VARCHAR(300);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS drivers_license_number VARCHAR(100);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS drivers_license_class VARCHAR(80);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS drivers_license_expiry DATE;

@@ -387,9 +387,9 @@ async function loadProfile() {
 
       <!-- Details grid -->
       <div class="profile-grid" id="employee-profile-grid" data-profile-active="personal">
-        <!-- Personal info -->
+        <!-- Personal profile -->
         <div class="card" id="personal-information" data-profile-tab="personal">
-          <div class="card-header"><h3>Personal Information</h3></div>
+          <div class="card-header"><h3>Basic Information</h3></div>
           <div class="card-body">
             <div class="info-row"><span class="label">Full Name</span><span class="value">${emp.first_name} ${emp.last_name}</span></div>
             <div class="info-row"><span class="label">Date of Birth</span><span class="value">${emp.date_of_birth ? fmt.date(emp.date_of_birth) : '—'}</span></div>
@@ -398,6 +398,10 @@ async function loadProfile() {
             <div class="info-row"><span class="label">Address</span><span class="value" style="max-width:200px;text-align:right">${emp.address || '—'}</span></div>
           </div>
         </div>
+
+        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Address</h3></div><div class="card-body">${infoRow('Home Address', emp.address || 'Not provided')}</div></div>
+        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Contact</h3></div><div class="card-body">${infoRow('Email', emp.email)}${infoRow('Phone', emp.phone || 'Not provided')}</div></div>
+        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Social Links</h3></div><div class="card-body">${infoRow('LinkedIn', emp.linkedin_url || 'Not provided')}${infoRow('X / Twitter', emp.twitter_url || 'Not provided')}${infoRow('Facebook', emp.facebook_url || 'Not provided')}</div></div>
 
         <!-- Work info -->
         <div class="card" id="work-information" data-profile-tab="job">
@@ -429,7 +433,7 @@ async function loadProfile() {
         </div>
 
         <div class="card" data-profile-tab="personal">
-          <div class="card-header"><h3>Education Information</h3></div>
+          <div class="card-header"><h3>Education</h3></div>
           <div class="card-body">
             ${infoRow('Qualification', emp.education_level || emp.education_information)}
             ${infoRow('Institution', emp.education_institution)}
@@ -441,7 +445,7 @@ async function loadProfile() {
         </div>
 
         <div class="card" data-profile-tab="personal">
-          <div class="card-header"><h3>Experience</h3></div>
+          <div class="card-header"><h3>Previous Work Experience</h3></div>
           <div class="card-body">
             ${infoRow('Previous Company', emp.previous_company)}
             ${infoRow('Previous Role', emp.previous_job_title)}
@@ -452,6 +456,8 @@ async function loadProfile() {
             ${infoRow('Line Manager', emp.manager_name)}
           </div>
         </div>
+
+        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Driver's License Details</h3></div><div class="card-body">${infoRow('License Number', emp.drivers_license_number || 'Not provided')}${infoRow('License Class', emp.drivers_license_class || 'Not provided')}${infoRow('Expiry Date', emp.drivers_license_expiry ? fmt.date(emp.drivers_license_expiry) : 'Not provided')}</div></div>
 
         <div class="card profile-wide" data-profile-tab="emergency">
           <div class="card-header"><h3>Emergency Contact</h3></div>
@@ -678,6 +684,9 @@ function showEditModal() {
           <div class="form-group"><label class="form-label">Phone</label><input type="text" id="e-phone" class="form-control" value="${emp.phone || ''}"></div>
           <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="e-dob" class="form-control" value="${emp.date_of_birth ? emp.date_of_birth.split('T')[0] : ''}"></div>
           <div class="form-group span-2"><label class="form-label">Address</label><textarea id="e-address" class="form-control" rows="2">${emp.address || ''}</textarea></div>
+          <div class="form-group"><label class="form-label">LinkedIn URL</label><input type="url" id="e-linkedin-url" class="form-control" value="${safe(emp.linkedin_url || '')}"></div>
+          <div class="form-group"><label class="form-label">X / Twitter URL</label><input type="url" id="e-twitter-url" class="form-control" value="${safe(emp.twitter_url || '')}"></div>
+          <div class="form-group span-2"><label class="form-label">Facebook URL</label><input type="url" id="e-facebook-url" class="form-control" value="${safe(emp.facebook_url || '')}"></div>
           <div class="form-group span-2"><label class="form-label">Medical conditions or accommodations</label><textarea id="e-medical-conditions" class="form-control" rows="3" placeholder="Optional — share only information relevant to workplace support">${safe(emp.medical_conditions || '')}</textarea><small style="color:var(--text-muted)">Visible only to you and HR administrators.</small></div>
           <div class="form-group"><label class="form-label">Qualification</label><input type="text" id="e-education-level" class="form-control" value="${emp.education_level || emp.education_information || ''}"></div>
           <div class="form-group"><label class="form-label">Institution</label><input type="text" id="e-education-institution" class="form-control" value="${emp.education_institution || ''}"></div>
@@ -687,6 +696,9 @@ function showEditModal() {
           <div class="form-group"><label class="form-label">Previous Role</label><input type="text" id="e-previous-job-title" class="form-control" value="${emp.previous_job_title || ''}"></div>
           <div class="form-group"><label class="form-label">Years of Experience</label><input type="text" id="e-experience-years" class="form-control" value="${emp.experience_years || ''}"></div>
           <div class="form-group span-2"><label class="form-label">Experience Summary</label><textarea id="e-experience-summary" class="form-control" rows="2">${emp.experience_summary || emp.experience || ''}</textarea></div>
+          <div class="form-group"><label class="form-label">Driver's License Number</label><input type="text" id="e-license-number" class="form-control" value="${safe(emp.drivers_license_number || '')}"></div>
+          <div class="form-group"><label class="form-label">Driver's License Class</label><input type="text" id="e-license-class" class="form-control" value="${safe(emp.drivers_license_class || '')}"></div>
+          <div class="form-group"><label class="form-label">Driver's License Expiry</label><input type="date" id="e-license-expiry" class="form-control" value="${emp.drivers_license_expiry ? emp.drivers_license_expiry.split('T')[0] : ''}"></div>
           <div class="form-group"><label class="form-label">Emergency Contact Name</label><input type="text" id="e-emergency-name" class="form-control" value="${emp.emergency_contact_name || ''}"></div>
           <div class="form-group"><label class="form-label">Relationship</label><input type="text" id="e-emergency-relationship" class="form-control" value="${emp.emergency_contact_relationship || ''}"></div>
           <div class="form-group"><label class="form-label">Emergency Phone</label><input type="text" id="e-emergency-phone" class="form-control" value="${emp.emergency_contact_phone || ''}"></div>
@@ -757,6 +769,9 @@ async function saveEdit(id) {
       last_name:     document.getElementById('e-last').value,
       phone:         document.getElementById('e-phone').value,
       address:       document.getElementById('e-address').value,
+      linkedin_url: document.getElementById('e-linkedin-url').value,
+      twitter_url: document.getElementById('e-twitter-url').value,
+      facebook_url: document.getElementById('e-facebook-url').value,
       date_of_birth: document.getElementById('e-dob').value,
       medical_conditions: document.getElementById('e-medical-conditions').value,
       education_level: document.getElementById('e-education-level').value,
@@ -767,6 +782,9 @@ async function saveEdit(id) {
       previous_job_title: document.getElementById('e-previous-job-title').value,
       experience_years: document.getElementById('e-experience-years').value,
       experience_summary: document.getElementById('e-experience-summary').value,
+      drivers_license_number: document.getElementById('e-license-number').value,
+      drivers_license_class: document.getElementById('e-license-class').value,
+      drivers_license_expiry: document.getElementById('e-license-expiry').value,
       emergency_contact_name: document.getElementById('e-emergency-name').value,
       emergency_contact_relationship: document.getElementById('e-emergency-relationship').value,
       emergency_contact_phone: document.getElementById('e-emergency-phone').value,
