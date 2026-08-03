@@ -29,6 +29,23 @@ function appUrl(path) {
 
 window.appUrl = appUrl;
 
+function applyCompanyBranding() {
+  const user = api.getUser();
+  if (!user?.company_id) return;
+  try {
+    const branding = JSON.parse(localStorage.getItem(`hrconnect.branding.${user.company_id}`) || '{}');
+    const root = document.documentElement;
+    if (branding.primary_color) {
+      root.style.setProperty('--brand', branding.primary_color);
+      root.style.setProperty('--accent', branding.primary_color);
+    }
+    if (branding.accent_color) root.style.setProperty('--mint-500', branding.accent_color);
+    if (branding.logo_url) document.querySelectorAll('.brand-logo').forEach((logo) => { logo.src = branding.logo_url; });
+  } catch (_) {}
+}
+
+window.applyCompanyBranding = applyCompanyBranding;
+
 // Finance receipts require an authenticated request. Open the destination first so browsers
 // treat it as a user action, then load the downloaded blob into that tab.
 window.setTimeout(() => {
@@ -615,6 +632,7 @@ function buildSidebar(activePage) {
       </button>
     </div>
   `;
+  applyCompanyBranding();
   addPageBackButton(activePage);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);

@@ -174,6 +174,67 @@
         </div>
 
         <article class="card billing-card">
+          <div class="card-header"><h3>Company Branding</h3></div>
+          <div class="card-body">
+            <p style="margin: 0 0 16px; color: var(--text-muted)">
+              Set the logo and colors used throughout your company workspace.
+            </p>
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label class="form-label">Logo image URL</label
+                ><input
+                  id="brand-logo-url"
+                  type="url"
+                  class="form-control"
+                  placeholder="https://example.com/logo.png"
+                  oninput="previewBranding()"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Primary color</label
+                ><input
+                  id="brand-primary"
+                  type="color"
+                  class="form-control"
+                  value="#174fae"
+                  oninput="previewBranding()"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Accent color</label
+                ><input
+                  id="brand-accent"
+                  type="color"
+                  class="form-control"
+                  value="#73bca7"
+                  oninput="previewBranding()"
+                />
+              </div>
+            </div>
+            <div
+              id="brand-preview"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 12px;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                background: var(--bg-page);
+                margin-bottom: 16px;
+              "
+            ></div>
+            <button
+              class="btn btn-primary"
+              type="button"
+              onclick="saveBranding()"
+            >
+              Save Branding
+            </button>
+          </div>
+        </article>
+
+        <article class="card billing-card">
           <div class="card-header"><h3>Billing &amp; annual plan</h3></div>
           <div class="card-body">
             <div class="billing-status" id="billing-status">
@@ -193,6 +254,7 @@
       loadNotifCount();
       let profile = user;
       loadSettings();
+      loadBranding();
       (async () => {
         await loadBilling();
         const checkoutPlan = new URLSearchParams(window.location.search).get(
@@ -217,6 +279,40 @@
         document.getElementById("settings-role").textContent =
           `${profile.job_title || "HR"} ${profile.department_name ? "- " + profile.department_name : ""}`;
         document.getElementById("settings-email").value = profile.email || "";
+      }
+
+      function brandingKey() {
+        return `hrconnect.branding.${user.company_id}`;
+      }
+      function loadBranding() {
+        const branding = JSON.parse(
+          localStorage.getItem(brandingKey()) || "{}",
+        );
+        document.getElementById("brand-logo-url").value =
+          branding.logo_url || "";
+        document.getElementById("brand-primary").value =
+          branding.primary_color || "#174fae";
+        document.getElementById("brand-accent").value =
+          branding.accent_color || "#73bca7";
+        previewBranding();
+      }
+      function previewBranding() {
+        const logo = document.getElementById("brand-logo-url").value.trim();
+        const primary = document.getElementById("brand-primary").value;
+        const accent = document.getElementById("brand-accent").value;
+        document.getElementById("brand-preview").innerHTML =
+          `${logo ? `<img src="${logo}" alt="Logo preview" style="width:42px;height:42px;object-fit:contain;border-radius:7px;background:#fff">` : '<div style="width:42px;height:42px;border-radius:7px;background:#fff;display:grid;place-items:center">Logo</div>'}<div><strong style="display:block;color:${primary}">Your company workspace</strong><small style="color:${accent}">Primary and accent preview</small></div>`;
+      }
+      function saveBranding() {
+        const branding = {
+          logo_url: document.getElementById("brand-logo-url").value.trim(),
+          primary_color: document.getElementById("brand-primary").value,
+          accent_color: document.getElementById("brand-accent").value,
+        };
+        localStorage.setItem(brandingKey(), JSON.stringify(branding));
+        applyCompanyBranding();
+        buildSidebar("settings");
+        toast("Company branding saved", "success");
       }
 
       async function uploadAvatar(file) {
