@@ -614,6 +614,7 @@ function buildSidebar(activePage) {
       </button>
     </div>
   `;
+  addPageBackButton(activePage);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
   loadMessageNavCount();
@@ -621,6 +622,33 @@ function buildSidebar(activePage) {
 }
 
 const SIDEBAR_SCROLL_KEY = 'hrconnect.sidebar.scrollTop';
+
+function addPageBackButton(activePage) {
+  if (activePage === 'dashboard' || document.querySelector('[data-page-back-button]')) return;
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn btn-outline btn-sm';
+  button.dataset.pageBackButton = 'true';
+  button.textContent = '← Back';
+  button.setAttribute('aria-label', 'Go back to the previous page');
+  button.onclick = () => {
+    const targetWindow = window.top !== window.self ? window.top : window;
+    if (targetWindow.history.length > 1) {
+      targetWindow.history.back();
+      return;
+    }
+    const currentUser = api.getUser();
+    const fallback = currentUser?.role === 'employee'
+      ? appUrl('/pages/staff-portal.html#overview')
+      : adminWorkspaceUrl('dashboard');
+    if (window.top !== window.self) window.top.location.assign(fallback);
+    else window.location.assign(fallback);
+  };
+  const actions = topbar.querySelector('.topbar-actions');
+  topbar.insertBefore(button, actions || null);
+}
 
 function getSidebarScrollTop() {
   try {

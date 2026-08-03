@@ -261,12 +261,7 @@
             <h1>Organization Chart</h1>
             <p>Company hierarchy and reporting structure</p>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px">
-            <button class="btn btn-outline" type="button" onclick="goBack()">
-              ← Back
-            </button>
-            <div id="org-admin-hint"></div>
-          </div>
+          <div id="org-admin-hint"></div>
         </div>
 
         <div class="tabs">
@@ -347,16 +342,6 @@
       if (user.role === "admin") {
         document.getElementById("org-admin-hint").innerHTML =
           '<span class="badge badge-info">HR arrangement enabled</span>';
-      }
-
-      function goBack() {
-        if (window.history.length > 1) {
-          window.history.back();
-          return;
-        }
-        const destination = adminWorkspaceUrl("people");
-        if (window.top !== window.self) window.top.location.assign(destination);
-        else window.location.assign(destination);
       }
 
       function switchTab(tab) {
