@@ -81,6 +81,14 @@
     </div>
 
     <article class="card billing-card">
+      <div class="card-header"><h3>Audit History</h3></div>
+      <div class="card-body">
+        <p style="color:var(--text-muted);margin:0 0 16px">Review sensitive payroll and financial changes made in your company.</p>
+        <button class="btn btn-outline" type="button" onclick="openAuditHistory()">View Audit History</button>
+      </div>
+    </article>
+
+    <article class="card billing-card">
       <div class="card-header"><h3>Billing &amp; annual plan</h3></div>
       <div class="card-body">
         <div class="billing-status" id="billing-status"><span>Loading billing details…</span></div>
@@ -140,6 +148,12 @@ async function saveAccount() {
   } catch (e) {
     toast(e.message || 'Could not update email', 'error');
   }
+}
+
+function openAuditHistory() {
+  const destination = adminWorkspaceUrl('audit');
+  if (window.top !== window.self) window.top.location.assign(destination);
+  else window.location.assign(destination);
 }
 
 async function savePassword() {
