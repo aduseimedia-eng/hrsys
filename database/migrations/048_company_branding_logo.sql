@@ -1,0 +1,2 @@
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_data BYTEA;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_mime_type VARCHAR(100);
