@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workspace - KenadHR</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <style>
+      .hub-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 16px;
+      }
+      .hub-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-height: 150px;
+      }
+      .hub-card p {
+        color: var(--text-muted);
+        margin: 8px 0 18px;
+      }
+      .hub-card .btn {
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar"></aside>
+      <header class="topbar">
+        <div class="topbar-title" id="hub-title">Workspace</div>
+      </header>
+      <main class="main-content">
+        <div class="page-header">
+          <div>
+            <h1 id="hub-heading">Workspace</h1>
+            <p id="hub-description"></p>
+          </div>
+        </div>
+        <div class="hub-grid" id="hub-grid"></div>
+      </main>
+    </div>
+    <script src="../js/api.js"></script>
+    <script>
+      const user = requireAuth();
+      if (!user) throw Error("redirect");
+      const hub = new URLSearchParams(location.search).get("hub") || "people";
+      const hubs = {
+        people: {
+          title: "People",
+          description:
+            "Manage your people structure, recruitment, and onboarding.",
+          cards: [
+            [
+              "employees",
+              "Employees",
+              "Manage employee records and profiles.",
+              ["admin", "manager"],
+            ],
+            [
+              "departments",
+              "Departments",
+              "Set up departments and teams.",
+              ["admin"],
+            ],
+            [
+              "orgchart",
+              "Organization chart",
+              "View reporting relationships.",
+              ["admin", "manager"],
+            ],
+            [
+              "hiring",
+              "Hiring & ATS",
+              "Track vacancies and candidates.",
+              ["admin", "manager"],
+            ],
+            [
+              "onboarding",
+              "Onboarding",
+              "Guide new hires through onboarding.",
+              ["admin", "manager"],
+            ],
+          ],
+        },
+        work: {
+          title: "Work",
+          description: "Manage daily work, schedules, time, and requests.",
+          cards: [
+            [
+              "attendance",
+              "Attendance",
+              "Review time and attendance records.",
+              ["admin"],
+            ],
+            [
+              "leave",
+              "Leave",
+              "Review and manage leave requests.",
+              ["admin", "manager"],
+            ],
+            [
+              "calendar",
+              "Calendar",
+              "View company events and schedules.",
+              ["admin", "manager"],
+            ],
+            [
+              "todos",
+              "To Do List",
+              "Track team tasks and follow-ups.",
+              ["admin", "manager"],
+            ],
+            [
+              "tickets",
+              "Tickets",
+              "Manage employee support requests.",
+              ["admin", "manager"],
+            ],
+            [
+              "messages",
+              "Messages",
+              "Communicate with your team.",
+              ["admin", "manager"],
+            ],
+          ],
+        },
+        records: {
+          title: "Growth & Records",
+          description:
+            "Keep employee development, documentation, and lifecycle records together.",
+          cards: [
+            [
+              "performance",
+              "Performance reviews",
+              "Run and review performance evaluations.",
+              ["admin", "manager"],
+            ],
+            [
+              "training",
+              "Training register",
+              "Record employee training activity.",
+              ["admin", "manager"],
+            ],
+            [
+              "probation",
+              "Probation tracker",
+              "Track probation milestones.",
+              ["admin", "manager"],
+            ],
+            [
+              "contracts",
+              "Contract expiry",
+              "Monitor upcoming contract expiry dates.",
+              ["admin", "manager"],
+            ],
+            [
+              "documents",
+              "Documents",
+              "Store and manage company documents.",
+              ["admin", "manager"],
+            ],
+            [
+              "benefits",
+              "Benefits",
+              "Manage benefits and enrolment.",
+              ["admin", "manager"],
+            ],
+          ],
+        },
+        finance: {
+          title: "Finance",
+          description:
+            "Manage payroll, financial transactions, bills, and employee loans.",
+          cards: [
+            [
+              "payroll",
+              "Payroll",
+              "Process payroll and payslips.",
+              ["admin", "manager"],
+            ],
+            [
+              "financials",
+              "Financials",
+              "Record transactions, bills, and employee loans.",
+              ["admin"],
+            ],
+          ],
+        },
+        administration: {
+          title: "Administration",
+          description:
+            "Configure HR operations, reports, company resources, and settings.",
+          cards: [
+            [
+              "reports",
+              "Reports & workflows",
+              "Review HR reports and workflows.",
+              ["admin", "manager"],
+            ],
+            [
+              "assets",
+              "Company assets",
+              "Manage company asset registers.",
+              ["admin", "manager"],
+            ],
+            [
+              "operations",
+              "Operations registers",
+              "Manage operational HR registers.",
+              ["admin", "manager"],
+            ],
+            [
+              "disciplinary",
+              "Disciplinary register",
+              "Record disciplinary cases.",
+              ["admin", "manager"],
+            ],
+            [
+              "settings",
+              "Settings",
+              "Manage your company account and audit history.",
+              ["admin"],
+            ],
+          ],
+        },
+      };
+      const config = hubs[hub] || hubs.people;
+      document.title = `${config.title} - KenadHR`;
+      document.getElementById("hub-title").textContent = config.title;
+      document.getElementById("hub-heading").textContent = config.title;
+      document.getElementById("hub-description").textContent =
+        config.description;
+      buildSidebar(hub);
+      loadNotifCount();
+      document.getElementById("hub-grid").innerHTML = config.cards
+        .filter(([, , , roles]) => roles.includes(user.role))
+        .map(
+          ([page, title, description]) =>
+            `<article class="card hub-card"><h3>${title}</h3><p>${description}</p><button class="btn btn-outline" type="button" onclick="goTo('${page}')">Open</button></article>`,
+        )
+        .join("");
+      function goTo(page) {
+        const destination = adminWorkspaceUrl(page);
+        if (window.top !== window.self) window.top.location.assign(destination);
+        else location.assign(destination);
+      }
+    </script>
+  </body>
+</html>

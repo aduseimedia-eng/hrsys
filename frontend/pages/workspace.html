@@ -93,6 +93,11 @@ const WORKSPACE_PAGES = {
   leave: { title: 'Leave Management', nav: 'leave' },
   calendar: { title: 'Company Calendar', nav: 'calendar' },
   payroll: { title: 'Payroll', nav: 'payroll' },
+  people: { title: 'People', nav: 'people', src: '/pages/hub.html?hub=people' },
+  work: { title: 'Work', nav: 'work', src: '/pages/hub.html?hub=work' },
+  records: { title: 'Growth & Records', nav: 'records', src: '/pages/hub.html?hub=records' },
+  finance: { title: 'Finance', nav: 'finance', src: '/pages/hub.html?hub=finance' },
+  administration: { title: 'Administration', nav: 'administration', src: '/pages/hub.html?hub=administration' },
   financials: { title: 'Financials', nav: 'financials' },
   audit: { title: 'Audit History', nav: 'audit' },
   assets: { title: 'Company Assets', nav: 'assets' },
@@ -188,7 +193,7 @@ function parseWorkspaceRoute() {
 function loadWorkspaceRoute() {
   const route = parseWorkspaceRoute();
   const pageMeta = WORKSPACE_PAGES[route.page];
-  const src = appUrl(`/pages/${route.page}.html${route.query}`);
+  const src = pageMeta.src ? appUrl(pageMeta.src) : appUrl(`/pages/${route.page}.html${route.query}`);
 
   document.getElementById('workspace-title').textContent = pageMeta.title;
   document.title = `${pageMeta.title} - KenadHR`;

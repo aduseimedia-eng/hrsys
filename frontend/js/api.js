@@ -516,14 +516,10 @@ function buildSidebar(activePage) {
   const isAdmin   = user.role === 'admin';
   const isManager = user.role === 'manager' || isAdmin;
 
-  const navItems = [
+  const employeeNavItems = [
     { page: 'dashboard',   icon: gridIcon(),       label: 'Dashboard',    roles: ['admin','manager','employee'] },
     { page: 'announcements', icon: chatIcon(),      label: 'Announcements', roles: ['admin','employee'] },
     { page: 'profile',     icon: usersIcon(),      label: 'Profile',      roles: ['employee'] },
-    { section: 'People Suite', roles: ['admin','manager'] },
-    { page: 'hiring',      icon: briefcaseIcon(),   label: 'Hiring & ATS', roles: ['admin','manager'] },
-    { page: 'onboarding',  icon: checkIcon(),      label: 'Onboarding',   roles: ['admin','manager'] },
-    { page: 'reports',     icon: chartIcon(),      label: 'Reports',      roles: ['admin','manager'] },
     { section: 'Workforce', roles: ['admin','manager','employee'] },
     { page: 'attendance',  icon: clockIcon(),      label: 'Attendance',   roles: ['admin','employee'] },
     { page: 'todos',       icon: checkIcon(),      label: 'To Do List',    roles: ['admin','manager','employee'] },
@@ -531,9 +527,6 @@ function buildSidebar(activePage) {
     { page: 'leave',       icon: calendarIcon(),   label: 'Leave',        roles: ['admin','manager','employee'] },
     { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
-    { section: 'Financials', roles: ['admin','manager'] },
-    { page: 'financials',  icon: chartIcon(),      label: 'Financials',   roles: ['admin'] },
-    { page: 'assets',      icon: briefcaseIcon(),  label: 'Company Assets', roles: ['admin','manager'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager','employee'] },
     { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
     { page: 'documents',   icon: docIcon(),        label: 'Documents',    roles: ['admin','manager','employee'] },
@@ -541,14 +534,20 @@ function buildSidebar(activePage) {
     { page: 'training',    icon: checkIcon(),      label: 'Training Register', roles: ['admin','manager','employee'] },
     { page: 'probation',   icon: clockIcon(),      label: 'Probation Tracker', roles: ['admin','manager','employee'] },
     { page: 'contracts',   icon: docIcon(),        label: 'Contract Expiry', roles: ['admin','manager','employee'] },
-    { section: 'HR Tools', roles: ['admin','manager'] },
-    { page: 'employees',   icon: usersIcon(),      label: 'Employees',    roles: ['admin','manager'] },
-    { page: 'disciplinary', icon: docIcon(),       label: 'Disciplinary Register', roles: ['admin','manager'] },
-    { page: 'operations', icon: briefcaseIcon(),   label: 'Operations Registers', roles: ['admin','manager'] },
-    { page: 'departments', icon: orgIcon(),        label: 'Departments',  roles: ['admin'] },
     { page: 'orgchart',    icon: orgIcon(),        label: 'Org Chart',    roles: ['admin','manager','employee'] },
     { page: 'settings',    icon: settingsIcon(),   label: 'Settings',     roles: ['admin','employee'] },
   ];
+  const managementNavItems = [
+    { page: 'dashboard', icon: gridIcon(), label: 'Dashboard', roles: ['admin', 'manager'] },
+    { page: 'announcements', icon: chatIcon(), label: 'Announcements', roles: ['admin'] },
+    { section: 'Workspace', roles: ['admin', 'manager'] },
+    { page: 'people', icon: usersIcon(), label: 'People', roles: ['admin', 'manager'] },
+    { page: 'work', icon: calendarIcon(), label: 'Work', roles: ['admin', 'manager'] },
+    { page: 'records', icon: docIcon(), label: 'Growth & Records', roles: ['admin', 'manager'] },
+    { page: 'finance', icon: walletIcon(), label: 'Finance', roles: ['admin', 'manager'] },
+    { page: 'administration', icon: settingsIcon(), label: 'Administration', roles: ['admin', 'manager'] },
+  ];
+  const navItems = user.role === 'employee' ? employeeNavItems : managementNavItems;
 
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
