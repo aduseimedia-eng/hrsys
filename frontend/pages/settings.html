@@ -333,9 +333,14 @@
           accent_color: document.getElementById("brand-accent").value,
         };
         try {
-          const form = new FormData();
-          Object.entries(branding).forEach(([key, value]) => form.append(key, value));
           const file = document.getElementById("brand-logo-file").files[0];
+          const form = new FormData();
+          form.append("primary_color", branding.primary_color);
+          form.append("accent_color", branding.accent_color);
+          form.append(
+            "logo_url",
+            branding.logo_url.startsWith("data:") ? "" : branding.logo_url,
+          );
           if (file) form.append("logo", file);
           const saved = await api.request("PUT", "/company/branding", form);
           saved.logo_url = saved.uploaded_logo || saved.logo_url || "";
