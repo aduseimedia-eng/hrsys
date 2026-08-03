@@ -299,6 +299,7 @@
         let branding = JSON.parse(localStorage.getItem(brandingKey()) || "{}");
         try {
           branding = await api.get("/company/branding");
+          branding.logo_url = branding.uploaded_logo || branding.logo_url || "";
           localStorage.setItem(brandingKey(), JSON.stringify(branding));
         } catch (_) {}
         document.getElementById("brand-logo-url").value =
@@ -332,7 +333,12 @@
           accent_color: document.getElementById("brand-accent").value,
         };
         try {
-          const saved = await api.put("/company/branding", branding);
+          const form = new FormData();
+          Object.entries(branding).forEach(([key, value]) => form.append(key, value));
+          const file = document.getElementById("brand-logo-file").files[0];
+          if (file) form.append("logo", file);
+          const saved = await api.request("PUT", "/company/branding", form);
+          saved.logo_url = saved.uploaded_logo || saved.logo_url || "";
           localStorage.setItem(brandingKey(), JSON.stringify(saved));
         } catch (error) {
           toast(error.message || "Could not save company branding", "error");

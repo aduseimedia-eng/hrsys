@@ -60,6 +60,7 @@ async function refreshCompanyBranding() {
   if (!user?.company_id || !api.getToken()) return;
   try {
     const branding = await api.get('/company/branding');
+    branding.logo_url = branding.uploaded_logo || branding.logo_url || '';
     localStorage.setItem(`hrconnect.branding.${user.company_id}`, JSON.stringify(branding));
     applyCompanyBranding();
   } catch (_) {}
