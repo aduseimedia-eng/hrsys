@@ -457,6 +457,33 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      .profile-inline-editor {
+        display: none;
+        grid-column: 1 / -1;
+      }
+      .profile-grid[data-profile-active="personal"] .profile-inline-editor {
+        display: block;
+      }
+      .profile-inline-editor .modal {
+        width: 100%;
+        max-width: none;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: var(--shadow-sm);
+      }
+      .profile-inline-editor .modal-header {
+        padding: 18px 22px;
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+      }
+      .profile-inline-editor .modal-body {
+        padding: 22px;
+      }
+      .profile-inline-editor .modal-footer {
+        padding: 16px 22px;
+        border-top: 1px solid var(--border);
+        background: #fbfcff;
+      }
       .quick-access-panel {
         display: none;
         width: 100%;
@@ -1131,7 +1158,7 @@
           </nav>
         </div>
         <div class="profile-actions">
-          ${canEdit ? `<button type="button" class="btn btn-sm profile-change-btn" onclick="showEditModal()">${profileIcon("edit")}<span>Edit Profile</span></button>` : !isOwn ? `<button type="button" class="btn btn-sm profile-change-btn" onclick="showSecureMessageModal()">${profileIcon("message")}<span>Send Message</span></button>` : ""}
+          ${!isOwn ? `<button type="button" class="btn btn-sm profile-change-btn" onclick="showSecureMessageModal()">${profileIcon("message")}<span>Send Message</span></button>` : ""}
           <button type="button" class="btn btn-sm profile-more-btn" aria-label="More profile actions" onclick="toggleProfileActionMenu()">${profileIcon("more")}</button>
           <div class="profile-action-menu" id="profile-action-menu">
             <button type="button" onclick="goBackToEmployees()">Back to employees</button>
@@ -1166,6 +1193,7 @@
         <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Address</h3></div><div class="card-body">${infoRow("Home Address", emp.address || "Not provided")}</div></div>
         <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Contact</h3></div><div class="card-body">${infoRow("Email", emp.email)}${infoRow("Phone", emp.phone || "Not provided")}</div></div>
         <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Social Links</h3></div><div class="card-body"><div class="social-links">${socialLink("linkedin", emp.linkedin_url)}${socialLink("instagram", emp.instagram_url)}${socialLink("facebook", emp.facebook_url)}${socialLink("x", emp.twitter_url)}</div></div></div>
+        ${canEdit ? '<section id="profile-inline-editor" class="profile-inline-editor" aria-label="Edit employee profile"></section>' : ""}
 
         <!-- Work info -->
         <div class="card" id="work-information" data-profile-tab="job">
@@ -1360,6 +1388,7 @@
           // Store emp for edit modal
           window._emp = emp;
           window._promotions = promotions || [];
+          if (canEdit) showEditModal(true);
           setEmployeeProfileTab(window.location.hash.slice(1) || "personal");
         } catch (e) {
           document.getElementById("profile-content").innerHTML =
@@ -1566,7 +1595,7 @@
         }
       }
 
-      function showEditModal() {
+      function showEditModal(inline = false) {
         const emp = window._emp;
         const overlay = document.createElement("div");
         overlay.className = "modal-overlay";
@@ -1634,6 +1663,17 @@
       </div>
     </div>`;
         document.body.appendChild(overlay);
+        if (inline) {
+          const editor = document.getElementById("profile-inline-editor");
+          const modal = overlay.querySelector(".modal");
+          if (!editor || !modal) return;
+          modal.querySelector(".modal-close")?.remove();
+          modal.querySelector(".modal-footer .btn-outline")?.remove();
+          modal.querySelector(".modal-header h3").textContent =
+            "Profile Details";
+          editor.appendChild(modal);
+          overlay.remove();
+        }
       }
 
       function showPromotionHistory() {
