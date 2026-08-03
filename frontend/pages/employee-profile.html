@@ -398,6 +398,65 @@
         font-weight: 650;
         text-align: right;
       }
+      .social-links {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 10px 0;
+      }
+      .social-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 10px;
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        text-decoration: none;
+        transition:
+          border-color 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+      .social-link:hover {
+        border-color: #8fb0e5;
+        box-shadow: 0 4px 12px rgba(19, 61, 123, 0.09);
+      }
+      .social-link.is-empty {
+        opacity: 0.62;
+      }
+      .social-link-icon {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        color: #fff;
+        background: #0a66c2;
+      }
+      .social-link-icon.instagram {
+        background: linear-gradient(135deg, #833ab4, #fd1d1d 52%, #fcb045);
+      }
+      .social-link-icon.facebook {
+        background: #1877f2;
+      }
+      .social-link-icon.x {
+        background: #111827;
+      }
+      .social-link-icon svg {
+        width: 17px;
+        height: 17px;
+      }
+      .social-link span {
+        min-width: 0;
+        overflow: hidden;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .quick-access-panel {
         display: none;
         width: 100%;
@@ -906,6 +965,29 @@
         return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.id}</svg>`;
       }
 
+      function socialLink(platform, url) {
+        const icons = {
+          linkedin:
+            '<path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V8.99h3.41v1.57h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.32 7.42a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zM7.1 20.45H3.54V8.99H7.1v11.46z"/>',
+          instagram:
+            '<path d="M7.2 2h9.6A5.2 5.2 0 0 1 22 7.2v9.6a5.2 5.2 0 0 1-5.2 5.2H7.2A5.2 5.2 0 0 1 2 16.8V7.2A5.2 5.2 0 0 1 7.2 2zm0 2A3.2 3.2 0 0 0 4 7.2v9.6A3.2 3.2 0 0 0 7.2 20h9.6a3.2 3.2 0 0 0 3.2-3.2V7.2A3.2 3.2 0 0 0 16.8 4H7.2zm4.8 2.8a5.2 5.2 0 1 1 0 10.4 5.2 5.2 0 0 1 0-10.4zm0 2a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zm5.4-2.95a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z"/>',
+          facebook:
+            '<path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.03 1.79-4.7 4.53-4.7 1.31 0 2.69.24 2.69.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.88v2.27h3.33l-.53 3.49h-2.8V24C19.61 23.09 24 18.1 24 12.07z"/>',
+          x: '<path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12L17.08 19.77z"/>',
+        };
+        const labels = {
+          linkedin: "LinkedIn",
+          instagram: "Instagram",
+          facebook: "Facebook",
+          x: "X",
+        };
+        const validUrl = /^https?:\/\//i.test(url || "");
+        const content = `<span class="social-link-icon ${platform}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${icons[platform]}</svg></span><span>${labels[platform]}${validUrl ? "" : " · Not provided"}</span>`;
+        return validUrl
+          ? `<a class="social-link" href="${safe(url)}" target="_blank" rel="noopener noreferrer">${content}</a>`
+          : `<div class="social-link is-empty">${content}</div>`;
+      }
+
       function safe(value) {
         return String(value ?? "").replace(
           /[&<>"']/g,
@@ -1083,7 +1165,7 @@
 
         <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Address</h3></div><div class="card-body">${infoRow("Home Address", emp.address || "Not provided")}</div></div>
         <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Contact</h3></div><div class="card-body">${infoRow("Email", emp.email)}${infoRow("Phone", emp.phone || "Not provided")}</div></div>
-        <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Social Links</h3></div><div class="card-body">${infoRow("LinkedIn", emp.linkedin_url || "Not provided")}${infoRow("X / Twitter", emp.twitter_url || "Not provided")}${infoRow("Facebook", emp.facebook_url || "Not provided")}</div></div>
+        <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Social Links</h3></div><div class="card-body"><div class="social-links">${socialLink("linkedin", emp.linkedin_url)}${socialLink("instagram", emp.instagram_url)}${socialLink("facebook", emp.facebook_url)}${socialLink("x", emp.twitter_url)}</div></div></div>
 
         <!-- Work info -->
         <div class="card" id="work-information" data-profile-tab="job">
@@ -1502,8 +1584,9 @@
           <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="e-dob" class="form-control" value="${emp.date_of_birth ? emp.date_of_birth.split("T")[0] : ""}"></div>
           <div class="form-group span-2"><label class="form-label">Address</label><textarea id="e-address" class="form-control" rows="2">${emp.address || ""}</textarea></div>
           <div class="form-group"><label class="form-label">LinkedIn URL</label><input type="url" id="e-linkedin-url" class="form-control" value="${safe(emp.linkedin_url || "")}"></div>
-          <div class="form-group"><label class="form-label">X / Twitter URL</label><input type="url" id="e-twitter-url" class="form-control" value="${safe(emp.twitter_url || "")}"></div>
-          <div class="form-group span-2"><label class="form-label">Facebook URL</label><input type="url" id="e-facebook-url" class="form-control" value="${safe(emp.facebook_url || "")}"></div>
+          <div class="form-group"><label class="form-label">Instagram URL</label><input type="url" id="e-instagram-url" class="form-control" value="${safe(emp.instagram_url || "")}"></div>
+          <div class="form-group"><label class="form-label">Facebook URL</label><input type="url" id="e-facebook-url" class="form-control" value="${safe(emp.facebook_url || "")}"></div>
+          <div class="form-group"><label class="form-label">X URL</label><input type="url" id="e-twitter-url" class="form-control" value="${safe(emp.twitter_url || "")}"></div>
           <div class="form-group span-2"><label class="form-label">Medical conditions or accommodations</label><textarea id="e-medical-conditions" class="form-control" rows="3" placeholder="Optional — share only information relevant to workplace support">${safe(emp.medical_conditions || "")}</textarea><small style="color:var(--text-muted)">Visible only to you and HR administrators.</small></div>
           <div class="form-group"><label class="form-label">Qualification</label><input type="text" id="e-education-level" class="form-control" value="${emp.education_level || emp.education_information || ""}"></div>
           <div class="form-group"><label class="form-label">Institution</label><input type="text" id="e-education-institution" class="form-control" value="${emp.education_institution || ""}"></div>
@@ -1622,6 +1705,7 @@
             phone: document.getElementById("e-phone").value,
             address: document.getElementById("e-address").value,
             linkedin_url: document.getElementById("e-linkedin-url").value,
+            instagram_url: document.getElementById("e-instagram-url").value,
             twitter_url: document.getElementById("e-twitter-url").value,
             facebook_url: document.getElementById("e-facebook-url").value,
             date_of_birth: document.getElementById("e-dob").value,

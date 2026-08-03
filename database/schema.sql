@@ -69,6 +69,7 @@ CREATE TABLE employees (
   linkedin_url   VARCHAR(300),
   twitter_url    VARCHAR(300),
   facebook_url   VARCHAR(300),
+  instagram_url  VARCHAR(300),
   drivers_license_number VARCHAR(100),
   drivers_license_class VARCHAR(80),
   drivers_license_expiry DATE,
