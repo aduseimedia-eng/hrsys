@@ -209,8 +209,10 @@
     .profile-overview,.profile-grid { margin-left:272px; }
     .profile-overview { margin-top:22px; }.profile-overview-item { min-height:76px; padding:15px; border-radius:10px; }
     .profile-grid .card-header { background:#fff; }.profile-grid .card-header h3 { color:#08752a; }
+    .profile-grid[data-profile-active="personal"] { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+    .profile-grid[data-profile-active="personal"] .profile-personal-wide { grid-column:1 / -1; }
     @media (max-width:900px) { .profile-vitals { position:static; width:auto; margin:16px 0; padding:16px; border:1px solid var(--border); border-radius:12px; background:#fff; } .profile-vitals::before { display:none; } .profile-vitals .avatar,.profile-vitals h3,.profile-vitals .vitals-role { display:block !important; } .profile-vitals .avatar { width:88px !important; height:88px !important; margin-bottom:10px; } .profile-overview,.profile-grid { margin-left:0; } }
-    @media (max-width:640px) { .profile-hero { min-height:0; padding:22px 18px 0; flex-direction:column; text-align:left; } .profile-hero .avatar-wrap .avatar { width:96px !important; height:96px !important; border-radius:16px !important; } .profile-hero h2 { font-size:1.65rem; } .profile-tabs { margin-top:20px; gap:8px; overflow-x:auto; } .profile-tabs button { padding:13px 10px; } }
+    @media (max-width:640px) { .profile-hero { min-height:0; padding:22px 18px 0; flex-direction:column; text-align:left; } .profile-hero .avatar-wrap .avatar { width:96px !important; height:96px !important; border-radius:16px !important; } .profile-hero h2 { font-size:1.65rem; } .profile-tabs { margin-top:20px; gap:8px; overflow-x:auto; } .profile-tabs button { padding:13px 10px; } .profile-grid[data-profile-active="personal"] { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -388,7 +390,7 @@ async function loadProfile() {
       <!-- Details grid -->
       <div class="profile-grid" id="employee-profile-grid" data-profile-active="personal">
         <!-- Personal profile -->
-        <div class="card" id="personal-information" data-profile-tab="personal">
+        <div class="card profile-personal-card" id="personal-information" data-profile-tab="personal">
           <div class="card-header"><h3>Basic Information</h3></div>
           <div class="card-body">
             <div class="info-row"><span class="label">Full Name</span><span class="value">${emp.first_name} ${emp.last_name}</span></div>
@@ -399,9 +401,9 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Address</h3></div><div class="card-body">${infoRow('Home Address', emp.address || 'Not provided')}</div></div>
-        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Contact</h3></div><div class="card-body">${infoRow('Email', emp.email)}${infoRow('Phone', emp.phone || 'Not provided')}</div></div>
-        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Social Links</h3></div><div class="card-body">${infoRow('LinkedIn', emp.linkedin_url || 'Not provided')}${infoRow('X / Twitter', emp.twitter_url || 'Not provided')}${infoRow('Facebook', emp.facebook_url || 'Not provided')}</div></div>
+        <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Address</h3></div><div class="card-body">${infoRow('Home Address', emp.address || 'Not provided')}</div></div>
+        <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Contact</h3></div><div class="card-body">${infoRow('Email', emp.email)}${infoRow('Phone', emp.phone || 'Not provided')}</div></div>
+        <div class="card profile-personal-card" data-profile-tab="personal"><div class="card-header"><h3>Social Links</h3></div><div class="card-body">${infoRow('LinkedIn', emp.linkedin_url || 'Not provided')}${infoRow('X / Twitter', emp.twitter_url || 'Not provided')}${infoRow('Facebook', emp.facebook_url || 'Not provided')}</div></div>
 
         <!-- Work info -->
         <div class="card" id="work-information" data-profile-tab="job">
@@ -432,7 +434,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card" data-profile-tab="personal">
+        <div class="card profile-personal-card" data-profile-tab="personal">
           <div class="card-header"><h3>Education</h3></div>
           <div class="card-body">
             ${infoRow('Qualification', emp.education_level || emp.education_information)}
@@ -444,7 +446,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card" data-profile-tab="personal">
+        <div class="card profile-personal-card" data-profile-tab="personal">
           <div class="card-header"><h3>Previous Work Experience</h3></div>
           <div class="card-body">
             ${infoRow('Previous Company', emp.previous_company)}
@@ -457,7 +459,7 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div class="card" data-profile-tab="personal"><div class="card-header"><h3>Driver's License Details</h3></div><div class="card-body">${infoRow('License Number', emp.drivers_license_number || 'Not provided')}${infoRow('License Class', emp.drivers_license_class || 'Not provided')}${infoRow('Expiry Date', emp.drivers_license_expiry ? fmt.date(emp.drivers_license_expiry) : 'Not provided')}</div></div>
+        <div class="card profile-personal-wide" data-profile-tab="personal"><div class="card-header"><h3>Driver's License Details</h3></div><div class="card-body">${infoRow('License Number', emp.drivers_license_number || 'Not provided')}${infoRow('License Class', emp.drivers_license_class || 'Not provided')}${infoRow('Expiry Date', emp.drivers_license_expiry ? fmt.date(emp.drivers_license_expiry) : 'Not provided')}</div></div>
 
         <div class="card profile-wide" data-profile-tab="emergency">
           <div class="card-header"><h3>Emergency Contact</h3></div>
