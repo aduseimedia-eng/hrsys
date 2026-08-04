@@ -956,9 +956,9 @@ tbody tr:hover { background: var(--bg-page); }
 }
 body { background: var(--bg-page); }
 .sidebar { background: #fff; border-right: 1px solid var(--border); box-shadow: none; }
-.sidebar-logo { border-bottom-color: var(--border); padding: 0 18px; }
+.sidebar-logo { height: 78px; border-bottom-color: var(--border); padding: 10px 14px; }
 .sidebar-logo .logo-mark { width: 42px; height: 42px; border-radius: 10px; background: #3977ee; color: #fff; }
-.sidebar-logo .brand-logo { width: 184px; height: 48px; object-fit: contain; object-position: center; mix-blend-mode: multiply; }
+.sidebar-logo .brand-logo { width: 100%; height: 58px; object-fit: contain; object-position: center; mix-blend-mode: normal; }
 .sidebar-logo .logo-text { color: #1d2b4d; font-size: 1.12rem; font-weight: 800; }
 .sidebar-logo .logo-text span { color: #3977ee; }
 .nav-section-label { color: #97a2b7; padding: 16px 18px 7px; }
@@ -1032,7 +1032,7 @@ tbody tr:hover { background: #f7faff; }
 /* On phones, the navigation becomes a branded blue drawer and uses the white logo asset. */
 @media (max-width: 768px) {
   .sidebar { background:#174FAE; border-right:0; box-shadow:18px 0 48px rgba(23,79,174,.28); }
-  .sidebar-logo { margin:10px 12px 0; padding:0 12px; height:54px; border:0; border-radius:10px; background:#fff; }
+  .sidebar-logo { margin:10px 12px 0; padding:6px 12px; height:68px; border:0; border-radius:10px; background:#fff; }
   .sidebar-logo .brand-logo { mix-blend-mode:normal; filter:none; }
   .sidebar-close-btn { color:rgba(255,255,255,.85); }
   .sidebar-close-btn:hover { background:rgba(255,255,255,.12); color:#fff; }
