@@ -47,7 +47,7 @@ function applyCompanyBranding() {
     let themeStyle = document.getElementById('company-branding-overrides');
     if (!themeStyle) { themeStyle = document.createElement('style'); themeStyle.id = 'company-branding-overrides'; document.head.appendChild(themeStyle); }
     themeStyle.textContent = `:root{--brand:${primary};--accent:${primary};--navy-600:${primary};--navy-700:${primary};--mint-500:${accent}} .btn-primary,.profile-inline-editor .modal-footer .btn-primary{background:${primary}!important;border-color:${primary}!important}.btn-primary:hover{filter:brightness(.9)}.tab-btn.active,.tabs .active{color:${primary}!important;border-color:${primary}!important}.badge-info{background:color-mix(in srgb,${primary} 12%,white)!important;color:${primary}!important}.profile-hero,.profile-main .profile-hero{background:${primary}!important}.profile-tabs button.active{color:${primary}!important}.profile-grid .card-header h3,.form-section-title{color:${primary}!important}.vital-mark{color:${primary}!important}`;
-    document.querySelectorAll('.brand-logo').forEach((logo) => {
+    document.querySelectorAll('.brand-logo, .staff-brand-logo').forEach((logo) => {
       logo.dataset.defaultSrc ||= logo.src;
       if (!branding.logo_url) { logo.src = logo.dataset.defaultSrc; return; }
       const candidate = new Image();

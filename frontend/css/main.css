@@ -958,7 +958,7 @@ body { background: var(--bg-page); }
 .sidebar { background: #fff; border-right: 1px solid var(--border); box-shadow: none; }
 .sidebar-logo { border-bottom-color: var(--border); padding: 0 18px; }
 .sidebar-logo .logo-mark { width: 42px; height: 42px; border-radius: 10px; background: #3977ee; color: #fff; }
-.sidebar-logo .brand-logo { width: 158px; height: 42px; object-fit: contain; object-position: center; mix-blend-mode: multiply; }
+.sidebar-logo .brand-logo { width: 184px; height: 48px; object-fit: contain; object-position: center; mix-blend-mode: multiply; }
 .sidebar-logo .logo-text { color: #1d2b4d; font-size: 1.12rem; font-weight: 800; }
 .sidebar-logo .logo-text span { color: #3977ee; }
 .nav-section-label { color: #97a2b7; padding: 16px 18px 7px; }
