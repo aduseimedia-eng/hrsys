@@ -97,7 +97,14 @@ async function callVynfy(path, payload) {
       error.status = response.status === 401 || response.status === 403 ? 502 : 400;
       throw error;
     }
-    return response.json().catch(() => ({}));
+    const body = await response.json().catch(() => ({}));
+    const deliveryStatus = String(body.status || '').toLowerCase();
+    if (body.success === false || ['failed', 'error', 'rejected'].includes(deliveryStatus)) {
+      const error = new Error(body.message || body.error || 'Vynfy could not send the verification code');
+      error.status = 400;
+      throw error;
+    }
+    return body;
   } catch (err) {
     if (err.status) throw err;
     const error = new Error('Could not reach Vynfy for phone verification. Please try again.');
@@ -152,7 +159,7 @@ exports.requestSetupOtp = async (req, res) => {
       return res.status(429).json({ error: 'Too many verification requests. Please wait a few minutes.' });
     }
 
-    await callVynfy('/otp/generate', {
+    await callVynfy('/otp/v1/generate', {
       expiry: 5,
       length: 6,
       medium: 'sms',
@@ -190,7 +197,7 @@ exports.verifySetupOtp = async (req, res) => {
     );
     if (!pending.rows.length) return res.status(400).json({ error: 'This verification code has expired. Request a new one.' });
     const registration = pending.rows[0];
-    await callVynfy('/otp/verify', { code, number: registration.phone });
+    await callVynfy('/otp/v1/verify', { code, number: registration.phone });
     const details = setupDetails(registration);
     details.phone = registration.phone;
     const result = await createInitialAdmin(client, details, registration.password_hash);
@@ -276,7 +283,7 @@ exports.staffLogin = async (req, res) => {
       if (Number(recent.rows[0].count) >= 3) {
         return res.status(429).json({ error: 'Too many verification requests. Please wait a few minutes.' });
       }
-      await callVynfy('/otp/generate', {
+      await callVynfy('/otp/v1/generate', {
         expiry: 5,
         length: 6,
         medium: 'sms',
@@ -333,7 +340,7 @@ exports.verifyStaffLoginOtp = async (req, res) => {
     if (!employee.is_active) return res.status(403).json({ error: 'Account is deactivated' });
     if (employee.role === 'admin') return res.status(403).json({ error: 'Please use the HR/Admin sign in page for this account' });
 
-    await callVynfy('/otp/verify', { code, number: employee.phone });
+    await callVynfy('/otp/v1/verify', { code, number: employee.phone });
     await db.query('UPDATE employees SET phone_verified_at=NOW() WHERE id=$1', [employee.id]);
     await db.query('DELETE FROM staff_login_otps WHERE id=$1', [employee.otp_id]);
 
