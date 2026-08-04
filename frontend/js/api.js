@@ -688,8 +688,26 @@ function setupQuickAccess(navItems, user, isManager) {
                 : item.page === 'probation' ? appUrl('/pages/probation.html')
                   : item.page === 'contracts' ? appUrl('/pages/contracts.html')
                     : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
-        : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page))
+        : adminWorkspaceUrl(item.page)
     }));
+  const adminDestinations = [
+    ['Attendance', 'attendance'], ['Leave Management', 'leave'], ['Company Calendar', 'calendar'],
+    ['Payroll', 'payroll'], ['Financials', 'financials'], ['Audit History', 'audit'],
+    ['Company Assets', 'assets'], ['Benefits', 'benefits'], ['Employee Loans', 'loans'],
+    ['To Do List', 'todos'], ['Tickets', 'tickets'], ['Messages', 'messages'],
+    ['Documents', 'documents'], ['Performance Reviews', 'performance'], ['Training Register', 'training'],
+    ['Probation Tracker', 'probation'], ['Disciplinary Register', 'disciplinary'],
+    ['Contract Expiry Tracker', 'contracts'], ['Hiring & ATS', 'hiring'], ['Onboarding', 'onboarding'],
+    ['Reports & Workflows', 'reports'], ['Employees', 'employees'], ['Departments', 'departments'],
+    ['Organization Chart', 'orgchart']
+  ];
+  if (user.role === 'admin') {
+    adminDestinations.forEach(([label, page]) => {
+      if (!destinations.some(item => item.href === adminWorkspaceUrl(page))) {
+        destinations.push({ label, href: adminWorkspaceUrl(page) });
+      }
+    });
+  }
 
   const quickAccess = document.createElement('div');
   quickAccess.className = 'quick-access';
