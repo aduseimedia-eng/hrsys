@@ -314,6 +314,29 @@ p  { color: var(--text-secondary); }
 }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
 .topbar .mobile-menu-btn { display: none; }
+.quick-access {
+  position: relative;
+  width: min(390px, 38vw);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text-muted);
+}
+.quick-access:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent); }
+.quick-access-icon { flex: 0 0 auto; }
+.quick-access-input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: .88rem; }
+.quick-access-input::placeholder { color: var(--text-muted); }
+.quick-access kbd { padding: 2px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-muted); color: var(--text-muted); font-family: inherit; font-size: .67rem; white-space: nowrap; }
+.quick-access-results { position: absolute; top: calc(100% + 8px); right: 0; width: 100%; min-width: 280px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: var(--shadow-lg); z-index: 300; }
+.quick-access-results a { display: flex; justify-content: space-between; align-items: center; padding: 11px 13px; color: var(--text-primary); text-decoration: none; font-size: .88rem; }
+.quick-access-results a:hover, .quick-access-results a:focus { background: var(--bg-muted); }
+.quick-access-results small { color: var(--text-muted); }
+.quick-access-empty { padding: 13px; color: var(--text-muted); font-size: .85rem; }
 .sidebar-backdrop {
   display: none;
   position: fixed;
@@ -848,6 +871,7 @@ tbody tr:hover { background: var(--bg-page); }
     display: inline-flex;
   }
   .topbar { padding: 0 16px; gap: 10px; }
+  .quick-access { width: min(300px, 42vw); }
   .main-content { padding: 16px; }
   .form-grid { grid-template-columns: 1fr; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -883,6 +907,8 @@ tbody tr:hover { background: var(--bg-page); }
   body { overflow-x: hidden; }
   .topbar { min-height: var(--topbar-h); }
   .topbar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; }
+  .quick-access { width: auto; min-width: 0; flex: 1; }
+  .quick-access kbd { display: none; }
   .topbar-actions { gap: 2px; }
   .topbar-actions .icon-btn { width: 36px; height: 36px; }
   .main-content { padding: 14px 12px; }

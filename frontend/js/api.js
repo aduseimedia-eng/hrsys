@@ -660,10 +660,76 @@ function buildSidebar(activePage) {
   applyCompanyBranding();
   refreshCompanyBranding();
   addPageBackButton(activePage);
+  setupQuickAccess(navItems, user, isManager);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
   loadMessageNavCount();
   loadAnnouncementNavCount();
+}
+
+function setupQuickAccess(navItems, user, isManager) {
+  const topbar = document.querySelector('.topbar');
+  if (!topbar || topbar.querySelector('.quick-access')) return;
+
+  const staffRoutes = {
+    dashboard: 'overview', announcements: 'announcements', profile: 'profile', attendance: 'attendance',
+    todos: 'todos', tickets: 'tickets', leave: 'leave', payroll: 'payroll', documents: 'documents',
+    performance: 'performance', orgchart: 'orgchart', settings: 'settings'
+  };
+  const destinations = navItems
+    .filter(item => item.page && item.roles.includes(user.role) && (item.roles.includes(user.role) || (item.roles.includes('manager') && isManager)))
+    .map(item => ({
+      label: item.label,
+      href: user.role === 'employee'
+        ? (item.page === 'messages' ? appUrl('/pages/messages.html')
+          : item.page === 'calendar' ? appUrl('/pages/calendar.html')
+            : item.page === 'benefits' ? appUrl('/pages/benefits.html')
+              : item.page === 'training' ? appUrl('/pages/training.html')
+                : item.page === 'probation' ? appUrl('/pages/probation.html')
+                  : item.page === 'contracts' ? appUrl('/pages/contracts.html')
+                    : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
+        : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page))
+    }));
+
+  const quickAccess = document.createElement('div');
+  quickAccess.className = 'quick-access';
+  quickAccess.innerHTML = `
+    <svg class="quick-access-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+    <input class="quick-access-input" type="search" autocomplete="off" placeholder="Quick access…" aria-label="Quick access search" aria-expanded="false">
+    <kbd>Ctrl K</kbd>
+    <div class="quick-access-results" role="listbox" hidden></div>`;
+  const actions = topbar.querySelector('.topbar-actions');
+  topbar.insertBefore(quickAccess, actions || null);
+
+  const input = quickAccess.querySelector('.quick-access-input');
+  const results = quickAccess.querySelector('.quick-access-results');
+  const render = () => {
+    const term = input.value.trim().toLowerCase();
+    const matches = destinations.filter(item => item.label.toLowerCase().includes(term));
+    results.hidden = !term;
+    input.setAttribute('aria-expanded', String(Boolean(term)));
+    results.innerHTML = matches.length
+      ? matches.map(item => `<a role="option" href="${item.href}"><span>${item.label}</span><small>Open</small></a>`).join('')
+      : '<div class="quick-access-empty">No matching pages</div>';
+  };
+  input.addEventListener('input', render);
+  input.addEventListener('focus', render);
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { input.value = ''; render(); input.blur(); }
+    if (event.key === 'Enter') {
+      const first = results.querySelector('a');
+      if (first) first.click();
+    }
+  });
+  document.addEventListener('click', event => {
+    if (!quickAccess.contains(event.target)) { input.value = ''; render(); }
+  });
+  document.addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      input.focus();
+    }
+  });
 }
 
 const SIDEBAR_SCROLL_KEY = 'hrconnect.sidebar.scrollTop';
