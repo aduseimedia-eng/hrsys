@@ -639,7 +639,7 @@
             password: document.getElementById('password').value,
           }
         );
-        if (OTP_ENABLED && !setupMode && signInMode === 'staff' && data.requires_otp) {
+        if (!setupMode && signInMode === 'staff' && data.requires_otp) {
           staffOtpId = data.verification_id;
           document.getElementById('credentials-fields').style.display = 'none';
           document.getElementById('staff-otp-fields').classList.add('is-visible');
