@@ -3086,15 +3086,48 @@
       try {
         toast('Getting your precise location…', 'info');
         const location = await requestAttendanceLocation();
-        await api.post(`/attendance/clock-${type}`, location);
+        const attendance = await api.post(`/attendance/clock-${type}`, location);
         toast(`Clocked ${type} at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`, 'success');
         await refreshStaffAttendance(false);
+        if (type === 'out' && attendance.overtime_eligible) openStaffOvertimeModal(attendance);
       } catch (err) {
         toast(err.message || `Could not clock ${type}`, 'error');
       } finally {
         renderStaffTodayStatus();
         renderOverview();
       }
+    }
+
+    function openStaffOvertimeModal(attendance) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      const hours = Number(attendance.overtime_hours || 0).toFixed(2);
+      overlay.innerHTML = `
+        <div class="modal" style="max-width:500px">
+          <div class="modal-header"><h3>Submit overtime</h3><button class="modal-close" type="button" aria-label="Close">×</button></div>
+          <div class="modal-body">
+            <p style="margin:0 0 14px;color:var(--text-secondary)">You recorded <strong>${hours} hour(s)</strong> after your company’s overtime cutoff. Add a reason to send it for approval.</p>
+            <div class="form-group"><label class="form-label" for="staff-overtime-reason">Reason</label><textarea id="staff-overtime-reason" class="form-control" rows="4" maxlength="1000" placeholder="Describe the work completed"></textarea></div>
+          </div>
+          <div class="modal-footer"><button class="btn btn-outline" type="button" data-dismiss>Not overtime</button><button class="btn btn-primary" type="button" data-submit>Submit for approval</button></div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const close = () => overlay.remove();
+      overlay.querySelector('.modal-close').addEventListener('click', close);
+      overlay.querySelector('[data-dismiss]').addEventListener('click', close);
+      overlay.querySelector('[data-submit]').addEventListener('click', async (event) => {
+        const reason = overlay.querySelector('#staff-overtime-reason').value.trim();
+        if (reason.length < 3) { toast('Please enter an overtime reason of at least 3 characters.', 'error'); return; }
+        event.currentTarget.disabled = true;
+        try {
+          await api.post('/attendance/overtime', { attendance_id: attendance.id, reason });
+          close();
+          toast('Overtime submitted for approval', 'success');
+        } catch (error) {
+          event.currentTarget.disabled = false;
+          toast(error.message || 'Could not submit overtime', 'error');
+        }
+      });
     }
 
     async function handleOverviewAttendanceAction() {

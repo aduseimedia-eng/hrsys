@@ -4,6 +4,16 @@ const db = require('../config/db');
 const ATTENDANCE_TIME_ZONE = process.env.ATTENDANCE_TIME_ZONE || 'Africa/Accra';
 const DEFAULT_OVERTIME_CUTOFF = '17:30:00';
 
+function localWorkDate(value = new Date()) {
+  const fields = new Intl.DateTimeFormat('en-GB', {
+    timeZone: ATTENDANCE_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(value).reduce((result, part) => {
+    if (part.type !== 'literal') result[part.type] = part.value;
+    return result;
+  }, {});
+  return `${fields.year}-${fields.month}-${fields.day}`;
+}
+
 function formatExportDate(value) {
   if (!value) return '';
   return new Intl.DateTimeFormat('en-GB', {
@@ -36,15 +46,21 @@ exports.clockIn = async (req, res) => {
   try {
     const location = attendanceLocation(req.body);
     if (location.error) return res.status(400).json({ error: location.error });
-    const today = new Date().toISOString().split('T')[0];
+    const today = localWorkDate();
     const clockInTime = new Date();
 
     const existing = await db.query(
-      'SELECT id, clock_in FROM attendance WHERE company_id=$1 AND employee_id=$2 AND work_date=$3',
+      `SELECT id, clock_in, clock_out, work_date FROM attendance
+       WHERE company_id=$1 AND employee_id=$2
+         AND (work_date=$3 OR (work_date=$3::date - 1 AND clock_in IS NOT NULL AND clock_out IS NULL))
+       ORDER BY work_date DESC LIMIT 1`,
       [req.user.company_id, req.user.id, today]
     );
     if (existing.rows.length && existing.rows[0].clock_in) {
-      return res.status(400).json({ error: 'Already clocked in today' });
+      const message = String(existing.rows[0].work_date) === today
+        ? 'Already clocked in today'
+        : 'You have an open attendance record from your previous workday. Please clock out before clocking in again.';
+      return res.status(400).json({ error: message });
     }
 
     if (existing.rows.length) {
@@ -72,9 +88,12 @@ exports.clockOut = async (req, res) => {
   try {
     const location = attendanceLocation(req.body);
     if (location.error) return res.status(400).json({ error: location.error });
-    const today = new Date().toISOString().split('T')[0];
+    const today = localWorkDate();
     const { rows } = await db.query(
-      'SELECT id, clock_in, clock_out FROM attendance WHERE company_id=$1 AND employee_id=$2 AND work_date=$3',
+      `SELECT id, clock_in, clock_out, work_date FROM attendance
+       WHERE company_id=$1 AND employee_id=$2 AND clock_in IS NOT NULL AND clock_out IS NULL
+         AND work_date BETWEEN $3::date - 1 AND $3::date
+       ORDER BY clock_in DESC LIMIT 1`,
       [req.user.company_id, req.user.id, today]
     );
 
@@ -83,8 +102,8 @@ exports.clockOut = async (req, res) => {
 
     const { rows: updated } = await db.query(
       `UPDATE attendance SET clock_out=$1, clock_out_latitude=$2, clock_out_longitude=$3, clock_out_accuracy_meters=$4
-       WHERE company_id=$5 AND employee_id=$6 AND work_date=$7 RETURNING *`,
-      [new Date(), location.latitude, location.longitude, location.accuracy, req.user.company_id, req.user.id, today]
+       WHERE id=$5 AND company_id=$6 AND employee_id=$7 RETURNING *`,
+      [new Date(), location.latitude, location.longitude, location.accuracy, rows[0].id, req.user.company_id, req.user.id]
     );
     const attendance = updated[0];
     const cutoff = await db.query(
@@ -206,9 +225,11 @@ exports.updateOvertimeSettings = async (req, res) => {
 // ─── Get my attendance status today ──────────────────────────
 exports.getToday = async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localWorkDate();
     const { rows } = await db.query(
-      'SELECT * FROM attendance WHERE company_id=$1 AND employee_id=$2 AND work_date=$3',
+      `SELECT * FROM attendance WHERE company_id=$1 AND employee_id=$2
+       AND (work_date=$3 OR (work_date=$3::date - 1 AND clock_out IS NULL))
+       ORDER BY work_date DESC, clock_in DESC LIMIT 1`,
       [req.user.company_id, req.user.id, today]
     );
     res.json(rows[0] || { clocked_in: false });
