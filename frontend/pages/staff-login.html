@@ -232,6 +232,8 @@
 
     .new-staff-help strong { color: var(--text-primary); }
     #staff-otp-fields { display: none; }
+    .otp-code-inputs { display:flex; gap:8px; margin:8px 0 14px; }
+    .otp-code-inputs input { flex:1 1 0; max-width:42px; height:48px; padding:0; text-align:center; font-size:1.25rem; font-weight:700; }
 
     @media (max-width: 960px) {
       .staff-login-shell {
@@ -356,8 +358,11 @@
         </div>
         <div id="staff-otp-fields" style="display:none">
           <div class="form-group">
-            <label class="form-label required" for="staff-otp-code">Verification code</label>
-            <input type="text" inputmode="numeric" maxlength="6" id="staff-otp-code" class="form-control" placeholder="Enter the 6-digit SMS code" autocomplete="one-time-code">
+            <label class="form-label required">Verification code</label>
+            <div class="otp-code-inputs" data-otp-inputs data-target="staff-otp-code" aria-label="Six digit verification code">
+              <input class="form-control" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 2"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 3"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 4"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 5"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 6">
+            </div>
+            <input type="hidden" id="staff-otp-code">
           </div>
           <p style="margin:-4px 0 18px;color:var(--text-secondary);font-size:.84rem">We sent a verification code to your registered phone number. It expires in 5 minutes.</p>
         </div>
@@ -391,6 +396,20 @@
 
     let staffVerificationId = null;
 
+    function setupOtpCodeInputs() {
+      document.querySelectorAll('[data-otp-inputs]').forEach((group) => {
+        const inputs = [...group.querySelectorAll('input')];
+        const target = document.getElementById(group.dataset.target);
+        const sync = () => { target.value = inputs.map(input => input.value).join(''); };
+        inputs.forEach((input, index) => {
+          input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(-1); sync(); if (input.value && inputs[index + 1]) inputs[index + 1].focus(); });
+          input.addEventListener('keydown', (event) => { if (event.key === 'Backspace' && !input.value && inputs[index - 1]) inputs[index - 1].focus(); });
+          input.addEventListener('paste', (event) => { const digits = (event.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, inputs.length); if (!digits) return; event.preventDefault(); digits.split('').forEach((digit, position) => { inputs[position].value = digit; }); sync(); inputs[Math.min(digits.length, inputs.length) - 1].focus(); });
+        });
+      });
+    }
+    setupOtpCodeInputs();
+
     document.getElementById('staff-login-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const button = document.getElementById('login-btn');
@@ -416,7 +435,7 @@
           document.getElementById('staff-otp-fields').style.display = '';
           button.disabled = false;
           button.textContent = 'Verify and sign in';
-          document.getElementById('staff-otp-code').focus();
+          document.querySelector('[data-target="staff-otp-code"] input')?.focus();
           return;
         }
 

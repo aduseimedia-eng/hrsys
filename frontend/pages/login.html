@@ -345,6 +345,8 @@
     .setup-link:hover { text-decoration: underline; }
     .setup-fields { display: none; }
     .setup-fields.is-visible { display: block; }
+    .otp-code-inputs { display:flex; gap:8px; margin:8px 0 12px; }
+    .otp-code-inputs input { flex:1 1 0; max-width:42px; height:48px; padding:0; text-align:center; font-size:1.25rem; font-weight:700; }
     .password-field { position: relative; }
     .password-field .form-control { padding-right: 64px; }
     .password-toggle { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); padding: 5px 7px; border-radius: 5px; color: #3977ee; font-size: .76rem; font-weight: 800; }
@@ -509,11 +511,11 @@
           <div class="form-group"><label class="form-label required" for="password">Password</label><div class="password-field"><input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password"><button class="password-toggle" type="button" id="password-toggle">Show</button></div></div>
         </div>
         <div class="setup-fields" id="setup-otp-fields">
-          <div class="form-group"><label class="form-label required" for="setup-otp-code">Verification code</label><input type="text" inputmode="numeric" maxlength="6" id="setup-otp-code" class="form-control" placeholder="Enter the 6-digit SMS code" autocomplete="one-time-code"></div>
+          <div class="form-group"><label class="form-label required">Verification code</label><div class="otp-code-inputs" data-otp-inputs data-target="setup-otp-code" aria-label="Six digit verification code"><input class="form-control" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 2"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 3"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 4"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 5"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 6"></div><input type="hidden" id="setup-otp-code"></div>
           <p style="margin:-4px 0 14px;color:#7d899c;font-size:.8rem">We sent a verification code to your phone. It expires in 5 minutes.</p>
         </div>
         <div class="setup-fields" id="staff-otp-fields">
-          <div class="form-group"><label class="form-label required" for="staff-otp-code">Verification code</label><input type="text" inputmode="numeric" maxlength="6" id="staff-otp-code" class="form-control" placeholder="Enter the 6-digit SMS code" autocomplete="one-time-code"></div>
+          <div class="form-group"><label class="form-label required">Verification code</label><div class="otp-code-inputs" data-otp-inputs data-target="staff-otp-code" aria-label="Six digit verification code"><input class="form-control" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 2"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 3"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 4"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 5"><input class="form-control" inputmode="numeric" maxlength="1" aria-label="Digit 6"></div><input type="hidden" id="staff-otp-code"></div>
           <p style="margin:-4px 0 14px;color:#7d899c;font-size:.8rem">We sent a verification code to your registered phone. It expires in 5 minutes.</p>
         </div>
         <button type="submit" class="btn btn-primary w-full btn-lg" id="login-btn" style="justify-content:center; margin-top:8px;">Sign in</button>
@@ -595,6 +597,21 @@
       toggle.textContent = show ? 'Hide' : 'Show';
     });
 
+    function setupOtpCodeInputs() {
+      document.querySelectorAll('[data-otp-inputs]').forEach((group) => {
+        const inputs = [...group.querySelectorAll('input')];
+        const target = document.getElementById(group.dataset.target);
+        const sync = () => { target.value = inputs.map(input => input.value).join(''); };
+        inputs.forEach((input, index) => {
+          input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(-1); sync(); if (input.value && inputs[index + 1]) inputs[index + 1].focus(); });
+          input.addEventListener('keydown', (event) => { if (event.key === 'Backspace' && !input.value && inputs[index - 1]) inputs[index - 1].focus(); });
+          input.addEventListener('paste', (event) => { const digits = (event.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, inputs.length); if (!digits) return; event.preventDefault(); digits.split('').forEach((digit, position) => { inputs[position].value = digit; }); sync(); inputs[Math.min(digits.length, inputs.length) - 1].focus(); });
+        });
+      });
+    }
+    function focusOtpCode(targetId) { document.querySelector(`[data-target="${targetId}"] input`)?.focus(); }
+    setupOtpCodeInputs();
+
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
@@ -618,7 +635,7 @@
           document.getElementById('setup-otp-fields').classList.add('is-visible');
           document.getElementById('login-btn').textContent = 'Verify and create HR account';
           document.getElementById('login-btn').disabled = false;
-          document.getElementById('setup-otp-code').focus();
+          focusOtpCode('setup-otp-code');
           return;
         }
         const data = await api.post(
@@ -645,7 +662,7 @@
           document.getElementById('staff-otp-fields').classList.add('is-visible');
           btn.textContent = 'Verify and sign in';
           btn.disabled = false;
-          document.getElementById('staff-otp-code').focus();
+          focusOtpCode('staff-otp-code');
           return;
         }
         if (!setupMode && signInMode === 'hr' && !['admin', 'manager'].includes(data.user?.role)) {
