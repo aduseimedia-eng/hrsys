@@ -669,7 +669,19 @@ function buildSidebar(activePage) {
 
 function setupQuickAccess(navItems, user, isManager) {
   const topbar = document.querySelector('.topbar');
-  if (!topbar || topbar.querySelector('.quick-access')) return;
+  if (!topbar) return;
+  const existingQuickAccess = topbar.querySelector('.quick-access');
+  if (existingQuickAccess) {
+    const input = existingQuickAccess.querySelector('.quick-access-input');
+    const results = existingQuickAccess.querySelector('.quick-access-results');
+    if (input) input.value = '';
+    if (input) input.setAttribute('aria-expanded', 'false');
+    if (results) {
+      results.hidden = true;
+      results.innerHTML = '';
+    }
+    return;
+  }
 
   const staffRoutes = {
     dashboard: 'overview', announcements: 'announcements', profile: 'profile', attendance: 'attendance',
@@ -732,6 +744,14 @@ function setupQuickAccess(navItems, user, isManager) {
   };
   input.addEventListener('input', render);
   input.addEventListener('focus', render);
+  results.addEventListener('click', event => {
+    const link = event.target.closest('a');
+    if (!link) return;
+    input.value = '';
+    results.hidden = true;
+    results.innerHTML = '';
+    input.setAttribute('aria-expanded', 'false');
+  });
   input.addEventListener('keydown', event => {
     if (event.key === 'Escape') { input.value = ''; render(); input.blur(); }
     if (event.key === 'Enter') {
