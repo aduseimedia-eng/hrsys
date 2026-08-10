@@ -64,9 +64,10 @@
               cash, and payroll costs.
             </p>
           </div>
-          <button class="btn btn-primary" onclick="openTransaction()">
-            Add transaction
-          </button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="openCashIncome()">Add cash income</button>
+            <button class="btn btn-primary" onclick="openTransaction()">Add transaction</button>
+          </div>
         </div>
         <div class="filters-bar" style="margin-bottom: 18px">
           <select
@@ -106,9 +107,9 @@
           </div>
           <div class="stat-card">
             <div>
-              <div class="label">Cash position</div>
-              <div class="amount" id="position">-</div>
-              <small>Income less expenses and payroll</small>
+              <div class="label">Petty cash on hand</div>
+              <div class="amount" id="cashBalance">-</div>
+              <small>Cash income less settled cash bills</small>
             </div>
           </div>
         </div>
@@ -285,6 +286,15 @@
               ><input id="party" class="form-control" />
             </div>
             <div class="form-group">
+              <label class="form-label required">Payment method</label
+              ><select id="payment-method" class="form-control form-select">
+                <option value="cash">Cash / petty cash</option>
+                <option value="bank">Bank transfer</option>
+                <option value="mobile_money">Mobile money</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label class="form-label">Receipt, invoice or voucher no.</label
               ><input id="reference" class="form-control" />
             </div>
@@ -391,6 +401,7 @@
       buildSidebar("financials");
       loadNotifCount();
       const labels = {
+        cash_income: "Cash income",
         petty_cash: "Petty cash",
         office_expense: "Office expenses",
         rent: "Rent",
@@ -500,11 +511,7 @@
           );
           document.getElementById("payrollNote").textContent =
             `${data.payroll.paid_count} of ${data.payroll.record_count} payslips paid`;
-          document.getElementById("position").textContent = fmt.currency(
-            data.transactions.income -
-              data.transactions.expense -
-              data.payroll.total,
-          );
+          document.getElementById("cashBalance").textContent = fmt.currency(data.cash.balance);
           document.getElementById("categories").innerHTML =
             Object.entries(labels)
               .filter(([k]) => data.transactions.by_category[k])
@@ -604,6 +611,7 @@
           "category",
           "date",
           "amount",
+          "payment-method",
           "title",
           "party",
           "reference",
@@ -619,6 +627,7 @@
         document.getElementById("date").value =
           r?.transaction_date || new Date().toISOString().slice(0, 10);
         document.getElementById("amount").value = r?.amount || "";
+        document.getElementById("payment-method").value = r?.payment_method || "bank";
         document.getElementById("title").value = r?.title || "";
         document.getElementById("party").value = r?.payee_or_source || "";
         document.getElementById("reference").value = r?.reference_no || "";
@@ -631,9 +640,20 @@
         openTransaction();
         document.getElementById("modalTitle").textContent = "Add bill";
         document.getElementById("type").value = "expense";
+        document.getElementById("payment-method").value = "cash";
         document.getElementById("status").value = "pending";
         document.getElementById("save-transaction-btn").textContent = "Save bill";
         document.getElementById("due").focus();
+      }
+      function openCashIncome() {
+        openTransaction();
+        document.getElementById("modalTitle").textContent = "Add cash income";
+        document.getElementById("type").value = "income";
+        document.getElementById("category").value = "cash_income";
+        document.getElementById("payment-method").value = "cash";
+        document.getElementById("status").value = "paid";
+        document.getElementById("save-transaction-btn").textContent = "Save cash income";
+        document.getElementById("amount").focus();
       }
       async function settleBill(id) {
         if (!confirm("Mark this bill as settled?")) return;
@@ -656,6 +676,7 @@
               category: document.getElementById("category").value,
               transaction_date: document.getElementById("date").value,
               amount: document.getElementById("amount").value,
+              payment_method: document.getElementById("payment-method").value,
               title: document.getElementById("title").value,
               payee_or_source: document.getElementById("party").value,
               reference_no: document.getElementById("reference").value,

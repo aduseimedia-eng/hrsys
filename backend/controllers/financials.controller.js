@@ -1,12 +1,13 @@
 const db = require('../config/db');
 
-const categories = ['petty_cash', 'office_expense', 'rent', 'utilities', 'internet_telephone', 'vehicle_fuel', 'vehicle_maintenance', 'office_maintenance', 'payroll_adjustment', 'tax', 'other'];
+const categories = ['cash_income', 'petty_cash', 'office_expense', 'rent', 'utilities', 'internet_telephone', 'vehicle_fuel', 'vehicle_maintenance', 'office_maintenance', 'payroll_adjustment', 'tax', 'other'];
 const statuses = ['draft', 'pending', 'paid', 'void'];
+const paymentMethods = ['cash', 'bank', 'mobile_money', 'other'];
 
 function transactionValues(body) {
   return [body.transaction_type, body.category, body.transaction_date, String(body.title || '').trim(),
     String(body.payee_or_source || '').trim() || null, String(body.reference_no || '').trim() || null,
-    Number(body.amount), body.due_date || null, body.status || 'paid', String(body.notes || '').trim() || null];
+    Number(body.amount), body.payment_method || 'bank', body.due_date || null, body.status || 'paid', String(body.notes || '').trim() || null];
 }
 function validate(body) {
   const values = transactionValues(body);
@@ -14,7 +15,8 @@ function validate(body) {
   if (!categories.includes(values[1])) return 'Choose a valid finance category';
   if (!values[2] || !values[3]) return 'Date and description are required';
   if (!Number.isFinite(values[6]) || values[6] < 0) return 'Enter a valid non-negative amount';
-  if (!statuses.includes(values[8])) return 'Choose a valid status';
+  if (!paymentMethods.includes(values[7])) return 'Choose a valid payment method';
+  if (!statuses.includes(values[9])) return 'Choose a valid status';
   return null;
 }
 
@@ -24,15 +26,18 @@ exports.getSummary = async (req, res) => {
     const month = Number(req.query.month) || new Date().getMonth() + 1;
     if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) return res.status(400).json({ error: 'Provide a valid month and year' });
     const companyId = req.user.company_id;
-    const [payroll, totals, bills, recent] = await Promise.all([
+    const [payroll, totals, cashTotals, bills, recent] = await Promise.all([
       db.query(`SELECT COALESCE(SUM(base_salary + allowances + overtime_pay + ssnit_employer), 0) AS total, COUNT(*) FILTER (WHERE status='paid') AS paid_count, COUNT(*) AS record_count FROM payroll WHERE company_id=$1 AND year=$2 AND month=$3`, [companyId, year, month]),
       db.query(`SELECT transaction_type, category, COALESCE(SUM(amount), 0) AS total FROM financial_transactions WHERE company_id=$1 AND status='paid' AND EXTRACT(YEAR FROM transaction_date)=$2 AND EXTRACT(MONTH FROM transaction_date)=$3 GROUP BY transaction_type, category`, [companyId, year, month]),
+      db.query(`SELECT transaction_type, COALESCE(SUM(amount), 0) AS total FROM financial_transactions WHERE company_id=$1 AND payment_method='cash' AND status='paid' GROUP BY transaction_type`, [companyId]),
       db.query(`SELECT * FROM financial_transactions WHERE company_id=$1 AND transaction_type='expense' AND status IN ('draft','pending') AND due_date IS NOT NULL ORDER BY due_date ASC LIMIT 8`, [companyId]),
       db.query(`SELECT * FROM financial_transactions WHERE company_id=$1 AND EXTRACT(YEAR FROM transaction_date)=$2 AND EXTRACT(MONTH FROM transaction_date)=$3 ORDER BY transaction_date DESC, created_at DESC LIMIT 10`, [companyId, year, month])
     ]);
     const byCategory = {}, total = { income: 0, expense: 0 };
     totals.rows.forEach(row => { const amount = Number(row.total); total[row.transaction_type] += amount; if (row.transaction_type === 'expense') byCategory[row.category] = amount; });
-    res.json({ period: { year, month }, payroll: { total: Number(payroll.rows[0].total), paid_count: Number(payroll.rows[0].paid_count), record_count: Number(payroll.rows[0].record_count) }, transactions: { ...total, by_category: byCategory }, outstanding_bills: bills.rows, recent_transactions: recent.rows });
+    const cash = { income: 0, expense: 0 };
+    cashTotals.rows.forEach(row => { cash[row.transaction_type] = Number(row.total); });
+    res.json({ period: { year, month }, payroll: { total: Number(payroll.rows[0].total), paid_count: Number(payroll.rows[0].paid_count), record_count: Number(payroll.rows[0].record_count) }, transactions: { ...total, by_category: byCategory }, cash: { ...cash, balance: cash.income - cash.expense }, outstanding_bills: bills.rows, recent_transactions: recent.rows });
   } catch (error) { console.error(error); res.status(500).json({ error: 'Could not fetch financial summary' }); }
 };
 
@@ -46,11 +51,11 @@ exports.listTransactions = async (req, res) => {
   } catch { res.status(500).json({ error: 'Could not fetch transactions' }); }
 };
 exports.createTransaction = async (req, res) => {
-  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`INSERT INTO financial_transactions(company_id,transaction_type,category,transaction_date,title,payee_or_source,reference_no,amount,due_date,status,notes,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12) RETURNING *`, [req.user.company_id, ...transactionValues(req.body), req.user.id]); res.status(201).json(rows[0]);
+  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`INSERT INTO financial_transactions(company_id,transaction_type,category,transaction_date,title,payee_or_source,reference_no,amount,payment_method,due_date,status,notes,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13) RETURNING *`, [req.user.company_id, ...transactionValues(req.body), req.user.id]); res.status(201).json(rows[0]);
   } catch { res.status(500).json({ error: 'Could not save transaction' }); }
 };
 exports.updateTransaction = async (req, res) => {
-  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`UPDATE financial_transactions SET transaction_type=$1,category=$2,transaction_date=$3,title=$4,payee_or_source=$5,reference_no=$6,amount=$7,due_date=$8,status=$9,notes=$10,updated_by=$11,updated_at=NOW() WHERE id=$12 AND company_id=$13 RETURNING *`, [...transactionValues(req.body), req.user.id, req.params.id, req.user.company_id]); if (!rows.length) return res.status(404).json({ error: 'Transaction not found' }); res.json(rows[0]);
+  try { const error = validate(req.body); if (error) return res.status(400).json({ error }); const { rows } = await db.query(`UPDATE financial_transactions SET transaction_type=$1,category=$2,transaction_date=$3,title=$4,payee_or_source=$5,reference_no=$6,amount=$7,payment_method=$8,due_date=$9,status=$10,notes=$11,updated_by=$12,updated_at=NOW() WHERE id=$13 AND company_id=$14 RETURNING *`, [...transactionValues(req.body), req.user.id, req.params.id, req.user.company_id]); if (!rows.length) return res.status(404).json({ error: 'Transaction not found' }); res.json(rows[0]);
   } catch { res.status(500).json({ error: 'Could not update transaction' }); }
 };
 

@@ -215,7 +215,7 @@ CREATE TABLE financial_transactions (
   transaction_date DATE NOT NULL,
   title VARCHAR(180) NOT NULL,
   payee_or_source VARCHAR(180), reference_no VARCHAR(100),
-  amount NUMERIC(14,2) NOT NULL CHECK (amount >= 0), due_date DATE,
+  amount NUMERIC(14,2) NOT NULL CHECK (amount >= 0), payment_method VARCHAR(30) NOT NULL DEFAULT 'bank' CHECK (payment_method IN ('cash', 'bank', 'mobile_money', 'other')), due_date DATE,
   status VARCHAR(20) NOT NULL DEFAULT 'paid' CHECK (status IN ('draft', 'pending', 'paid', 'void')),
   notes TEXT, receipt_name VARCHAR(255), receipt_mime_type VARCHAR(150), receipt_size INT, receipt_data BYTEA,
   created_by INT REFERENCES employees(id) ON DELETE SET NULL, updated_by INT REFERENCES employees(id) ON DELETE SET NULL,
