@@ -560,8 +560,10 @@ function buildSidebar(activePage) {
 
   const employeeNavItems = [
     { page: 'dashboard',   icon: gridIcon(),       label: 'Dashboard',    roles: ['admin','manager','employee'] },
+    { section: 'My Workspace', icon: gridIcon(), roles: ['employee'] },
     { page: 'announcements', icon: chatIcon(),      label: 'Announcements', roles: ['admin','employee'] },
     { page: 'profile',     icon: usersIcon(),      label: 'Profile',      roles: ['employee'] },
+    { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
     { section: 'Workforce', icon: usersIcon(), roles: ['admin','manager','employee'] },
     { page: 'attendance',  icon: clockIcon(),      label: 'Attendance',   roles: ['admin','employee'] },
     { page: 'todos',       icon: checkIcon(),      label: 'To Do List',    roles: ['admin','manager','employee'] },
@@ -570,7 +572,6 @@ function buildSidebar(activePage) {
     { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager','employee'] },
-    { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
     { page: 'documents',   icon: docIcon(),        label: 'Documents',    roles: ['admin','manager','employee'] },
     { page: 'performance', icon: starIcon(),       label: 'Performance',  roles: ['admin','manager','employee'] },
     { page: 'training',    icon: checkIcon(),      label: 'Training Register', roles: ['admin','manager','employee'] },
