@@ -488,7 +488,7 @@
         return `<tr><td>${fmt.date(r.transaction_date)}</td><td><strong>${esc(r.title)}</strong>${r.reference_no ? `<br><small>${esc(r.reference_no)}</small>` : ""}</td>${edit ? `<td>${esc(r.payee_or_source || "-")}</td>` : ""}<td>${r.transaction_type === "income" ? "Income" : "Expense"}</td><td>${labels[r.category] || r.category}</td><td>${fmt.currency(r.amount)}</td><td>${receiptLink(r)}</td><td>${fmt.statusBadge(r.status)}</td>${edit ? `<td><button class="btn btn-outline btn-sm" onclick="openTransaction(${r.id})">Edit</button></td>` : ""}</tr>`;
       }
       function renderRecentActivity() {
-        const pageSize = 5;
+        const pageSize = 15;
         const pages = Math.max(1, Math.ceil(recentActivity.length / pageSize));
         recentActivityPage = Math.min(Math.max(0, recentActivityPage), pages - 1);
         const start = recentActivityPage * pageSize;
