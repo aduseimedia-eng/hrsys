@@ -609,7 +609,7 @@ function buildSidebar(activePage) {
     { page: 'operations', icon: settingsIcon(), label: 'Operations Registers', roles: ['admin', 'manager'] },
     { page: 'performance', icon: starIcon(), label: 'Performance Reviews', roles: ['admin', 'manager'] },
     { page: 'assets', icon: docIcon(), label: 'Company Assets', roles: ['admin', 'manager'] },
-    { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
+    { section: 'Administration', icon: briefcaseIcon(), roles: ['admin', 'manager'] },
     { page: 'reports', icon: gridIcon(), label: 'Reports & Workflows', roles: ['admin', 'manager'] },
     { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'], standalone: true },
