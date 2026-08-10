@@ -202,6 +202,7 @@
                     <th>Category</th>
                     <th>Amount</th>
                     <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody id="billsRows"></tbody>
@@ -525,10 +526,10 @@
             ? data.outstanding_bills
                 .map(
                   (r) =>
-                    `<tr><td>${fmt.date(r.due_date)}</td><td>${esc(r.title)}</td><td>${esc(r.payee_or_source || "-")}</td><td>${labels[r.category] || r.category}</td><td>${fmt.currency(r.amount)}</td><td>${fmt.statusBadge(r.status)}</td></tr>`,
+                    `<tr><td>${fmt.date(r.due_date)}</td><td>${esc(r.title)}</td><td>${esc(r.payee_or_source || "-")}</td><td>${labels[r.category] || r.category}</td><td>${fmt.currency(r.amount)}</td><td>${fmt.statusBadge(r.status)}</td><td><button class="btn btn-primary btn-sm" onclick="settleBill(${r.id})">Mark settled</button></td></tr>`,
                 )
                 .join("")
-            : empty(6, "No bills need action.");
+            : empty(7, "No bills need action.");
         } catch (e) {
           toast(e.message || "Could not load financials", "error");
         }
@@ -633,6 +634,16 @@
         document.getElementById("status").value = "pending";
         document.getElementById("save-transaction-btn").textContent = "Save bill";
         document.getElementById("due").focus();
+      }
+      async function settleBill(id) {
+        if (!confirm("Mark this bill as settled?")) return;
+        try {
+          await api.patch("/financials/transactions/" + id + "/settle", {});
+          toast("Bill marked as settled", "success");
+          load();
+        } catch (e) {
+          toast(e.message || "Could not settle bill", "error");
+        }
       }
       function closeTransaction() {
         document.getElementById("transactionModal").style.display = "none";

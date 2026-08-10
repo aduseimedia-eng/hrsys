@@ -9,6 +9,7 @@ router.get('/summary', ctrl.getSummary);
 router.get('/transactions', ctrl.listTransactions);
 router.post('/transactions', ctrl.createTransaction);
 router.put('/transactions/:id', ctrl.updateTransaction);
+router.patch('/transactions/:id/settle', ctrl.settleTransaction);
 router.post('/transactions/:id/receipt', uploadApplicant.single('receipt'), ctrl.uploadReceipt);
 router.get('/transactions/:id/receipt', ctrl.viewReceipt);
 

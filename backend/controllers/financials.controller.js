@@ -54,6 +54,23 @@ exports.updateTransaction = async (req, res) => {
   } catch { res.status(500).json({ error: 'Could not update transaction' }); }
 };
 
+exports.settleTransaction = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `UPDATE financial_transactions
+       SET status='paid', updated_by=$1, updated_at=NOW()
+       WHERE id=$2 AND company_id=$3 AND transaction_type='expense' AND status IN ('draft', 'pending')
+       RETURNING id, title, status`,
+      [req.user.id, req.params.id, req.user.company_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Pending bill not found' });
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Could not settle bill' });
+  }
+};
+
 exports.uploadReceipt = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Choose a receipt image or PDF to upload' });
