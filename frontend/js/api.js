@@ -612,7 +612,7 @@ function buildSidebar(activePage) {
     { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
     { page: 'reports', icon: gridIcon(), label: 'Reports & Workflows', roles: ['admin', 'manager'] },
     { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
-    { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
+    { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'], standalone: true },
   ];
   const navItems = user.role === 'employee' ? employeeNavItems : managementNavItems;
 
@@ -627,6 +627,10 @@ function buildSidebar(activePage) {
   let currentGroup = null;
   let navHtml = '';
   visibleNavItems.forEach(item => {
+    if (item.standalone && currentGroup) {
+      navHtml += '</div></div></div>';
+      currentGroup = null;
+    }
     if (item.section) {
       if (currentGroup) navHtml += '</div></div></div>';
       currentGroup = item.section.toLowerCase().replace(/[^a-z0-9]+/g, '-');
