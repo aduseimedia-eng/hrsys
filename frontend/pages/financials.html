@@ -185,9 +185,12 @@
           <div class="card">
             <div class="card-header">
               <h3>Pending bills</h3>
-              <span style="font-size: 0.85rem; color: var(--text-muted)"
-                >Expenses with a due date and pending status.</span
-              >
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size: 0.85rem; color: var(--text-muted)"
+                  >Expenses with a due date and pending status.</span
+                >
+                <button class="btn btn-primary btn-sm" onclick="openBill()">Add bill</button>
+              </div>
             </div>
             <div class="table-container">
               <table>
@@ -319,7 +322,7 @@
         <div class="modal-footer">
           <button class="btn btn-outline" onclick="closeTransaction()">
             Cancel</button
-          ><button class="btn btn-primary" onclick="saveTransaction()">
+          ><button id="save-transaction-btn" class="btn btn-primary" onclick="saveTransaction()">
             Save transaction
           </button>
         </div>
@@ -593,6 +596,7 @@
         document.getElementById("modalTitle").textContent = r
           ? "Edit transaction"
           : "Add transaction";
+        document.getElementById("save-transaction-btn").textContent = "Save transaction";
         [
           "id",
           "type",
@@ -621,6 +625,14 @@
         document.getElementById("status").value = r?.status || "paid";
         document.getElementById("notes").value = r?.notes || "";
         document.getElementById("transactionModal").style.display = "flex";
+      }
+      function openBill() {
+        openTransaction();
+        document.getElementById("modalTitle").textContent = "Add bill";
+        document.getElementById("type").value = "expense";
+        document.getElementById("status").value = "pending";
+        document.getElementById("save-transaction-btn").textContent = "Save bill";
+        document.getElementById("due").focus();
       }
       function closeTransaction() {
         document.getElementById("transactionModal").style.display = "none";
