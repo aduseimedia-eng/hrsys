@@ -644,7 +644,10 @@ function buildSidebar(activePage) {
       todos: 'todos', tickets: 'tickets', leave: 'leave', payroll: 'payroll',
       documents: 'documents', performance: 'performance', orgchart: 'orgchart', settings: 'settings'
     };
-    const href = user.role === 'employee'
+    const isStandaloneHrSettings = user.role !== 'employee' && item.page === 'settings';
+    const href = isStandaloneHrSettings
+      ? appUrl('/pages/settings.html')
+      : user.role === 'employee'
       ? (item.page === 'messages'
         ? appUrl('/pages/messages.html')
         : item.page === 'calendar'

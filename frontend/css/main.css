@@ -1038,13 +1038,16 @@ tbody tr:hover { background: #f7faff; }
   height: 94px;
   padding: 18px 24px;
   border-bottom: 0;
+  justify-content: center;
+  position: relative;
 }
 .sidebar-logo .brand-logo {
   width: 154px;
   height: 54px;
   object-fit: contain;
-  object-position: left center;
+  object-position: center;
 }
+.sidebar-logo .sidebar-close-btn { position: absolute; right: 14px; }
 .sidebar-nav {
   padding: 8px 14px 20px;
   scrollbar-color: #c7c7c7 transparent;
