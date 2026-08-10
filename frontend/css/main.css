@@ -1027,6 +1027,117 @@ thead th { background: #f7faff; }
 tbody tr:hover { background: #f7faff; }
 .tab-btn.active { color: #3977ee; border-bottom-color: #3977ee; }
 .empty-state, .loading-state { border-radius: 12px; }
+
+/* Sidebar refresh — soft workspace navigation with expandable groups. */
+:root { --sidebar-w: 286px; }
+.sidebar {
+  background: #f8f8f8;
+  border-right: 1px solid #e7e7e7;
+}
+.sidebar-logo {
+  height: 94px;
+  padding: 18px 24px;
+  border-bottom: 0;
+}
+.sidebar-logo .brand-logo {
+  width: 154px;
+  height: 54px;
+  object-fit: contain;
+  object-position: left center;
+}
+.sidebar-nav {
+  padding: 8px 14px 20px;
+  scrollbar-color: #c7c7c7 transparent;
+}
+.nav-item {
+  min-height: 48px;
+  margin: 3px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  color: #727272;
+  font-size: .94rem;
+  font-weight: 600;
+  transition: background var(--duration), color var(--duration), box-shadow var(--duration), transform var(--duration);
+}
+.nav-item .nav-icon {
+  width: 20px;
+  height: 20px;
+  opacity: .72;
+}
+.nav-item:hover {
+  color: #252525;
+  background: #eeeeee;
+}
+.nav-item.active {
+  color: #1f1f1f;
+  background: #fff;
+  box-shadow: 0 3px 9px rgba(0,0,0,.09), 0 1px 2px rgba(0,0,0,.04);
+}
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge {
+  min-width: 27px;
+  padding: 3px 8px;
+  background: #ffd0b7;
+  color: #5d3625;
+  font-size: .72rem;
+}
+.nav-group { margin: 13px 0 5px; }
+.nav-group-toggle {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 14px;
+  color: #292929;
+  font-size: .94rem;
+  font-weight: 750;
+  text-align: left;
+}
+.nav-group-toggle:hover { background: #eeeeee; }
+.nav-group-chevron { color: #4b4b4b; transition: transform var(--duration); }
+.nav-group.is-open .nav-group-chevron { transform: rotate(180deg); }
+.nav-group-items {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  overflow: hidden;
+  transition: grid-template-rows 220ms var(--ease), opacity 160ms var(--ease);
+}
+.nav-group-items-inner { min-height: 0; }
+.nav-group.is-open .nav-group-items { grid-template-rows: 1fr; opacity: 1; }
+.nav-group-items-inner > .nav-item { min-height: 0; overflow: hidden; }
+.nav-item-child {
+  margin: 2px 0 2px 12px;
+  padding-left: 18px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+.nav-item-child::after {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: -3px;
+  width: 12px;
+  height: 28px;
+  border-left: 1px solid #dedede;
+  border-bottom: 1px solid #dedede;
+  border-radius: 0 0 0 11px;
+}
+.nav-item-child:first-child::after { top: -10px; height: 35px; }
+.sidebar-user {
+  margin: 0 14px 14px;
+  padding: 13px 10px;
+  border: 1px solid #e6e6e6;
+  border-radius: 16px;
+  background: rgba(255,255,255,.72);
+}
+.sidebar-user .user-avatar { background: #ececec; color: #393939; }
+.sidebar-user .user-name { color: #292929; }
+.sidebar-user .user-role { color: #888; }
+.sidebar-user .logout-btn { color: #777; }
+.sidebar-user .logout-btn:hover { background: #f3f3f3; }
 @media (max-width: 768px) { .main-content { padding: 20px 16px; } .sidebar { box-shadow: 18px 0 48px rgba(29,43,77,.14); } }
 
 /* On phones, the navigation becomes a branded blue drawer and uses the white logo asset. */
@@ -1166,3 +1277,22 @@ tbody tr:hover { background: #f7faff; }
 }
 .success-popup-dismiss:hover,
 .success-popup-dismiss:focus-visible { background: #2865d9; color: #fff; transform: none; }
+
+/* Keep the refreshed navigation consistent inside the mobile drawer. */
+@media (max-width: 768px) {
+  .sidebar { background: #f8f8f8; border-right: 1px solid #e7e7e7; }
+  .sidebar-logo { margin: 0; height: 94px; padding: 18px 24px; border-radius: 0; background: transparent; }
+  .sidebar-close-btn { color: #666; }
+  .sidebar-close-btn:hover { color: #222; background: #ececec; }
+  .nav-group-toggle { color: #292929; }
+  .nav-section-label { color: #8a8a8a; }
+  .nav-item { color: #727272; }
+  .nav-item:hover { color: #252525; background: #eee; }
+  .nav-item.active { color: #1f1f1f; background: #fff; }
+  .nav-badge { background: #ffd0b7; color: #5d3625; }
+  .sidebar-user { border-color: #e6e6e6; background: rgba(255,255,255,.72); }
+  .sidebar-user .user-avatar { background: #ececec; color: #393939; }
+  .sidebar-user .user-name { color: #292929; }
+  .sidebar-user .user-role { color: #888; }
+  .sidebar-user .logout-btn { color: #777; }
+}

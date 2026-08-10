@@ -597,12 +597,22 @@ function buildSidebar(activePage) {
   const previousNav = sidebar.querySelector('.sidebar-nav');
   const previousScrollTop = previousNav ? previousNav.scrollTop : getSidebarScrollTop();
 
-  const navHtml = navItems.map(item => {
-    if (!item.roles.includes(user.role) && !(item.roles.includes('manager') && isManager)) return '';
-    if (!item.roles.includes(user.role)) return '';
-
+  const visibleNavItems = navItems.filter(item =>
+    item.roles.includes(user.role) || (item.roles.includes('manager') && isManager)
+  );
+  let currentGroup = null;
+  let navHtml = '';
+  visibleNavItems.forEach(item => {
     if (item.section) {
-      return `<div class="nav-section-label">${item.section}</div>`;
+      if (currentGroup) navHtml += '</div></div></div>';
+      currentGroup = item.section.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      navHtml += `<div class="nav-group" data-nav-group="${currentGroup}">
+        <button class="nav-group-toggle" type="button" aria-expanded="false">
+          <span>${item.section}</span>
+          <svg class="nav-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="nav-group-items"><div class="nav-group-items-inner">`;
+      return;
     }
     const active = activePage === item.page ? 'active' : '';
     const staffRoutes = {
@@ -627,13 +637,15 @@ function buildSidebar(activePage) {
                     ? appUrl('/pages/contracts.html')
         : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
       : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page));
-    return `<a href="${href}" class="nav-item ${active}">
+    const groupClass = currentGroup ? ' nav-item-child' : '';
+    navHtml += `<a href="${href}" class="nav-item ${active}${groupClass}"${currentGroup ? ` data-nav-parent="${currentGroup}"` : ''}>
       ${item.icon}
       <span>${item.label}</span>
       ${item.page === 'announcements' ? '<span class="nav-badge hidden" data-announcement-nav-badge>0</span>' : ''}
       ${item.page === 'messages' ? '<span class="nav-badge hidden" data-message-nav-badge>0</span>' : ''}
     </a>`;
-  }).join('');
+  });
+  if (currentGroup) navHtml += '</div></div></div>';
 
   sidebar.innerHTML = `
     <div class="sidebar-logo">
@@ -661,6 +673,7 @@ function buildSidebar(activePage) {
   refreshCompanyBranding();
   addPageBackButton(activePage);
   setupQuickAccess(navItems, user, isManager);
+  setupSidebarGroups(sidebar, activePage, user);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
   loadMessageNavCount();
@@ -814,6 +827,29 @@ function setSidebarScrollTop(value) {
   try {
     sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(Math.max(0, Math.round(value || 0))));
   } catch (err) {}
+}
+
+function setupSidebarGroups(sidebar, activePage, user) {
+  const storageKey = `hrconnect.sidebar.groups.${user.company_id || 'default'}.${user.role}`;
+  let savedGroups = {};
+  try { savedGroups = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (_) {}
+
+  sidebar.querySelectorAll('.nav-group').forEach(group => {
+    const groupName = group.dataset.navGroup;
+    const toggle = group.querySelector('.nav-group-toggle');
+    const containsActivePage = Boolean(group.querySelector('.nav-item.active'));
+    const isOpen = containsActivePage || savedGroups[groupName] !== false;
+    group.classList.toggle('is-open', isOpen);
+    toggle?.setAttribute('aria-expanded', String(isOpen));
+
+    toggle?.addEventListener('click', () => {
+      const nextOpen = !group.classList.contains('is-open');
+      group.classList.toggle('is-open', nextOpen);
+      toggle.setAttribute('aria-expanded', String(nextOpen));
+      savedGroups[groupName] = nextOpen;
+      try { localStorage.setItem(storageKey, JSON.stringify(savedGroups)); } catch (_) {}
+    });
+  });
 }
 
 function setupSidebarScrollMemory(sidebar, scrollTop) {
