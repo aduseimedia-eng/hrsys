@@ -8,6 +8,7 @@ const { findPlan, currency } = require('../config/billing');
 const JWT_SECRET  = process.env.JWT_SECRET  || 'hr_secret_key_change_in_prod';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
 const otpEnabled = () => process.env.OTP_ENABLED === 'true';
+const signupPaymentRequired = () => process.env.SIGNUP_PAYMENT_REQUIRED === 'true';
 
 function normalizeGhanaPhone(value) {
   const digits = String(value || '').replace(/\D/g, '');
@@ -69,11 +70,11 @@ async function createInitialAdmin(client, details, passwordHash) {
   const plan = findPlan(details.planKey);
   await client.query(
     `INSERT INTO company_subscriptions (company_id, plan_key, status, amount, currency)
-     VALUES ($1,$2,'pending',$3,$4)`,
-    [company.rows[0].id, plan.key, plan.amount, currency()]
+     VALUES ($1,$2,$3,$4,$5)`,
+    [company.rows[0].id, plan.key, signupPaymentRequired() ? 'pending' : 'active', plan.amount, currency()]
   );
   await client.query('COMMIT');
-  return { user: employee.rows[0], company: company.rows[0] };
+  return { user: employee.rows[0], company: company.rows[0], paymentRequired: signupPaymentRequired() };
 }
 
 async function callVynfy(path, payload) {
@@ -127,7 +128,7 @@ exports.setup = async (req, res) => {
     const result = await createInitialAdmin(client, details, await bcrypt.hash(details.password, 12));
     if (!result) return res.status(409).json({ error: 'KenadHR has already been set up. Contact your HR administrator for an account.' });
     const token = jwt.sign({ id: result.user.id, role: result.user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-    res.status(201).json({ token, user: result.user, company: result.company });
+    res.status(201).json({ token, user: result.user, company: result.company, payment_required: result.paymentRequired });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     if (err.code === '23505') return res.status(409).json({ error: 'That company name or email is already in use' });
@@ -204,7 +205,7 @@ exports.verifySetupOtp = async (req, res) => {
     if (!result) return res.status(409).json({ error: 'KenadHR has already been set up. Contact your HR administrator for an account.' });
     await client.query('DELETE FROM hr_signup_otps WHERE id=$1', [signupId]);
     const token = jwt.sign({ id: result.user.id, role: result.user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-    res.status(201).json({ token, user: result.user, company: result.company });
+    res.status(201).json({ token, user: result.user, company: result.company, payment_required: result.paymentRequired });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('HR signup OTP verification error:', err);
