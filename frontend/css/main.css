@@ -1096,6 +1096,8 @@ tbody tr:hover { background: #f7faff; }
   text-align: left;
 }
 .nav-group-toggle:hover { background: #eeeeee; }
+.nav-group-heading { display: inline-flex; align-items: center; gap: 11px; }
+.nav-group-heading .nav-icon { width: 20px; height: 20px; color: #484848; }
 .nav-group-chevron { color: #4b4b4b; transition: transform var(--duration); }
 .nav-group.is-open .nav-group-chevron { transform: rotate(180deg); }
 .nav-group-items {
@@ -1114,6 +1116,7 @@ tbody tr:hover { background: #f7faff; }
   border-radius: 12px;
   font-weight: 500;
 }
+.nav-item-child .nav-icon { display: none; }
 .nav-item-child::after {
   content: '';
   position: absolute;

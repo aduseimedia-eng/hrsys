@@ -562,7 +562,7 @@ function buildSidebar(activePage) {
     { page: 'dashboard',   icon: gridIcon(),       label: 'Dashboard',    roles: ['admin','manager','employee'] },
     { page: 'announcements', icon: chatIcon(),      label: 'Announcements', roles: ['admin','employee'] },
     { page: 'profile',     icon: usersIcon(),      label: 'Profile',      roles: ['employee'] },
-    { section: 'Workforce', roles: ['admin','manager','employee'] },
+    { section: 'Workforce', icon: usersIcon(), roles: ['admin','manager','employee'] },
     { page: 'attendance',  icon: clockIcon(),      label: 'Attendance',   roles: ['admin','employee'] },
     { page: 'todos',       icon: checkIcon(),      label: 'To Do List',    roles: ['admin','manager','employee'] },
     { page: 'tickets',     icon: chatIcon(),       label: 'Tickets',       roles: ['admin','manager','employee'] },
@@ -582,7 +582,7 @@ function buildSidebar(activePage) {
   const managementNavItems = [
     { page: 'dashboard', icon: gridIcon(), label: 'Dashboard', roles: ['admin', 'manager'] },
     { page: 'announcements', icon: chatIcon(), label: 'Announcements', roles: ['admin'] },
-    { section: 'Workspace', roles: ['admin', 'manager'] },
+    { section: 'Workspace', icon: docIcon(), roles: ['admin', 'manager'] },
     { page: 'people', icon: usersIcon(), label: 'People', roles: ['admin', 'manager'] },
     { page: 'work', icon: calendarIcon(), label: 'Work', roles: ['admin', 'manager'] },
     { page: 'records', icon: docIcon(), label: 'Growth & Records', roles: ['admin', 'manager'] },
@@ -608,7 +608,7 @@ function buildSidebar(activePage) {
       currentGroup = item.section.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       navHtml += `<div class="nav-group" data-nav-group="${currentGroup}">
         <button class="nav-group-toggle" type="button" aria-expanded="false">
-          <span>${item.section}</span>
+          <span class="nav-group-heading">${item.icon}<span>${item.section}</span></span>
           <svg class="nav-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="nav-group-items"><div class="nav-group-items-inner">`;
