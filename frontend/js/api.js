@@ -582,12 +582,35 @@ function buildSidebar(activePage) {
   const managementNavItems = [
     { page: 'dashboard', icon: gridIcon(), label: 'Dashboard', roles: ['admin', 'manager'] },
     { page: 'announcements', icon: chatIcon(), label: 'Announcements', roles: ['admin'] },
-    { section: 'Workspace', icon: docIcon(), roles: ['admin', 'manager'] },
-    { page: 'people', icon: usersIcon(), label: 'People', roles: ['admin', 'manager'] },
-    { page: 'work', icon: calendarIcon(), label: 'Work', roles: ['admin', 'manager'] },
-    { page: 'records', icon: docIcon(), label: 'Growth & Records', roles: ['admin', 'manager'] },
-    { page: 'finance', icon: walletIcon(), label: 'Finance', roles: ['admin', 'manager'] },
-    { page: 'administration', icon: settingsIcon(), label: 'Administration', roles: ['admin', 'manager'] },
+    { section: 'People', icon: usersIcon(), roles: ['admin', 'manager'] },
+    { page: 'employees', icon: usersIcon(), label: 'Employees', roles: ['admin', 'manager'] },
+    { page: 'departments', icon: orgIcon(), label: 'Departments', roles: ['admin', 'manager'] },
+    { page: 'orgchart', icon: orgIcon(), label: 'Organization Chart', roles: ['admin', 'manager'] },
+    { page: 'hiring', icon: usersIcon(), label: 'Hiring & ATS', roles: ['admin', 'manager'] },
+    { page: 'onboarding', icon: checkIcon(), label: 'Onboarding', roles: ['admin', 'manager'] },
+    { section: 'Work', icon: calendarIcon(), roles: ['admin', 'manager'] },
+    { page: 'attendance', icon: clockIcon(), label: 'Attendance', roles: ['admin', 'manager'] },
+    { page: 'leave', icon: calendarIcon(), label: 'Leave Management', roles: ['admin', 'manager'] },
+    { page: 'calendar', icon: calendarIcon(), label: 'Company Calendar', roles: ['admin', 'manager'] },
+    { page: 'todos', icon: checkIcon(), label: 'To Do List', roles: ['admin', 'manager'] },
+    { page: 'tickets', icon: chatIcon(), label: 'Tickets', roles: ['admin', 'manager'] },
+    { section: 'Pay & Benefits', icon: walletIcon(), roles: ['admin', 'manager'] },
+    { page: 'payroll', icon: walletIcon(), label: 'Payroll', roles: ['admin', 'manager'] },
+    { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },
+    { page: 'loans', icon: walletIcon(), label: 'Employee Loans', roles: ['admin', 'manager'] },
+    { page: 'financials', icon: walletIcon(), label: 'Financials', roles: ['admin', 'manager'] },
+    { section: 'Records', icon: docIcon(), roles: ['admin', 'manager'] },
+    { page: 'documents', icon: docIcon(), label: 'Documents', roles: ['admin', 'manager'] },
+    { page: 'contracts', icon: docIcon(), label: 'Contract Expiry', roles: ['admin', 'manager'] },
+    { page: 'training', icon: checkIcon(), label: 'Training Register', roles: ['admin', 'manager'] },
+    { page: 'probation', icon: clockIcon(), label: 'Probation Tracker', roles: ['admin', 'manager'] },
+    { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary Register', roles: ['admin', 'manager'] },
+    { page: 'operations', icon: settingsIcon(), label: 'Operations Registers', roles: ['admin', 'manager'] },
+    { page: 'performance', icon: starIcon(), label: 'Performance Reviews', roles: ['admin', 'manager'] },
+    { page: 'assets', icon: docIcon(), label: 'Company Assets', roles: ['admin', 'manager'] },
+    { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
+    { page: 'reports', icon: gridIcon(), label: 'Reports & Workflows', roles: ['admin', 'manager'] },
+    { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
   ];
   const navItems = user.role === 'employee' ? employeeNavItems : managementNavItems;
@@ -838,7 +861,9 @@ function setupSidebarGroups(sidebar, activePage, user) {
     const groupName = group.dataset.navGroup;
     const toggle = group.querySelector('.nav-group-toggle');
     const containsActivePage = Boolean(group.querySelector('.nav-item.active'));
-    const isOpen = containsActivePage || savedGroups[groupName] !== false;
+    const isFirstGroup = group === sidebar.querySelector('.nav-group');
+    const hasSavedState = Object.prototype.hasOwnProperty.call(savedGroups, groupName);
+    const isOpen = containsActivePage || savedGroups[groupName] === true || (!hasSavedState && isFirstGroup);
     group.classList.toggle('is-open', isOpen);
     toggle?.setAttribute('aria-expanded', String(isOpen));
 
