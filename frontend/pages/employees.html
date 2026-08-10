@@ -51,9 +51,10 @@
     }
     .emp-card:hover { box-shadow: var(--shadow-md); border-color: var(--navy-200); transform: translateY(-2px); }
     .emp-card::before { content: ''; position: absolute; top: 15px; left: 15px; width: 6px; height: 6px; border-radius: 50%; background: var(--type-accent); }
-    .emp-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-left: 4px; }
+    .emp-card-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: flex-start; gap: 10px; padding-left: 4px; }
     .emp-person { display: flex; align-items: center; gap: 11px; min-width: 0; }
     .emp-person .avatar { flex: 0 0 auto; }
+    .emp-person > div:last-child { min-width: 0; flex: 1; }
     .emp-card .emp-name { overflow: hidden; color: var(--text-primary); font-weight: 750; font-size: .92rem; text-overflow: ellipsis; white-space: nowrap; }
     .emp-card .emp-title { overflow: hidden; color: var(--text-secondary); font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
     .emp-card .emp-dept  { margin-top: 16px; color: var(--text-muted); font-size: .73rem; }
@@ -101,12 +102,15 @@
       margin-top: 2px;
     }
     .employment-chip {
+      align-self: flex-start;
+      flex: 0 0 auto;
       border-radius: 999px;
       background: var(--type-bg);
       color: var(--type-fg);
       font-size: .68rem;
       font-weight: 800;
       padding: 4px 9px;
+      white-space: nowrap;
     }
     .type-staff { --type-accent: var(--navy-400); --type-bg: var(--navy-50); --type-fg: var(--navy-800); }
     .type-contractual { --type-accent: var(--amber-500); --type-bg: var(--amber-100); --type-fg: #92400e; }
