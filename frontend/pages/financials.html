@@ -36,6 +36,9 @@
         display: block;
         margin-top: 6px;
       }
+      .recent-activity-controls { display:flex; align-items:center; gap:7px; }
+      .recent-activity-controls span { color:var(--text-muted); font-size:.76rem; white-space:nowrap; }
+      .recent-activity-controls .btn { min-width:31px; padding:3px 8px; font-size:1.15rem; line-height:1; }
       @media (max-width: 850px) {
         .finance-grid {
           grid-template-columns: repeat(2, 1fr);
@@ -132,7 +135,14 @@
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><h3>Recent activity</h3></div>
+            <div class="card-header">
+              <h3>Recent activity</h3>
+              <div class="recent-activity-controls">
+                <span id="recent-activity-page">0 of 0</span>
+                <button class="btn btn-outline btn-sm" id="recent-previous" type="button" onclick="slideRecentActivity(-1)" aria-label="Show previous activity">‹</button>
+                <button class="btn btn-outline btn-sm" id="recent-next" type="button" onclick="slideRecentActivity(1)" aria-label="Show next activity">›</button>
+              </div>
+            </div>
             <div class="table-container">
               <table>
                 <thead>
@@ -433,6 +443,8 @@
         year = document.getElementById("year");
       let rows = [];
       let loans = [];
+      let recentActivity = [];
+      let recentActivityPage = 0;
       const esc = (x) =>
         String(x ?? "").replace(
           /[&<>"']/g,
@@ -474,6 +486,22 @@
       }
       function row(r, edit = false) {
         return `<tr><td>${fmt.date(r.transaction_date)}</td><td><strong>${esc(r.title)}</strong>${r.reference_no ? `<br><small>${esc(r.reference_no)}</small>` : ""}</td>${edit ? `<td>${esc(r.payee_or_source || "-")}</td>` : ""}<td>${r.transaction_type === "income" ? "Income" : "Expense"}</td><td>${labels[r.category] || r.category}</td><td>${fmt.currency(r.amount)}</td><td>${receiptLink(r)}</td><td>${fmt.statusBadge(r.status)}</td>${edit ? `<td><button class="btn btn-outline btn-sm" onclick="openTransaction(${r.id})">Edit</button></td>` : ""}</tr>`;
+      }
+      function renderRecentActivity() {
+        const pageSize = 5;
+        const pages = Math.max(1, Math.ceil(recentActivity.length / pageSize));
+        recentActivityPage = Math.min(Math.max(0, recentActivityPage), pages - 1);
+        const start = recentActivityPage * pageSize;
+        document.getElementById("recent").innerHTML = recentActivity.length
+          ? recentActivity.slice(start, start + pageSize).map((r) => row(r)).join("")
+          : empty(7, "No transactions recorded.");
+        document.getElementById("recent-activity-page").textContent = recentActivity.length ? `${start + 1}–${Math.min(start + pageSize, recentActivity.length)} of ${recentActivity.length}` : "0 of 0";
+        document.getElementById("recent-previous").disabled = recentActivityPage === 0;
+        document.getElementById("recent-next").disabled = recentActivityPage >= pages - 1;
+      }
+      function slideRecentActivity(direction) {
+        recentActivityPage += direction;
+        renderRecentActivity();
       }
       async function viewReceipt(id) {
         try {
@@ -521,10 +549,9 @@
               )
               .join("") ||
             '<p style="color:var(--text-muted)">No paid expenses for this period.</p>';
-          document.getElementById("recent").innerHTML = data.recent_transactions
-            .length
-            ? data.recent_transactions.map((r) => row(r)).join("")
-            : empty(7, "No transactions recorded.");
+          recentActivity = data.recent_transactions;
+          recentActivityPage = 0;
+          renderRecentActivity();
           document.getElementById("ledgerRows").innerHTML = rows.length
             ? rows.map((r) => row(r, true)).join("")
             : empty(9, "No transactions recorded.");

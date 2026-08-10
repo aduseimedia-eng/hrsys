@@ -31,7 +31,7 @@ exports.getSummary = async (req, res) => {
       db.query(`SELECT transaction_type, category, COALESCE(SUM(amount), 0) AS total FROM financial_transactions WHERE company_id=$1 AND status='paid' AND EXTRACT(YEAR FROM transaction_date)=$2 AND EXTRACT(MONTH FROM transaction_date)=$3 GROUP BY transaction_type, category`, [companyId, year, month]),
       db.query(`SELECT transaction_type, COALESCE(SUM(amount), 0) AS total FROM financial_transactions WHERE company_id=$1 AND payment_method='cash' AND status='paid' GROUP BY transaction_type`, [companyId]),
       db.query(`SELECT * FROM financial_transactions WHERE company_id=$1 AND transaction_type='expense' AND status IN ('draft','pending') AND due_date IS NOT NULL ORDER BY due_date ASC LIMIT 8`, [companyId]),
-      db.query(`SELECT * FROM financial_transactions WHERE company_id=$1 AND EXTRACT(YEAR FROM transaction_date)=$2 AND EXTRACT(MONTH FROM transaction_date)=$3 ORDER BY transaction_date DESC, created_at DESC LIMIT 10`, [companyId, year, month])
+      db.query(`SELECT * FROM financial_transactions WHERE company_id=$1 AND EXTRACT(YEAR FROM transaction_date)=$2 AND EXTRACT(MONTH FROM transaction_date)=$3 ORDER BY transaction_date DESC, created_at DESC LIMIT 20`, [companyId, year, month])
     ]);
     const byCategory = {}, total = { income: 0, expense: 0 };
     totals.rows.forEach(row => { const amount = Number(row.total); total[row.transaction_type] += amount; if (row.transaction_type === 'expense') byCategory[row.category] = amount; });
