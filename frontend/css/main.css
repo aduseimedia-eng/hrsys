@@ -1302,3 +1302,33 @@ tbody tr:hover { background: #f7faff; }
   .sidebar-user .user-role { color: #888; }
   .sidebar-user .logout-btn { color: #777; }
 }
+
+/* Birthday moment — a brief, non-blocking celebration for the birthday employee. */
+.birthday-celebration {
+  position: fixed;
+  z-index: 2200;
+  right: 24px;
+  bottom: 24px;
+  width: min(360px, calc(100vw - 32px));
+  min-height: 126px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 21px 44px 21px 22px;
+  border: 1px solid #ffe0a3;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff9e9 0%, #fff 58%, #f1f6ff 100%);
+  box-shadow: 0 18px 48px rgba(50, 66, 105, .2);
+  animation: birthday-celebration-in .45s cubic-bezier(.2,.8,.2,1) both;
+}
+.birthday-celebration-copy { position: relative; z-index: 1; }
+.birthday-celebration-copy span { display: block; color: #a86a1f; font-size: .76rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.birthday-celebration-copy strong { display: block; margin-top: 3px; color: #27314b; font-size: 1.28rem; line-height: 1.2; }
+.birthday-celebration-copy p { margin: 6px 0 0; color: #69758a; font-size: .82rem; }
+.birthday-celebration-close { position: absolute; z-index: 2; top: 10px; right: 11px; width: 27px; height: 27px; border-radius: 50%; color: #86745a; font-size: 1.25rem; line-height: 1; }
+.birthday-celebration-close:hover { background: rgba(168,106,31,.1); color: #5f4a2b; }
+.birthday-confetti { position: absolute; inset: 0; pointer-events: none; }
+.birthday-confetti i { position: absolute; top: -12px; left: calc((var(--i) * 4.5%) + 2%); width: 7px; height: 12px; border-radius: 2px; background: hsl(calc(var(--i) * 43), 78%, 62%); transform: rotate(calc(var(--i) * 21deg)); animation: birthday-confetti-fall 2.7s ease-in calc(var(--i) * -110ms) infinite; }
+@keyframes birthday-celebration-in { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes birthday-confetti-fall { 0% { transform: translateY(-16px) rotate(0); opacity: 0; } 12% { opacity: .8; } 100% { transform: translateY(146px) rotate(390deg); opacity: 0; } }
+@media (max-width: 640px) { .birthday-celebration { right: 16px; bottom: 16px; } }

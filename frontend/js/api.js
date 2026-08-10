@@ -1196,18 +1196,49 @@ function escapeUi(value) {
   })[char]);
 }
 
+async function showBirthdayCelebration() {
+  let user = api.getUser();
+  if (!user) return;
+
+  try {
+    if (!user.date_of_birth) {
+      const profile = await api.get('/auth/me');
+      user = { ...user, ...profile };
+      api.setUser(user);
+    }
+    const birthday = String(user.date_of_birth || '');
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Accra', month: '2-digit', day: '2-digit', year: 'numeric'
+    }).formatToParts(new Date()).reduce((value, part) => ({ ...value, [part.type]: part.value }), {});
+    if (!/^\d{4}-\d{2}-\d{2}/.test(birthday) || birthday.slice(5, 10) !== `${today.month}-${today.day}`) return;
+
+    const celebrationKey = `hrconnect.birthday-celebration.${user.id}.${today.year}-${today.month}-${today.day}`;
+    if (sessionStorage.getItem(celebrationKey)) return;
+    sessionStorage.setItem(celebrationKey, '1');
+
+    const confetti = Array.from({ length: 22 }, (_, index) => `<i style="--i:${index}"></i>`).join('');
+    const celebration = document.createElement('section');
+    celebration.className = 'birthday-celebration';
+    celebration.setAttribute('role', 'status');
+    celebration.innerHTML = `<div class="birthday-confetti" aria-hidden="true">${confetti}</div><div class="birthday-celebration-copy"><span>🎉 Happy birthday</span><strong>${escapeUi(user.first_name || 'there')}!</strong><p>Wishing you a wonderful year ahead.</p></div><button type="button" class="birthday-celebration-close" aria-label="Dismiss birthday message">×</button>`;
+    celebration.querySelector('.birthday-celebration-close').addEventListener('click', () => celebration.remove());
+    document.body.appendChild(celebration);
+    setTimeout(() => celebration.remove(), 12000);
+  } catch (_) {}
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     addWebAppManifest();
     addBrandIcon();
     bindNotificationButtons();
-    if (api.getToken()) registerPushWorker();
+    if (api.getToken()) { registerPushWorker(); showBirthdayCelebration(); }
   });
 } else {
   addWebAppManifest();
   addBrandIcon();
   bindNotificationButtons();
-  if (api.getToken()) registerPushWorker();
+  if (api.getToken()) { registerPushWorker(); showBirthdayCelebration(); }
 }
 
 // ─── SVG Icons ──────────────────────────────────────────────
