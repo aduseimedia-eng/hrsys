@@ -72,6 +72,26 @@
         margin-top: auto;
         justify-content: center;
       }
+      .brand-color-picker {
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1fr);
+        align-items: center;
+        gap: 13px;
+      }
+      .brand-color-wheel {
+        width: 82px;
+        height: 82px;
+        padding: 4px;
+        border: 1px solid var(--border-dark);
+        border-radius: 50%;
+        background: conic-gradient(#f43f5e, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e);
+        cursor: pointer;
+      }
+      .brand-color-wheel::-webkit-color-swatch-wrapper { padding: 0; }
+      .brand-color-wheel::-webkit-color-swatch { border: 3px solid #fff; border-radius: 50%; }
+      .brand-color-wheel::-moz-color-swatch { border: 3px solid #fff; border-radius: 50%; }
+      .brand-color-detail strong { display: block; color: var(--text-primary); font-size: .86rem; }
+      .brand-color-detail span { display: block; margin-top: 3px; color: var(--text-muted); font: .78rem var(--font-mono); text-transform: uppercase; }
       @media (max-width: 700px) {
         .billing-plans {
           grid-template-columns: 1fr;
@@ -202,24 +222,18 @@
                 <p class="form-hint">PNG, JPG, WebP, or SVG.</p>
               </div>
               <div class="form-group">
-                <label class="form-label">Primary color</label
-                ><input
-                  id="brand-primary"
-                  type="color"
-                  class="form-control"
-                  value="#174fae"
-                  oninput="previewBranding()"
-                />
+                <label class="form-label" for="brand-primary">Primary color</label>
+                <div class="brand-color-picker">
+                  <input id="brand-primary" type="color" class="brand-color-wheel" value="#174fae" oninput="syncBrandColorReadouts();previewBranding()" />
+                  <div class="brand-color-detail"><strong>Choose your primary color</strong><span id="brand-primary-value">#174FAE</span></div>
+                </div>
               </div>
               <div class="form-group">
-                <label class="form-label">Accent color</label
-                ><input
-                  id="brand-accent"
-                  type="color"
-                  class="form-control"
-                  value="#73bca7"
-                  oninput="previewBranding()"
-                />
+                <label class="form-label" for="brand-accent">Accent color</label>
+                <div class="brand-color-picker">
+                  <input id="brand-accent" type="color" class="brand-color-wheel" value="#73bca7" oninput="syncBrandColorReadouts();previewBranding()" />
+                  <div class="brand-color-detail"><strong>Choose your accent color</strong><span id="brand-accent-value">#73BCA7</span></div>
+                </div>
               </div>
             </div>
             <div
@@ -308,7 +322,12 @@
           branding.primary_color || "#174fae";
         document.getElementById("brand-accent").value =
           branding.accent_color || "#73bca7";
+        syncBrandColorReadouts();
         previewBranding();
+      }
+      function syncBrandColorReadouts() {
+        document.getElementById("brand-primary-value").textContent = document.getElementById("brand-primary").value;
+        document.getElementById("brand-accent-value").textContent = document.getElementById("brand-accent").value;
       }
       function previewBranding() {
         const logo = document.getElementById("brand-logo-url").value.trim();
