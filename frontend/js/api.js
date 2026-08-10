@@ -601,7 +601,6 @@ function buildSidebar(activePage) {
     { page: 'loans', icon: walletIcon(), label: 'Employee Loans', roles: ['admin', 'manager'] },
     { section: 'Records', icon: docIcon(), roles: ['admin', 'manager'] },
     { page: 'documents', icon: docIcon(), label: 'Documents', roles: ['admin', 'manager'] },
-    { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary Register', roles: ['admin', 'manager'] },
     { page: 'performance', icon: starIcon(), label: 'Performance Review', roles: ['admin', 'manager'] },
     { page: 'assets', icon: docIcon(), label: 'Company Assets', roles: ['admin', 'manager'] },
     { page: 'financials', icon: walletIcon(), label: 'Expenses', roles: ['admin', 'manager'] },
