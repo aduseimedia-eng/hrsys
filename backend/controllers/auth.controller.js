@@ -7,9 +7,9 @@ const { findPlan, currency, publicPlans } = require('../config/billing');
 
 const JWT_SECRET  = process.env.JWT_SECRET  || 'hr_secret_key_change_in_prod';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
-// Phone verification stays off during product testing, even when the SMS
-// provider credentials remain configured. Enable it explicitly before launch.
-const otpEnabled = () => process.env.PHONE_VERIFICATION_REQUIRED === 'true';
+// Once Vynfy is configured, phone verification is active by default. Set this
+// value to "false" only when deliberately running without OTP verification.
+const otpEnabled = () => Boolean(process.env.VYNFY_API_KEY) && process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
 const signupPaymentRequired = () => process.env.SIGNUP_PAYMENT_REQUIRED === 'true';
 
 function normalizeGhanaPhone(value) {
