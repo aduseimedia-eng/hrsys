@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../config/db');
-const { findPlan, currency } = require('../config/billing');
+const { findPlan, currency, publicPlans } = require('../config/billing');
 
 const JWT_SECRET  = process.env.JWT_SECRET  || 'hr_secret_key_change_in_prod';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
@@ -24,7 +24,10 @@ function setupDetails(body) {
   const fullName = String(body.full_name || '').trim();
   const email = String(body.email || '').toLowerCase().trim();
   const password = String(body.password || '');
-  const planKey = String(body.plan_key || '').trim().toLowerCase();
+  // Testing sign-ups do not ask customers to select or pay for a plan. Use the
+  // first server-configured plan so custom Railway plan keys cannot block setup.
+  const requestedPlan = String(body.plan_key || '').trim().toLowerCase();
+  const planKey = signupPaymentRequired() ? requestedPlan : (publicPlans()[0]?.key || '');
   const [firstName, ...lastNameParts] = fullName.split(/\s+/);
   return { companyName, fullName, email, password, planKey, firstName, lastName: lastNameParts.join(' ') };
 }
@@ -34,7 +37,7 @@ function validateSetupDetails(details) {
     return 'Company name, full name, email and password are required';
   }
   if (details.password.length < 8) return 'Password must be at least 8 characters';
-  if (!details.planKey) return 'Choose an annual plan before creating your account';
+  if (!details.planKey) return signupPaymentRequired() ? 'Choose an annual plan before creating your account' : 'A default test plan is not configured';
   if (!findPlan(details.planKey)) return 'Choose a valid annual plan';
   return null;
 }
