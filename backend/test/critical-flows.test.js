@@ -75,8 +75,6 @@ test('first-time setup creates the initial HR admin and signs them in', async ()
   const calls = [];
   const results = [
     { rows: [] }, // begin
-    { rows: [] }, // table lock
-    { rows: [] }, // no existing employee
     { rows: [{ id: 1, name: 'KenadHR', slug: 'kenadhr-test' }] },
     { rows: [{ id: 1, company_id: 1, first_name: 'Adwoa', last_name: 'Mensah', email: 'adwoa@kenadhr.com', role: 'admin', department_id: null, photo_url: null, is_active: true }] }
   ];

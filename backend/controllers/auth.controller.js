@@ -42,24 +42,8 @@ function validateSetupDetails(details) {
   return null;
 }
 
-async function noExistingSetup(client) {
-  const existing = await client.query(
-    `SELECT 1
-     FROM employees e
-     JOIN companies c ON c.id = e.company_id
-     WHERE c.slug NOT IN ('hrconnect-demo', 'kenad-hr-demo')
-     LIMIT 1`
-  );
-  return !existing.rows.length;
-}
-
 async function createInitialAdmin(client, details, passwordHash) {
   await client.query('BEGIN');
-  await client.query('LOCK TABLE employees IN ACCESS EXCLUSIVE MODE');
-  if (!(await noExistingSetup(client))) {
-    await client.query('ROLLBACK');
-    return null;
-  }
   const slugBase = details.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 65) || 'kenadhr';
   const slug = `${slugBase}-${Date.now().toString(36)}`;
   const company = await client.query(
@@ -121,8 +105,7 @@ async function callVynfy(path, payload) {
   }
 }
 
-// First-time setup: create the initial company and HR administrator.
-// This route is intentionally locked after the first employee account exists.
+// Company setup: each organisation receives its own HR administrator.
 exports.setup = async (req, res) => {
   const client = await db.getClient();
   try {
@@ -131,7 +114,6 @@ exports.setup = async (req, res) => {
     const validationError = validateSetupDetails(details);
     if (validationError) return res.status(400).json({ error: validationError });
     const result = await createInitialAdmin(client, details, await bcrypt.hash(details.password, 12));
-    if (!result) return res.status(409).json({ error: 'KenadHR has already been set up. Contact your HR administrator for an account.' });
     const token = jwt.sign({ id: result.user.id, role: result.user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.status(201).json({ token, user: result.user, company: result.company, payment_required: result.paymentRequired });
   } catch (err) {
@@ -154,9 +136,6 @@ exports.requestSetupOtp = async (req, res) => {
     const phone = normalizeGhanaPhone(req.body.phone);
     if (validationError) return res.status(400).json({ error: validationError });
     if (!phone) return res.status(400).json({ error: 'Enter a valid Ghana phone number' });
-    if (!(await noExistingSetup(client))) {
-      return res.status(409).json({ error: 'KenadHR has already been set up. Contact your HR administrator for an account.' });
-    }
     const recent = await client.query(
       "SELECT COUNT(*) FROM hr_signup_otps WHERE phone=$1 AND created_at > NOW() - INTERVAL '15 minutes'",
       [phone]
@@ -207,7 +186,6 @@ exports.verifySetupOtp = async (req, res) => {
     const details = setupDetails(registration);
     details.phone = registration.phone;
     const result = await createInitialAdmin(client, details, registration.password_hash);
-    if (!result) return res.status(409).json({ error: 'KenadHR has already been set up. Contact your HR administrator for an account.' });
     await client.query('DELETE FROM hr_signup_otps WHERE id=$1', [signupId]);
     const token = jwt.sign({ id: result.user.id, role: result.user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.status(201).json({ token, user: result.user, company: result.company, payment_required: result.paymentRequired });
