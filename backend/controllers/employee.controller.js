@@ -227,7 +227,7 @@ exports.create = async (req, res) => {
         .json({ error: "Name, email and password are required" });
     }
     if (
-      process.env.OTP_ENABLED === "true" &&
+      process.env.PHONE_VERIFICATION_REQUIRED === "true" &&
       process.env.VYNFY_API_KEY &&
       !String(phone || "").trim()
     ) {

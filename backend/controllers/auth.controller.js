@@ -7,7 +7,9 @@ const { findPlan, currency } = require('../config/billing');
 
 const JWT_SECRET  = process.env.JWT_SECRET  || 'hr_secret_key_change_in_prod';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
-const otpEnabled = () => process.env.OTP_ENABLED === 'true';
+// Phone verification stays off during product testing, even when the SMS
+// provider credentials remain configured. Enable it explicitly before launch.
+const otpEnabled = () => process.env.PHONE_VERIFICATION_REQUIRED === 'true';
 const signupPaymentRequired = () => process.env.SIGNUP_PAYMENT_REQUIRED === 'true';
 
 function normalizeGhanaPhone(value) {
