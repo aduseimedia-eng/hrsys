@@ -144,13 +144,13 @@ exports.requestSetupOtp = async (req, res) => {
       return res.status(429).json({ error: 'Too many verification requests. Please wait a few minutes.' });
     }
 
-    await callVynfy('/otp/v1/generate', {
+    await callVynfy('/otp/generate', {
       expiry: 5,
       length: 6,
       medium: 'sms',
       message: 'Your KenadHR verification code is %otp_code%. It expires in 5 minutes.',
       number: phone,
-      otp_type: 'number',
+      otp_type: 'numeric',
       sender_id: process.env.VYNFY_SENDER_ID || 'KenadHR'
     });
 
@@ -182,7 +182,7 @@ exports.verifySetupOtp = async (req, res) => {
     );
     if (!pending.rows.length) return res.status(400).json({ error: 'This verification code has expired. Request a new one.' });
     const registration = pending.rows[0];
-    await callVynfy('/otp/v1/verify', { code, number: registration.phone });
+    await callVynfy('/otp/verify', { code, number: registration.phone });
     const details = setupDetails(registration);
     details.phone = registration.phone;
     const result = await createInitialAdmin(client, details, registration.password_hash);
@@ -267,13 +267,13 @@ exports.staffLogin = async (req, res) => {
       if (Number(recent.rows[0].count) >= 3) {
         return res.status(429).json({ error: 'Too many verification requests. Please wait a few minutes.' });
       }
-      await callVynfy('/otp/v1/generate', {
+      await callVynfy('/otp/generate', {
         expiry: 5,
         length: 6,
         medium: 'sms',
         message: 'Your KenadHR staff sign-in code is %otp_code%. It expires in 5 minutes.',
         number: phone,
-        otp_type: 'number',
+        otp_type: 'numeric',
         sender_id: process.env.VYNFY_SENDER_ID || 'KenadHR'
       });
       const verificationId = crypto.randomUUID();
@@ -324,7 +324,7 @@ exports.verifyStaffLoginOtp = async (req, res) => {
     if (!employee.is_active) return res.status(403).json({ error: 'Account is deactivated' });
     if (employee.role === 'admin') return res.status(403).json({ error: 'Please use the HR/Admin sign in page for this account' });
 
-    await callVynfy('/otp/v1/verify', { code, number: employee.phone });
+    await callVynfy('/otp/verify', { code, number: employee.phone });
     await db.query('UPDATE employees SET phone_verified_at=NOW() WHERE id=$1', [employee.id]);
     await db.query('DELETE FROM staff_login_otps WHERE id=$1', [employee.otp_id]);
 
