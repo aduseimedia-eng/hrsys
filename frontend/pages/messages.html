@@ -384,8 +384,20 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
+        <label class="form-label" for="new-msg-audience">Send to</label>
+        <select id="new-msg-audience" class="form-control form-select" onchange="toggleMessageAudience()">
+          <option value="person">A person</option>
+          <option value="department">A department</option>
+        </select>
+      </div>
+      <div class="form-group" id="new-msg-person-group">
         <label class="form-label required">To</label>
         <select id="new-msg-to" class="form-control form-select"><option value="">— Select recipient —</option></select>
+      </div>
+      <div class="form-group" id="new-msg-department-group" style="display:none">
+        <label class="form-label required">Department</label>
+        <select id="new-msg-department" class="form-control form-select"><option value="">— Select department —</option></select>
+        <small style="color:var(--text-muted)">Every active staff member in this department will receive a private copy.</small>
       </div>
       <div class="form-group">
         <label class="form-label required">Message</label>
@@ -771,6 +783,11 @@ function escapeHtml(str) {
 }
 
 async function showNewMsgModal() {
+  const canMessageDepartments = ['admin', 'manager'].includes(user.role);
+  document.getElementById('new-msg-audience').parentElement.style.display = canMessageDepartments ? '' : 'none';
+  if (!canMessageDepartments) document.getElementById('new-msg-audience').value = 'person';
+  toggleMessageAudience();
+
   // Load all employees for recipient select
   const sel = document.getElementById('new-msg-to');
   sel.innerHTML = '<option value="">— Select recipient —</option>';
@@ -782,19 +799,42 @@ async function showNewMsgModal() {
       }
     });
   } catch(e) { /* silent */ }
+  if (canMessageDepartments) {
+    const departmentSelect = document.getElementById('new-msg-department');
+    departmentSelect.innerHTML = '<option value="">— Select department —</option>';
+    try {
+      const departments = await api.get('/employees/departments');
+      departments.forEach((department) => {
+        const count = Number(department.employee_count || 0);
+        departmentSelect.innerHTML += `<option value="${department.id}">${escapeHtml(department.name)} (${count} active)</option>`;
+      });
+    } catch (e) { /* silent */ }
+  }
   document.getElementById('new-msg-modal').style.display = 'flex';
 }
 
+function toggleMessageAudience() {
+  const isDepartment = document.getElementById('new-msg-audience').value === 'department';
+  document.getElementById('new-msg-person-group').style.display = isDepartment ? 'none' : '';
+  document.getElementById('new-msg-department-group').style.display = isDepartment ? '' : 'none';
+}
+
 async function sendNewMessage() {
-  const to   = document.getElementById('new-msg-to').value;
+  const audience = document.getElementById('new-msg-audience').value;
+  const to = document.getElementById('new-msg-to').value;
+  const departmentId = document.getElementById('new-msg-department').value;
   const body = document.getElementById('new-msg-body').value.trim();
-  if (!to || !body) { toast('Select a recipient and write a message', 'warning'); return; }
+  if (!(audience === 'department' ? departmentId : to) || !body) {
+    toast(audience === 'department' ? 'Select a department and write a message' : 'Select a recipient and write a message', 'warning');
+    return;
+  }
   try {
-    await api.post('/messages', { receiver_id: parseInt(to), body });
+    const result = await api.post(audience === 'department' ? '/messages/department' : '/messages', audience === 'department' ? { department_id: parseInt(departmentId), body } : { receiver_id: parseInt(to), body });
     document.getElementById('new-msg-modal').style.display = 'none';
     document.getElementById('new-msg-body').value = '';
-    toast('Message sent!', 'success');
+    toast(audience === 'department' ? `Message sent to ${result.sent_count} ${result.sent_count === 1 ? 'employee' : 'employees'} in ${result.department}` : 'Message sent!', 'success');
     await loadInbox();
+    if (audience === 'department') return;
     // Open the new conversation
     const recipient = directoryEmployees.find(e => e.id === parseInt(to));
     if (recipient) {

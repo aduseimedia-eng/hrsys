@@ -34,6 +34,45 @@ exports.send = async (req, res) => {
   }
 };
 
+// ─── Department message ───────────────────────────────────────
+// Send the same private message to every active employee in one department.
+// Separate message rows preserve each recipient's normal private inbox.
+exports.sendDepartment = async (req, res) => {
+  try {
+    const departmentId = Number(req.body.department_id);
+    const body = String(req.body.body || '').trim();
+    if (!Number.isInteger(departmentId) || departmentId < 1 || !body) {
+      return res.status(400).json({ error: 'Department and message body required' });
+    }
+
+    const department = await db.query(
+      'SELECT id, name FROM departments WHERE id=$1 AND company_id=$2',
+      [departmentId, req.user.company_id]
+    );
+    if (!department.rows.length) return res.status(404).json({ error: 'Department not found' });
+
+    const { rows } = await db.query(
+      'INSERT INTO messages (company_id, sender_id, receiver_id, body) SELECT $1, $2, id, $3 FROM employees WHERE company_id=$1 AND department_id=$4 AND is_active=true AND id <> $2 RETURNING receiver_id',
+      [req.user.company_id, req.user.id, body, departmentId]
+    );
+    if (!rows.length) return res.status(400).json({ error: 'This department has no other active employees' });
+
+    const senderName = `${req.user.first_name} ${req.user.last_name}`;
+    await Promise.all(rows.map(({ receiver_id }) => notifyEmployee({
+      companyId: req.user.company_id,
+      employeeId: receiver_id,
+      type: 'message',
+      message: `New message from ${senderName}`,
+      link: '/pages/messages.html'
+    })));
+
+    res.status(201).json({ department: department.rows[0].name, sent_count: rows.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not send department message' });
+  }
+};
+
 // ─── Team chat ────────────────────────────────────────────────
 exports.sendTeam = async (req, res) => {
   try {

@@ -1397,6 +1397,22 @@
         .map((r) => ({ ...clone(r), reviewer_name: employeeName(db, r.reviewer_id), reviewer_photo: db.employees.find((e) => e.id === r.reviewer_id)?.photo_url || null }));
     }
 
+    if (method === 'POST' && route === '/messages/department') {
+      if (!['admin', 'manager'].includes(user.role)) throw new Error('Access denied');
+      if (!body?.department_id || !body?.body?.trim()) throw new Error('Department and message body required');
+      const department = db.departments.find((item) => item.id === Number(body.department_id));
+      if (!department) throw new Error('Department not found');
+      const recipients = db.employees.filter((employee) => employee.department_id === department.id && employee.is_active !== false && employee.id !== user.id);
+      if (!recipients.length) throw new Error('This department has no other active employees');
+      const now = new Date().toISOString();
+      recipients.forEach((recipient) => {
+        db.messages.push({ id: nextId(db.messages), sender_id: user.id, receiver_id: recipient.id, body: body.body.trim(), is_read: false, sent_at: now });
+        db.notifications.push({ id: nextId(db.notifications), employee_id: recipient.id, type: 'message', message: 'New message from ' + user.first_name + ' ' + user.last_name, link: '/pages/messages.html', is_read: false, created_at: now });
+      });
+      saveDb(db);
+      return { department: department.name, sent_count: recipients.length };
+    }
+
     if (method === 'POST' && route === '/messages') {
       if (!body?.receiver_id || !body?.body?.trim()) throw new Error('Receiver and message body required');
       if (Number(body.receiver_id) === user.id) throw new Error('Cannot message yourself');

@@ -2,8 +2,10 @@
 const router = require('express').Router();
 const ctrl   = require('../controllers/messages.controller');
 const auth   = require('../middleware/auth');
+const rbac   = require('../middleware/rbac');
 
 router.post('/',                  auth, ctrl.send);
+router.post('/department',        auth, rbac('admin', 'manager'), ctrl.sendDepartment);
 router.post('/team',              auth, ctrl.sendTeam);
 router.put ('/team/:id',          auth, ctrl.updateTeam);
 router.delete('/team/:id',        auth, ctrl.removeTeam);
