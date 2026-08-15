@@ -7,8 +7,11 @@ const MONTHLY_PAYE_BANDS = [
 
 const EMPLOYEE_SSNIT_RATE = 0.055;
 const EMPLOYER_SSNIT_RATE = 0.13;
+const TIER_1_TOTAL_RATE = 0.135;
+const TIER_2_RATE = 0.05;
+const TIER_1_EMPLOYER_RATE = TIER_1_TOTAL_RATE - EMPLOYEE_SSNIT_RATE;
 // SSNIT 2026 maximum insurable earnings: GH¢69,000 annually (GH¢5,750 monthly).
-const MONTHLY_SSNIT_CAP = 5750;
+const MONTHLY_SSNIT_CAP = 25000;
 const money = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
 function calculatePaye(chargeableIncome) {
@@ -29,9 +32,20 @@ function calculateMonthlyPayroll({ basicSalary, allowances = 0, otherDeductions 
   const ssnitBase = Math.min(base, MONTHLY_SSNIT_CAP);
   const ssnitEmployee = money(ssnitBase * EMPLOYEE_SSNIT_RATE);
   const ssnitEmployer = money(ssnitBase * EMPLOYER_SSNIT_RATE);
+  const pensionTier1 = money(ssnitBase * TIER_1_TOTAL_RATE);
+  const pensionTier2 = money(ssnitBase * TIER_2_RATE);
   const payeTax = calculatePaye(base + earnings - ssnitEmployee);
   const other = Math.max(0, Number(otherDeductions) || 0);
-  return { ssnitEmployee, ssnitEmployer, payeTax, otherDeductions: money(other), deductions: money(ssnitEmployee + payeTax + other) };
+  return {
+    pensionableEarnings: money(ssnitBase),
+    ssnitEmployee,
+    ssnitEmployer,
+    pensionTier1,
+    pensionTier2,
+    payeTax,
+    otherDeductions: money(other),
+    deductions: money(ssnitEmployee + payeTax + other)
+  };
 }
 
-module.exports = { EMPLOYEE_SSNIT_RATE, EMPLOYER_SSNIT_RATE, MONTHLY_SSNIT_CAP, MONTHLY_PAYE_BANDS, calculatePaye, calculateMonthlyPayroll };
+module.exports = { EMPLOYEE_SSNIT_RATE, EMPLOYER_SSNIT_RATE, TIER_1_TOTAL_RATE, TIER_2_RATE, TIER_1_EMPLOYER_RATE, MONTHLY_SSNIT_CAP, MONTHLY_PAYE_BANDS, calculatePaye, calculateMonthlyPayroll };

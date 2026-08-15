@@ -122,11 +122,11 @@ exports.processMonth = async (req, res) => {
       const overtimePay = Number(emp.overtime_pay || 0).toFixed(2);
       const benefitDeductions = Number(emp.benefit_deductions || 0).toFixed(2);
       const loanDeductions = Number(emp.loan_deductions || 0).toFixed(2);
-      const compliance = calculateMonthlyPayroll({ basicSalary: Number(emp.salary) + Number(overtimePay), allowances });
+      const compliance = calculateMonthlyPayroll({ basicSalary: Number(emp.salary), allowances });
       await db.query(
-        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, overtime_hours, overtime_pay, tax, ssnit_employee, ssnit_employer, other_deductions, benefit_deductions, loan_deductions, deductions, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'processed')`,
-        [req.user.company_id, emp.id, month, year, emp.salary, allowances, overtimeHours, overtimePay, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.otherDeductions, benefitDeductions, loanDeductions, Number(compliance.deductions) + Number(benefitDeductions) + Number(loanDeductions)]
+        `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, overtime_hours, overtime_pay, tax, ssnit_employee, ssnit_employer, pensionable_earnings, pension_tier1, pension_tier2, other_deductions, benefit_deductions, loan_deductions, deductions, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'processed')`,
+        [req.user.company_id, emp.id, month, year, emp.salary, allowances, overtimeHours, overtimePay, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.pensionableEarnings, compliance.pensionTier1, compliance.pensionTier2, compliance.otherDeductions, benefitDeductions, loanDeductions, Number(compliance.deductions) + Number(benefitDeductions) + Number(loanDeductions)]
       );
       if (Number(loanDeductions) > 0) {
         await db.query(

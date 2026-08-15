@@ -56,6 +56,21 @@ async function loadMyPayslips() {
   }).join('');
 }
 
+function pensionBreakdownHtml(s) {
+  const tier1 = Number(s.pension_tier1 || 0);
+  const tier2 = Number(s.pension_tier2 || 0);
+  if (!tier1 && !tier2) return '';
+  const pensionable = Number(s.pensionable_earnings || s.base_salary || 0);
+  return `
+    <div class="detail-section">
+      <h4>Pension Contributions</h4>
+      <div class="detail-row"><span>Pensionable earnings</span><span>${fmt.currency(pensionable)}</span></div>
+      <div class="detail-row"><span>Tier 1 — SSNIT (13.5%)</span><span>${fmt.currency(tier1)}</span></div>
+      <div class="detail-row"><span>Tier 2 — Occupational pension (5%)</span><span>${fmt.currency(tier2)}</span></div>
+      <div class="detail-row total"><span>Total employer pension cost</span><span>${fmt.currency(Number(s.ssnit_employer || 0))}</span></div>
+    </div>`;
+}
+
 async function viewPayslip(id) {
   const s = await api.get(`/payroll/${id}`);
   const monthName = months[s.month - 1];
@@ -102,6 +117,7 @@ async function viewPayslip(id) {
         <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
 
+      ${pensionBreakdownHtml(s)}
       <div class="net-salary-box">
         <div>
           <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:4px">NET PAY</div>
@@ -190,6 +206,7 @@ function payslipHtml(s) {
         <div class="detail-row"><span>Other deductions</span><span class="negative">-${fmt.currency(s.other_deductions || 0)}</span></div>
         <div class="detail-row total"><span>Total deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
       </div>
+      ${pensionBreakdownHtml(s)}
       <div class="net-salary-box">
         <div>
           <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:4px">NET PAY</div>
