@@ -362,6 +362,7 @@ async function loadSummary() {
   const rows = await api.get('/payroll/summary');
   const tbody = document.getElementById('summary-tbody');
   if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>No data</p></div></td></tr>`; return; }
+  KenadCharts.line('#payroll-chart', rows.map(r => `${months[r.month-1].slice(0,3)} ${String(r.year).slice(-2)}`), rows.map(r => Number(r.total_net || 0)), '#59b78a');
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td style="font-weight:500">${months[r.month-1]} ${r.year}</td>

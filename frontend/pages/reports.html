@@ -206,6 +206,7 @@
 </div>
 
 <script src="../js/api.js"></script>
+<script src="../js/charts.js"></script>
 <script>
 const user = requireAuth();
 if (!user) throw new Error('redirect');
@@ -315,16 +316,9 @@ function renderKpis() {
 }
 
 function renderDepartmentChart() {
-  const max = Math.max(...state.departments.map((dept) => Number(dept.employee_count || 0)), 1);
-  document.getElementById('department-chart').innerHTML = state.departments.map((dept) => {
-    const count = Number(dept.employee_count || 0);
-    return `
-      <div class="suite-chart-row">
-        <span>${escapeHtml(dept.name)}</span>
-        <div class="suite-bar"><span style="width:${Math.max(4, Math.round((count / max) * 100))}%"></span></div>
-        <strong>${count}</strong>
-      </div>`;
-  }).join('') || '<div class="suite-empty">No departments found.</div>';
+  if (!state.departments.length) { document.getElementById('department-chart').innerHTML = '<div class="suite-empty">No departments found.</div>'; return; }
+  const host = document.getElementById('department-chart'); host.style.height = '260px';
+  KenadCharts.doughnut(host, state.departments.map((dept) => dept.name), state.departments.map((dept) => Number(dept.employee_count || 0)));
 }
 
 function runSelectedReport() {

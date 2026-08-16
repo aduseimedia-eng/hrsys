@@ -130,6 +130,7 @@
 
     <!-- Summary -->
     <div id="tab-summary" style="display:none">
+      <section class="card" style="margin-bottom:16px"><div class="card-header"><h3>Net payroll trend</h3></div><div class="card-body"><div id="payroll-chart" style="height:250px"></div></div></section>
       <div class="table-container">
         <table>
           <thead><tr><th>Period</th><th>Employees</th><th>Base Total</th><th>Deductions</th><th>Net Total</th><th>Paid</th></tr></thead>
@@ -393,6 +394,7 @@ function showProcessModal() {
 
 loadMyPayslips();
 </script>
+<script src="../js/charts.js"></script>
 <script src="../js/payroll.js?v=20260721c"></script>
 </body>
 </html>

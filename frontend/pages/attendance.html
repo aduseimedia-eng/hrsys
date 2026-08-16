@@ -121,6 +121,7 @@
       </div>
       <!-- Summary cards -->
       <div class="stat-grid" id="att-summary" style="margin-bottom:20px"></div>
+      <div class="card" style="margin-bottom:20px"><div class="card-header"><h3>Attendance distribution</h3></div><div class="card-body"><div id="attendance-chart" style="height:250px"></div></div></div>
       <div class="table-container">
         <table>
           <thead><tr><th>Employee</th><th>Department</th><th>Clock In</th><th>Clock Out</th><th>Location</th><th>Duration</th><th>Status</th></tr></thead>
@@ -149,6 +150,7 @@
 </div>
 
 <script src="../js/api.js"></script>
+<script src="../js/charts.js"></script>
 <script>
 const user = requireAuth();
 if (!user) throw new Error('redirect');
@@ -246,6 +248,7 @@ async function loadHrReport() {
     <div class="stat-card"><div class="stat-icon rose"></div><div><div class="stat-value">${s.absent||0}</div><div class="stat-label">Absent</div></div></div>
     <div class="stat-card"><div class="stat-icon blue"></div><div><div class="stat-value">${s['on-leave']||0}</div><div class="stat-label">On Leave</div></div></div>
   `;
+  KenadCharts.doughnut('#attendance-chart', ['Present', 'Late', 'Absent', 'On leave'], [Number(s.present||0), Number(s.late||0), Number(s.absent||0), Number(s['on-leave']||0)]);
 
   const tbody = document.getElementById('hr-tbody');
   if (!rows.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>No records</p></div></td></tr>`; return; }

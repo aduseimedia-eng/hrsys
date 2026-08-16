@@ -83,6 +83,7 @@
 
     <!-- Team summary (manager/admin) -->
     <div id="tab-team" style="display:none">
+      <section class="card" style="margin-bottom:16px"><div class="card-header"><h3>Team rating distribution</h3></div><div class="card-body"><div id="performance-chart" style="height:250px"></div></div></section>
       <div id="team-grid" style="display:flex;flex-direction:column;gap:12px">
         <div class="loading-state"><div class="spinner"></div></div>
       </div>
@@ -141,6 +142,7 @@
 </div>
 
 <script src="../js/api.js"></script>
+<script src="../js/charts.js"></script>
 <script>
 const user = requireAuth();
 if (!user) throw new Error('redirect');
@@ -212,6 +214,8 @@ async function loadTeam() {
   const team = await api.get('/performance/team-summary');
   const grid = document.getElementById('team-grid');
   if (!team.length) { grid.innerHTML = `<div class="empty-state"><p>No data available</p></div>`; return; }
+  const ratingCounts = [1,2,3,4,5].map(rating => team.filter(row => Math.round(Number(row.avg_rating || 0)) === rating).length);
+  KenadCharts.doughnut('#performance-chart', ['1 star','2 stars','3 stars','4 stars','5 stars'], ratingCounts);
   grid.innerHTML = team.map(e => `
     <div class="team-card" onclick="viewEmployeeReviews(${e.id}, '${e.name}')">
       ${initialsAvatar(e.name?.split(' ')[0]||'?', e.name?.split(' ')[1]||'', 'md')}

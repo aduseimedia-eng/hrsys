@@ -570,6 +570,7 @@
 </div>
 
 <script src="../js/api.js"></script>
+<script src="../js/charts.js"></script>
 <script>
 const user = requireAuth();
 if (!user) throw new Error('redirect');
@@ -740,8 +741,8 @@ function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows }) {
 function renderWorkforceChart(stats) {
   const labels = { staff: 'Staff', contractual: 'Contractual', national_service: 'National service', internship: 'Internship' };
   const rows = stats.employment_type_breakdown || [];
-  const max = Math.max(...rows.map(row => Number(row.count || 0)), 1);
-  document.getElementById('workforce-chart').innerHTML = rows.length ? rows.map(row => `<div class="dashboard-chart-row"><span>${escapeHtml(labels[row.employment_type] || row.employment_type || 'Unspecified')}</span><div class="dashboard-chart-bar"><i style="width:${Math.max(7, Math.round(Number(row.count || 0) / max * 100))}%"></i></div><strong>${Number(row.count || 0)}</strong></div>`).join('') : '<div class="empty-minimal">No active employee records yet.</div>';
+  if (!rows.length) { document.getElementById('workforce-chart').innerHTML = '<div class="empty-minimal">No active employee records yet.</div>'; return; }
+  KenadCharts.doughnut('#workforce-chart', rows.map(row => labels[row.employment_type] || row.employment_type || 'Unspecified'), rows.map(row => Number(row.count || 0)));
 }
 
 function renderExpiries(stats) {
