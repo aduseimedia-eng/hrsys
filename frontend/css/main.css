@@ -1326,6 +1326,23 @@ tbody tr:hover { background: #f7faff; }
 .birthday-celebration-copy strong { display: block; margin-top: 3px; color: #27314b; font-size: 1.28rem; line-height: 1.2; }
 .birthday-celebration-copy p { margin: 6px 0 0; color: #69758a; font-size: .82rem; }
 .birthday-celebration-close { position: absolute; z-index: 2; top: 10px; right: 11px; width: 27px; height: 27px; border-radius: 50%; color: #86745a; font-size: 1.25rem; line-height: 1; }
+
+/* Compact workspace rhythm: denser reading and less unused vertical space. */
+@media (min-width: 769px) {
+  html { font-size: 15px; }
+  .main-content { padding: 24px; }
+  .card-header { padding: 14px 18px; }
+  .card-body { padding: 17px 18px; }
+  .stat-card { padding: 15px 18px; }
+  .modal-body { padding: 20px 22px; }
+  .modal-footer { padding: 13px 22px; }
+}
+
+body { line-height: 1.45; }
+h1, h2, h3, h4, h5 { line-height: 1.2; }
+p { line-height: 1.45; }
+.page-header { margin-bottom: 18px; }
+.form-group { margin-bottom: 12px; }
 .birthday-celebration-close:hover { background: rgba(168,106,31,.1); color: #5f4a2b; }
 .birthday-confetti { position: absolute; inset: 0; pointer-events: none; }
 .birthday-confetti i { position: absolute; top: -12px; left: calc((var(--i) * 4.5%) + 2%); width: 7px; height: 12px; border-radius: 2px; background: hsl(calc(var(--i) * 43), 78%, 62%); transform: rotate(calc(var(--i) * 21deg)); animation: birthday-confetti-fall 2.7s ease-in calc(var(--i) * -110ms) infinite; }
