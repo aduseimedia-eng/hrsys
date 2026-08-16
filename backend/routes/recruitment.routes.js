@@ -1,2 +1,10 @@
 const router=require('express').Router(),ctrl=require('../controllers/recruitment.controller'),auth=require('../middleware/auth'),rbac=require('../middleware/rbac'),{uploadApplicant}=require('../config/multer');
-router.post('/public/:slug/apply',uploadApplicant.array('documents',5),ctrl.submitApplication);router.get('/application-link',auth,rbac('admin','manager'),ctrl.getApplicationLink);router.get('/applications',auth,rbac('admin','manager'),ctrl.getApplications);router.patch('/applications/:id',auth,rbac('admin','manager'),ctrl.updateStatus);router.get('/applications/:id/documents/:documentId',auth,rbac('admin','manager'),ctrl.downloadDocument);module.exports=router;
+const staff=[auth,rbac('admin','manager')];
+router.get('/public/:slug/jobs',ctrl.getPublicJobs);
+router.post('/public/:slug/apply',uploadApplicant.array('documents',5),ctrl.submitApplication);
+router.get('/application-link',...staff,ctrl.getApplicationLink);
+router.get('/jobs',...staff,ctrl.getJobs);router.post('/jobs',...staff,ctrl.createJob);router.put('/jobs/:id',...staff,ctrl.updateJob);
+router.get('/applications',...staff,ctrl.getApplications);router.get('/applications/:id',...staff,ctrl.getCandidate);router.patch('/applications/:id',...staff,ctrl.updateStatus);
+router.post('/applications/:id/notes',...staff,ctrl.addNote);router.post('/applications/:id/interviews',...staff,ctrl.createInterview);router.patch('/applications/:id/interviews/:interviewId',...staff,ctrl.updateInterview);
+router.put('/applications/:id/offer',...staff,ctrl.saveOffer);router.post('/applications/:id/hire',...staff,ctrl.hireCandidate);router.get('/report',...staff,ctrl.getReport);
+router.get('/applications/:id/documents/:documentId',...staff,ctrl.downloadDocument);module.exports=router;
