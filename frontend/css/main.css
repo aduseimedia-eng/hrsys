@@ -1049,13 +1049,13 @@ tbody tr:hover { background: #f7faff; }
 }
 .sidebar-logo .sidebar-close-btn { position: absolute; right: 14px; }
 .sidebar-nav {
-  padding: 8px 14px 20px;
+  padding: 6px 14px 14px;
   scrollbar-color: #c7c7c7 transparent;
 }
 .nav-item {
-  min-height: 48px;
-  margin: 3px 0;
-  padding: 12px 14px;
+  min-height: 42px;
+  margin: 2px 0;
+  padding: 9px 14px;
   border-radius: 14px;
   color: #727272;
   font-size: .94rem;
@@ -1084,11 +1084,11 @@ tbody tr:hover { background: #f7faff; }
   color: #5d3625;
   font-size: .72rem;
 }
-.nav-group { margin: 13px 0 5px; }
+.nav-group { margin: 8px 0 4px; }
 .nav-group-toggle {
   width: 100%;
-  min-height: 46px;
-  padding: 10px 14px;
+  min-height: 42px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
