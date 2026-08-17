@@ -20,32 +20,52 @@
           <p>Plan demand, publish approved roles, and move candidates through a traceable hiring process.</p>
         </div>
         <div class="recruitment-actions">
-          <a class="btn btn-outline" href="recruitment-requisitions.html">View requisitions</a>
-          <a class="btn btn-primary" href="recruitment-request-form.html">New request</a>
+          <a class="btn btn-outline" href="recruitment-requisitions.html"><svg class="recruitment-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16v12H4z"></path><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 12h16"></path></svg><span>View requisitions</span></a>
+          <a class="btn btn-primary" href="recruitment-request-form.html"><svg class="recruitment-action-icon recruitment-action-icon--plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4.5h6v3H9zM12 12v5M9.5 14.5h5"></path></svg><span>New request</span></a>
         </div>
       </header>
 
       <section class="recruitment-metrics" aria-label="Recruitment summary">
-        <article class="recruitment-metric"><span class="recruitment-metric__label">Requests to review</span><strong class="recruitment-metric__value" id="metric-requests">—</strong><span class="recruitment-metric__copy">Submitted workforce requests</span></article>
-        <article class="recruitment-metric"><span class="recruitment-metric__label">Requisitions pending</span><strong class="recruitment-metric__value" id="metric-requisitions">—</strong><span class="recruitment-metric__copy">Awaiting approval to post</span></article>
-        <article class="recruitment-metric"><span class="recruitment-metric__label">Live job postings</span><strong class="recruitment-metric__value" id="metric-postings">—</strong><span class="recruitment-metric__copy">Internal and careers-site channels</span></article>
-        <article class="recruitment-metric"><span class="recruitment-metric__label">Active candidates</span><strong class="recruitment-metric__value" id="metric-candidates">—</strong><span class="recruitment-metric__copy">Still moving through the process</span></article>
+        <article class="recruitment-metric recruitment-metric--requests">
+          <span class="recruitment-metric__heading"><span class="recruitment-metric__icon" aria-hidden="true"><svg class="recruitment-animated-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect class="recruitment-icon-stroke" x="5" y="4" width="14" height="17" rx="2"></rect><path class="recruitment-icon-stroke" d="M9 4.5h6v3H9z"></path><path class="recruitment-icon-stroke recruitment-icon-accent" d="m9 14 2 2 4-4"></path></svg></span><span class="recruitment-metric__label">Requests to review</span></span>
+          <strong class="recruitment-metric__value" id="metric-requests">&mdash;</strong><span class="recruitment-metric__copy">Submitted workforce requests</span>
+        </article>
+        <article class="recruitment-metric recruitment-metric--requisitions">
+          <span class="recruitment-metric__heading"><span class="recruitment-metric__icon" aria-hidden="true"><svg class="recruitment-animated-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path class="recruitment-icon-stroke" d="M4 7h16v12H4z"></path><path class="recruitment-icon-stroke" d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path><path class="recruitment-icon-stroke" d="M4 12h16"></path><path class="recruitment-icon-stroke recruitment-icon-accent" d="M10 15h4"></path></svg></span><span class="recruitment-metric__label">Requisitions pending</span></span>
+          <strong class="recruitment-metric__value" id="metric-requisitions">&mdash;</strong><span class="recruitment-metric__copy">Awaiting approval to post</span>
+        </article>
+        <article class="recruitment-metric recruitment-metric--postings">
+          <span class="recruitment-metric__heading"><span class="recruitment-metric__icon" aria-hidden="true"><svg class="recruitment-animated-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path class="recruitment-icon-stroke" d="M4 11h3l7-5v12l-7-5H4z"></path><path class="recruitment-icon-stroke recruitment-icon-accent" d="M17 9.5a4 4 0 0 1 0 5"></path><path class="recruitment-icon-stroke recruitment-icon-accent" d="M19.5 7a7 7 0 0 1 0 10"></path></svg></span><span class="recruitment-metric__label">Live job postings</span></span>
+          <strong class="recruitment-metric__value" id="metric-postings">&mdash;</strong><span class="recruitment-metric__copy">Internal and careers-site channels</span>
+        </article>
+        <article class="recruitment-metric recruitment-metric--candidates">
+          <span class="recruitment-metric__heading"><span class="recruitment-metric__icon" aria-hidden="true"><svg class="recruitment-animated-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle class="recruitment-icon-stroke recruitment-icon-accent" cx="9" cy="8" r="3"></circle><path class="recruitment-icon-stroke" d="M3.5 20a5.5 5.5 0 0 1 11 0"></path><path class="recruitment-icon-stroke" d="M16 6a3 3 0 0 1 0 5"></path><path class="recruitment-icon-stroke" d="M17.5 20a4.5 4.5 0 0 0-2.25-3.9"></path></svg></span><span class="recruitment-metric__label">Active candidates</span></span>
+          <strong class="recruitment-metric__value" id="metric-candidates">&mdash;</strong><span class="recruitment-metric__copy">Still moving through the process</span>
+        </article>
       </section>
 
       <section class="recruitment-grid">
         <article class="recruitment-panel">
-          <div class="recruitment-panel__header"><div><h2>Work queue</h2><p>Items that need a decision or scheduled action.</p></div><a class="btn btn-outline btn-sm" href="recruitment-requests.html">Open requests</a></div>
-          <ul class="recruitment-list" id="work-queue"></ul>
+          <div class="recruitment-panel__header"><div class="recruitment-panel__heading"><span class="recruitment-panel__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4.5h6v3H9zM9 13h6M9 17h4"></path></svg></span><div><h2>Work queue</h2><p>Items that need a decision or scheduled action.</p></div></div><a class="btn btn-outline btn-sm" href="recruitment-requests.html"><span>Open requests</span><svg class="recruitment-action-icon recruitment-action-icon--forward" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a></div>
+          <ul class="recruitment-list recruitment-dashboard-list" id="work-queue" aria-busy="true">
+            <li class="recruitment-list__item recruitment-dashboard-skeleton-row" aria-hidden="true"><span class="recruitment-dashboard-skeleton-copy"><i></i><i></i></span><b></b></li>
+            <li class="recruitment-list__item recruitment-dashboard-skeleton-row" aria-hidden="true"><span class="recruitment-dashboard-skeleton-copy"><i></i><i></i></span><b></b></li>
+            <li class="recruitment-list__item recruitment-dashboard-skeleton-row" aria-hidden="true"><span class="recruitment-dashboard-skeleton-copy"><i></i><i></i></span><b></b></li>
+          </ul>
         </article>
         <article class="recruitment-panel">
-          <div class="recruitment-panel__header"><div><h2>Upcoming interviews</h2><p>Next scheduled conversations.</p></div><a class="btn btn-outline btn-sm" href="recruitment-interviews.html">All interviews</a></div>
-          <ul class="recruitment-list" id="upcoming-interviews"></ul>
+          <div class="recruitment-panel__header"><div class="recruitment-panel__heading"><span class="recruitment-panel__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18M8 14h3M8 17h6"></path></svg></span><div><h2>Upcoming interviews</h2><p>Next scheduled conversations.</p></div></div><a class="btn btn-outline btn-sm" href="recruitment-interviews.html"><span>All interviews</span><svg class="recruitment-action-icon recruitment-action-icon--forward" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a></div>
+          <ul class="recruitment-list recruitment-dashboard-list" id="upcoming-interviews" aria-busy="true">
+            <li class="recruitment-list__item recruitment-dashboard-skeleton-row" aria-hidden="true"><span class="recruitment-dashboard-skeleton-copy"><i></i><i></i></span><b></b></li>
+            <li class="recruitment-list__item recruitment-dashboard-skeleton-row" aria-hidden="true"><span class="recruitment-dashboard-skeleton-copy"><i></i><i></i></span><b></b></li>
+            <li class="recruitment-list__item recruitment-dashboard-skeleton-row" aria-hidden="true"><span class="recruitment-dashboard-skeleton-copy"><i></i><i></i></span><b></b></li>
+          </ul>
         </article>
       </section>
 
       <section class="recruitment-panel" style="margin-top:18px">
-        <div class="recruitment-panel__header"><div><h2>Candidate pipeline</h2><p>Current distribution across configured stages.</p></div><a class="btn btn-outline btn-sm" href="recruitment-pipeline.html">Open pipeline</a></div>
-        <div class="recruitment-table-wrap" style="border:0;border-radius:0"><table><thead><tr><th>Stage</th><th>Candidates</th><th>Share of pipeline</th><th></th></tr></thead><tbody id="pipeline-summary"></tbody></table></div>
+        <div class="recruitment-panel__header"><div class="recruitment-panel__heading"><span class="recruitment-panel__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"></circle><circle cx="19" cy="6" r="2"></circle><circle cx="12" cy="18" r="2"></circle><path d="M7 7.5 10.5 16M17 7.5 13.5 16"></path></svg></span><div><h2>Candidate pipeline</h2><p>Current distribution across configured stages.</p></div></div><a class="btn btn-outline btn-sm" href="recruitment-pipeline.html"><span>Open pipeline</span><svg class="recruitment-action-icon recruitment-action-icon--forward" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a></div>
+        <div class="recruitment-table-wrap recruitment-dashboard-pipeline" style="border:0;border-radius:0"><table><thead><tr><th>Stage</th><th>Candidates</th><th>Share of pipeline</th><th></th></tr></thead><tbody id="pipeline-summary" aria-busy="true"><tr class="recruitment-dashboard-pipeline-skeleton" aria-hidden="true"><td><i></i></td><td><i></i></td><td><i></i></td><td><i></i></td></tr><tr class="recruitment-dashboard-pipeline-skeleton" aria-hidden="true"><td><i></i></td><td><i></i></td><td><i></i></td><td><i></i></td></tr><tr class="recruitment-dashboard-pipeline-skeleton" aria-hidden="true"><td><i></i></td><td><i></i></td><td><i></i></td><td><i></i></td></tr><tr class="recruitment-dashboard-pipeline-skeleton" aria-hidden="true"><td><i></i></td><td><i></i></td><td><i></i></td><td><i></i></td></tr></tbody></table></div>
       </section>
     </main>
   </div>

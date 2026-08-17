@@ -89,7 +89,7 @@
 
 /* ─── Reset ───────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; scrollbar-gutter: stable; }
 body {
   font-family: var(--font-body);
   background: var(--bg-page);
@@ -117,6 +117,31 @@ p  { color: var(--text-secondary); }
   grid-template-columns: var(--sidebar-w) 1fr;
   grid-template-rows: var(--topbar-h) 1fr;
   min-height: 100vh;
+}
+
+/* Child pages run inside workspace.html in an iframe. These rules are present
+   from first paint; api.js only needs to add the class before page scripts run. */
+body.embedded-page {
+  overflow: auto !important;
+  background: var(--bg-page) !important;
+}
+body.embedded-page .app-shell {
+  display: block !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}
+body.embedded-page .sidebar,
+body.embedded-page .topbar,
+body.embedded-page .sidebar-backdrop {
+  display: none !important;
+}
+body.embedded-page .main-content {
+  min-height: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 22px !important;
+  overflow: visible !important;
 }
 
 /* ─── Sidebar ─────────────────────────────────────────────── */

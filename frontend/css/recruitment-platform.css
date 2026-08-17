@@ -1,4 +1,11 @@
 /* Shared Recruitment workspace shell. Load this after main.css on recruitment pages. */
+#recruitment-nav:empty {
+  display: block;
+  min-height: 110px;
+  margin: 0 0 24px;
+  visibility: hidden;
+}
+
 .recruitment-platform-nav {
   margin: 0 0 24px;
   border: 1px solid var(--border);
@@ -59,6 +66,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 7px;
   min-height: 34px;
   padding: 7px 10px;
   border: 1px solid transparent;
@@ -70,6 +78,32 @@
   text-decoration: none;
   transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease), color var(--duration) var(--ease);
 }
+
+.recruitment-platform-nav__icon,
+.recruitment-action-icon,
+.recruitment-list-icon,
+.recruitment-stage-icon {
+  display: block;
+  flex: 0 0 auto;
+  pointer-events: none;
+  transition: transform var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+
+.recruitment-platform-nav__icon,
+.recruitment-action-icon { width: 16px; height: 16px; }
+.recruitment-list-icon { width: 18px; height: 18px; }
+.recruitment-stage-icon { width: 15px; height: 15px; }
+
+.recruitment-platform-nav__link:hover .recruitment-platform-nav__icon,
+.recruitment-platform-nav__link:focus-visible .recruitment-platform-nav__icon {
+  transform: translateY(-1px);
+}
+
+.btn:hover .recruitment-action-icon--forward,
+.btn:focus-visible .recruitment-action-icon--forward { transform: translateX(2px); }
+
+.btn:hover .recruitment-action-icon--plus,
+.btn:focus-visible .recruitment-action-icon--plus { transform: rotate(8deg) scale(1.04); }
 
 .recruitment-platform-nav__link:hover {
   border-color: var(--border);
@@ -175,6 +209,11 @@
 }
 
 @media (max-width: 700px) {
+  #recruitment-nav:empty {
+    min-height: 103px;
+    margin-bottom: 18px;
+  }
+
   .recruitment-platform-nav {
     margin-bottom: 18px;
     border-radius: var(--radius-md);
@@ -256,6 +295,69 @@
   box-shadow: var(--shadow-sm);
 }
 
+.recruitment-metric__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recruitment-metric__icon {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--navy-700);
+  background: var(--navy-50);
+}
+
+.recruitment-metric--requests .recruitment-metric__icon { color: var(--emerald-600); background: var(--mint-100); }
+.recruitment-metric--requisitions .recruitment-metric__icon { color: var(--violet-600); background: var(--violet-100); }
+.recruitment-metric--postings .recruitment-metric__icon { color: var(--amber-600); background: var(--amber-50); }
+.recruitment-metric--candidates .recruitment-metric__icon { color: var(--navy-700); background: var(--navy-100); }
+
+.recruitment-animated-icon {
+  width: 22px;
+  height: 22px;
+  overflow: visible;
+}
+
+.recruitment-icon-stroke {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  vector-effect: non-scaling-stroke;
+  animation: recruitment-icon-draw 620ms var(--ease) forwards;
+}
+
+.recruitment-metric:nth-child(2) .recruitment-icon-stroke { animation-delay: 80ms; }
+.recruitment-metric:nth-child(3) .recruitment-icon-stroke { animation-delay: 160ms; }
+.recruitment-metric:nth-child(4) .recruitment-icon-stroke { animation-delay: 240ms; }
+
+.recruitment-metric:hover .recruitment-animated-icon {
+  animation: recruitment-icon-lift 420ms var(--ease);
+}
+
+.recruitment-metric--candidates:hover .recruitment-icon-accent {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: recruitment-icon-pulse 500ms var(--ease);
+}
+
+@keyframes recruitment-icon-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes recruitment-icon-lift {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  45% { transform: translateY(-2px) rotate(-3deg); }
+}
+
+@keyframes recruitment-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
 .recruitment-metric__label {
   display: block;
   color: var(--text-muted);
@@ -282,6 +384,22 @@
   line-height: 1.35;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .recruitment-animated-icon,
+  .recruitment-icon-stroke,
+  .recruitment-metric--candidates:hover .recruitment-icon-accent,
+  .recruitment-platform-nav__icon,
+  .recruitment-action-icon,
+  .recruitment-list-icon,
+  .recruitment-stage-icon {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .recruitment-icon-stroke { stroke-dashoffset: 0; }
+}
+
 .recruitment-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, .8fr);
@@ -305,6 +423,31 @@
   border-bottom: 1px solid var(--border);
 }
 
+.recruitment-panel__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.recruitment-panel__icon {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--navy-700);
+  background: var(--navy-50);
+}
+
+.recruitment-panel__icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
 .recruitment-panel__header h2,
 .recruitment-panel__header h3 {
   margin: 0;
@@ -326,6 +469,60 @@
   padding: 0;
 }
 
+/* The dashboard receives its work queue after its frame has loaded. Reserve
+   these regions so that data arriving never changes the page geometry. */
+.recruitment-dashboard-list {
+  height: 216px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.recruitment-dashboard-pipeline {
+  height: 292px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.recruitment-dashboard-skeleton-row {
+  pointer-events: none;
+}
+
+.recruitment-dashboard-skeleton-copy {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.recruitment-dashboard-skeleton-copy i,
+.recruitment-dashboard-skeleton-row b,
+.recruitment-dashboard-pipeline-skeleton i {
+  display: block;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--navy-100);
+}
+
+.recruitment-dashboard-skeleton-copy i + i {
+  width: 58%;
+  height: 9px;
+  margin-top: 8px;
+}
+
+.recruitment-dashboard-skeleton-row b {
+  width: 56px;
+  flex: 0 0 56px;
+  height: 22px;
+}
+
+.recruitment-dashboard-pipeline-skeleton td {
+  height: 48px;
+}
+
+.recruitment-dashboard-pipeline-skeleton td:first-child i { width: 64%; }
+.recruitment-dashboard-pipeline-skeleton td:nth-child(2) i { width: 30px; }
+.recruitment-dashboard-pipeline-skeleton td:nth-child(3) i { width: 46px; }
+.recruitment-dashboard-pipeline-skeleton td:last-child i { width: 74px; }
+
 .recruitment-list__item {
   display: flex;
   align-items: center;
@@ -341,6 +538,26 @@
 .recruitment-list__item small { display: block; }
 .recruitment-list__item strong { color: var(--text-primary); font-size: .88rem; }
 .recruitment-list__item small { margin-top: 3px; color: var(--text-secondary); font-size: .76rem; }
+
+.recruitment-list__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.recruitment-list__identity-copy { min-width: 0; }
+
+.recruitment-list__item--link:hover .recruitment-list-icon,
+.recruitment-list__item--link:focus-visible .recruitment-list-icon {
+  transform: translateX(1px);
+}
+
+.recruitment-stage-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 
 .recruitment-list__item--link {
   color: inherit;

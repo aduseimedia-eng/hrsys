@@ -114,39 +114,14 @@ function isEmbeddedWorkspacePage() {
 function activateEmbeddedWorkspacePage() {
   if (!isEmbeddedWorkspacePage() || !document.body || document.body.classList.contains('embedded-page')) return;
   document.body.classList.add('embedded-page');
-
-  const style = document.createElement('style');
-  style.textContent = `
-    body.embedded-page {
-      overflow: auto !important;
-      background: var(--bg-page) !important;
-    }
-    body.embedded-page .app-shell {
-      display: block !important;
-      height: auto !important;
-      min-height: 100vh !important;
-      overflow: visible !important;
-    }
-    body.embedded-page .sidebar,
-    body.embedded-page .topbar,
-    body.embedded-page .sidebar-backdrop {
-      display: none !important;
-    }
-    body.embedded-page .main-content {
-      min-height: auto !important;
-      width: 100% !important;
-      max-width: none !important;
-      padding: 22px !important;
-      overflow: visible !important;
-    }
-  `;
-  document.head.appendChild(style);
 }
 
-if (document.readyState === 'loading') {
+// Pages loaded in the workspace iframe include this file at the end of body.
+// Apply the embedded layout before their page scripts build their UI, rather than
+// waiting for DOMContentLoaded and visibly reflowing a full app shell.
+activateEmbeddedWorkspacePage();
+if (!document.body && document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', activateEmbeddedWorkspacePage);
-} else {
-  activateEmbeddedWorkspacePage();
 }
 
 function ensureMockApi() {
