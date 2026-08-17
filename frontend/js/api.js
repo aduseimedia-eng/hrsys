@@ -526,12 +526,21 @@ function replaceAvatarWithInitials(image) {
 }
 
 // ─── Build sidebar navigation ───────────────────────────────
-function buildSidebar(activePage) {
+function buildSidebar(activePage, options = {}) {
   const user = api.getUser();
   if (!user) return;
 
+  // The workspace parent owns the visible shell for iframe pages. Building a
+  // second sidebar/topbar here only creates hidden work and can reintroduce a
+  // layout shift while a child route is loading.
+  if (isEmbeddedWorkspacePage()) {
+    applyCompanyBranding();
+    return;
+  }
+
   const isAdmin   = user.role === 'admin';
   const isManager = user.role === 'manager' || isAdmin;
+  const isWorkspaceStatic = options.presentation === 'workspace-static';
 
   const employeeNavItems = [
     { page: 'dashboard',   icon: gridIcon(),       label: 'Dashboard',    roles: ['admin','manager','employee'] },
@@ -562,8 +571,8 @@ function buildSidebar(activePage) {
     { page: 'employees', icon: usersIcon(), label: 'Employees', roles: ['admin', 'manager'] },
     { page: 'departments', icon: orgIcon(), label: 'Departments', roles: ['admin', 'manager'] },
     { page: 'orgchart', icon: orgIcon(), label: 'Organization Chart', roles: ['admin', 'manager'] },
-    { page: 'recruitment', icon: usersIcon(), label: 'Recruitment', roles: ['admin', 'manager'] },
-    { page: 'onboarding', icon: checkIcon(), label: 'Onboarding', roles: ['admin', 'manager'] },
+    { page: 'recruitment', icon: briefcaseIcon(), label: 'Recruitment', roles: ['admin', 'manager'], standalone: true },
+    { page: 'onboarding', icon: checkIcon(), label: 'Onboarding', roles: ['admin', 'manager'], standalone: true },
     { section: 'Work', icon: calendarIcon(), roles: ['admin', 'manager'] },
     { page: 'attendance', icon: clockIcon(), label: 'Attendance', roles: ['admin', 'manager'] },
     { page: 'leave', icon: calendarIcon(), label: 'Leave Management', roles: ['admin', 'manager'] },
@@ -584,7 +593,21 @@ function buildSidebar(activePage) {
     { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'], standalone: true },
   ];
-  const navItems = user.role === 'employee' ? employeeNavItems : managementNavItems;
+  const workspaceNavItems = [
+    { page: 'dashboard', icon: gridIcon(), label: 'Dashboard', roles: ['admin', 'manager'] },
+    { page: 'announcements', icon: chatIcon(), label: 'Announcements', roles: ['admin'] },
+    { page: 'people', icon: usersIcon(), label: 'People', roles: ['admin', 'manager'], activeFor: ['employees', 'departments', 'orgchart', 'employee-profile'] },
+    { page: 'recruitment', icon: briefcaseIcon(), label: 'Recruitment', roles: ['admin', 'manager'], activeFor: ['hiring', 'recruitment-requests', 'recruitment-request-form', 'recruitment-requisitions', 'recruitment-form', 'recruitment-postings', 'recruitment-posting-form', 'recruitment-candidates', 'recruitment-pipeline', 'recruitment-interviews', 'recruitment-interview-form', 'recruitment-offers', 'recruitment-offer-form', 'recruitment-settings', 'applications', 'candidate'] },
+    { page: 'onboarding', icon: checkIcon(), label: 'Onboarding', roles: ['admin', 'manager'] },
+    { page: 'work', icon: calendarIcon(), label: 'Work', roles: ['admin', 'manager'], activeFor: ['attendance', 'leave', 'calendar', 'todos', 'messages', 'tickets'] },
+    { page: 'finance', icon: walletIcon(), label: 'Pay & Benefits', roles: ['admin', 'manager'], activeFor: ['payroll', 'benefits', 'loans', 'financials'] },
+    { page: 'records', icon: docIcon(), label: 'Growth & Records', roles: ['admin', 'manager'], activeFor: ['documents', 'performance', 'training', 'probation', 'contracts', 'assets', 'disciplinary', 'operations'] },
+    { page: 'administration', icon: settingsIcon(), label: 'Administration', roles: ['admin', 'manager'], activeFor: ['reports', 'audit'] },
+    { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
+  ];
+  const navItems = isWorkspaceStatic
+    ? (user.role === 'employee' ? employeeNavItems.filter(item => item.page) : workspaceNavItems)
+    : (user.role === 'employee' ? employeeNavItems : managementNavItems);
 
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -605,20 +628,21 @@ function buildSidebar(activePage) {
       if (currentGroup) navHtml += '</div></div></div>';
       currentGroup = item.section.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       navHtml += `<div class="nav-group" data-nav-group="${currentGroup}">
-        <button class="nav-group-toggle" type="button" aria-expanded="false">
+        <button class="nav-group-toggle" type="button" aria-expanded="${isWorkspaceStatic ? 'true' : 'false'}"${isWorkspaceStatic ? ' tabindex="-1"' : ''}>
           <span class="nav-group-heading">${item.icon}<span>${item.section}</span></span>
           <svg class="nav-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="nav-group-items"><div class="nav-group-items-inner">`;
       return;
     }
-    const active = activePage === item.page ? 'active' : '';
+    const activeFor = [item.page, ...(item.activeFor || [])];
+    const active = activeFor.includes(activePage) ? 'active' : '';
     const staffRoutes = {
       dashboard: 'overview', announcements: 'announcements', profile: 'profile', attendance: 'attendance',
       todos: 'todos', tickets: 'tickets', leave: 'leave', payroll: 'payroll',
       documents: 'documents', performance: 'performance', orgchart: 'orgchart', settings: 'settings'
     };
-    const isStandaloneHrSettings = user.role !== 'employee' && item.page === 'settings';
+    const isStandaloneHrSettings = user.role !== 'employee' && item.page === 'settings' && !isAdminWorkspace();
     const href = isStandaloneHrSettings
       ? appUrl('/pages/settings.html')
       : user.role === 'employee'
@@ -641,7 +665,7 @@ function buildSidebar(activePage) {
         : appUrl(`/pages/staff-portal.html#${staffRoutes[item.page] || 'overview'}`))
       : (isAdminWorkspace() ? `#${item.page}` : adminWorkspaceUrl(item.page));
     const groupClass = currentGroup ? ' nav-item-child' : '';
-    navHtml += `<a href="${href}" class="nav-item ${active}${groupClass}"${currentGroup ? ` data-nav-parent="${currentGroup}"` : ''}>
+    navHtml += `<a href="${href}" class="nav-item ${active}${groupClass}" data-nav-page="${item.page}" data-nav-active-for="${activeFor.join(' ')}"${active ? ' aria-current="page"' : ''}${currentGroup ? ` data-nav-parent="${currentGroup}"` : ''}>
       ${item.icon}
       <span>${item.label}</span>
       ${item.page === 'announcements' ? '<span class="nav-badge hidden" data-announcement-nav-badge>0</span>' : ''}
@@ -672,20 +696,47 @@ function buildSidebar(activePage) {
       </button>
     </div>
   `;
+  sidebar.classList.toggle('sidebar--workspace-static', isWorkspaceStatic);
   applyCompanyBranding();
   refreshCompanyBranding();
   addPageBackButton(activePage);
   setupQuickAccess(navItems, user, isManager);
-  setupSidebarGroups(sidebar, activePage, user);
+  if (!isWorkspaceStatic) setupSidebarGroups(sidebar, activePage, user);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
   loadMessageNavCount();
   loadAnnouncementNavCount();
 }
 
+function setSidebarActive(activePage) {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return false;
+  const requestedPage = String(activePage || '').trim();
+  let hasActiveItem = false;
+
+  sidebar.querySelectorAll('[data-nav-page]').forEach((link) => {
+    const pages = String(link.dataset.navActiveFor || link.dataset.navPage || '')
+      .split(/\s+/)
+      .filter(Boolean);
+    const isActive = pages.includes(requestedPage);
+    link.classList.toggle('active', isActive);
+    if (isActive) {
+      link.setAttribute('aria-current', 'page');
+      hasActiveItem = true;
+    } else {
+      link.removeAttribute('aria-current');
+    }
+  });
+
+  return hasActiveItem;
+}
+
+window.setSidebarActive = setSidebarActive;
+
 function setupQuickAccess(navItems, user, isManager) {
   const topbar = document.querySelector('.topbar');
   if (!topbar) return;
+  if (topbar.dataset.staticNav === 'true') return;
   const existingQuickAccess = topbar.querySelector('.quick-access');
   if (existingQuickAccess) {
     const input = existingQuickAccess.querySelector('.quick-access-input');
@@ -793,6 +844,7 @@ function addPageBackButton(activePage) {
   if (activePage === 'dashboard' || document.querySelector('[data-page-back-button]')) return;
   const topbar = document.querySelector('.topbar');
   if (!topbar) return;
+  if (topbar.dataset.staticNav === 'true') return;
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'btn btn-outline btn-sm';
@@ -1008,6 +1060,7 @@ function replaceNotificationsCache(rows) {
 window.replaceNotificationsCache = replaceNotificationsCache;
 
 async function loadNotifCount() {
+  if (isEmbeddedWorkspacePage()) return;
   try {
     bindNotificationButtons();
     const data = await api.get('/notifications/unread-count');

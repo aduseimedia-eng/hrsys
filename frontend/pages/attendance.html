@@ -201,6 +201,9 @@ async function clockAction(type) {
     toast('Getting your precise location…', 'info');
     const location = await requestAttendanceLocation();
     const attendance = await api.post(`/attendance/clock-${type}`, location);
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'hrconnect:attendance-updated' }, window.location.origin);
+    }
     toast(`Clocked ${type} at ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`, 'success');
     await loadTodayStatus();
     await loadMyHistory();

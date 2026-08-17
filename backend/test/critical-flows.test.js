@@ -319,6 +319,25 @@ test('clock-in creates a present attendance record', async () => {
   assert.deepEqual(calls[1].params.slice(-3), [5.603717, -0.186964, 12]);
 });
 
+test('today attendance prioritizes an open overnight shift', async () => {
+  const overnightShift = {
+    id: 14,
+    employee_id: 7,
+    work_date: '2026-08-16',
+    clock_in: '2026-08-16T22:00:00.000Z',
+    clock_out: null,
+    status: 'present'
+  };
+  const calls = mockQueries([{ rows: [overnightShift] }]);
+  const res = response();
+
+  await attendanceController.getToday({ user: { id: 7, company_id: 1 } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.id, 14);
+  assert.match(calls[0].text, /ORDER BY \(clock_in IS NOT NULL AND clock_out IS NULL\) DESC/i);
+});
+
 test('HR attendance export produces a CSV scoped to its company', async () => {
   const calls = mockQueries([{ rows: [{
     work_date: '2026-07-16', employee_name: 'Ama Osei', email: 'ama@example.com',

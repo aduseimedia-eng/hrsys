@@ -205,8 +205,8 @@
     if (!isEmbeddedWorkspacePage()) {
       buildSidebar('recruitment');
       Promise.resolve(loadNotifCount()).catch(() => {});
+      renderRecruitmentNavigation(active);
     }
-    renderRecruitmentNavigation(active);
     return user;
   }
 

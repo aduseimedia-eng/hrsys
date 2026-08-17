@@ -229,7 +229,8 @@ exports.getToday = async (req, res) => {
     const { rows } = await db.query(
       `SELECT * FROM attendance WHERE company_id=$1 AND employee_id=$2
        AND (work_date=$3 OR (work_date=$3::date - 1 AND clock_out IS NULL))
-       ORDER BY work_date DESC, clock_in DESC LIMIT 1`,
+       ORDER BY (clock_in IS NOT NULL AND clock_out IS NULL) DESC,
+                work_date DESC, clock_in DESC LIMIT 1`,
       [req.user.company_id, req.user.id, today]
     );
     res.json(rows[0] || { clocked_in: false });

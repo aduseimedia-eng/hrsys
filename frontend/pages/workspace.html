@@ -15,22 +15,83 @@
     }
 
     .workspace-shell {
+      --sidebar-w: 244px;
+      --topbar-h: 82px;
+      position: relative;
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+      grid-template-rows: var(--topbar-h) minmax(0, 1fr);
       height: 100vh;
       min-height: 100vh;
       overflow: hidden;
     }
 
     .workspace-content {
-      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-width: 0;
+      min-height: 0;
       padding: 0;
-      min-height: calc(100vh - var(--topbar-h));
       overflow: hidden;
       background: var(--bg-page);
     }
 
+    .workspace-stage {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .workspace-module-menu {
+      position: absolute;
+      z-index: 280;
+      top: calc(var(--topbar-h) + 12px);
+      left: calc(var(--sidebar-w) - 1px);
+      width: 246px;
+      max-height: calc(100vh - var(--topbar-h) - 24px);
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #e4e9f1;
+      border-radius: 0 12px 12px 0;
+      background: #fff;
+      box-shadow: 10px 16px 32px rgba(28, 43, 70, .13);
+    }
+
+    .workspace-module-menu__heading {
+      display: flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 10px 7px;
+      border-bottom: 1px solid #edf0f5;
+      color: #24314a;
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .workspace-module-menu__links { padding-top: 6px; }
+    .workspace-module-menu__link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 38px;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      color: #526076;
+      font-size: .84rem;
+      font-weight: 680;
+      text-decoration: none;
+    }
+
+    .workspace-module-menu__link:hover,
+    .workspace-module-menu__link:focus-visible { color: #275bc5; background: #f3f7ff; }
+    .workspace-module-menu__link[aria-current="page"] { color: #275bc5; background: #eaf2ff; }
+    .workspace-module-menu__link svg { width: 15px; height: 15px; flex: 0 0 auto; }
+
     .workspace-frame {
       width: 100%;
-      height: calc(100vh - var(--topbar-h));
+      height: 100%;
       border: 0;
       display: block;
       background: var(--bg-page);
@@ -49,12 +110,304 @@
       position: absolute;
       inset: 0;
       z-index: 1;
-      min-height: calc(100vh - var(--topbar-h));
       display: grid;
       place-items: center;
       background: var(--bg-page);
       color: var(--text-muted);
       font-size: .9rem;
+    }
+
+    .workspace-topbar {
+      min-width: 0;
+      min-height: var(--topbar-h);
+      padding: 0 28px;
+      gap: 20px;
+      background: #fff;
+      border-bottom-color: #e7eaf0;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    .workspace-breadcrumbs {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .workspace-breadcrumbs ol {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      list-style: none;
+    }
+
+    .workspace-breadcrumbs a,
+    .workspace-breadcrumbs [aria-current="page"] {
+      overflow: hidden;
+      color: #33415d;
+      font-size: .92rem;
+      font-weight: 650;
+      text-decoration: none;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .workspace-breadcrumbs a:hover,
+    .workspace-breadcrumbs a:focus-visible { color: var(--brand); }
+    .workspace-breadcrumbs [aria-current="page"] { color: var(--brand); }
+
+    .workspace-breadcrumb-separator {
+      width: 15px;
+      height: 15px;
+      flex: 0 0 auto;
+      color: #98a2b3;
+    }
+
+    .workspace-utilities {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .workspace-attendance {
+      display: inline-flex;
+      width: 164px;
+      height: 48px;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      overflow: hidden;
+      border: 1px solid #c9edd7;
+      border-radius: 9px;
+      color: #167449;
+      background: #effaf2;
+      font: inherit;
+      text-align: left;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    .workspace-attendance:hover,
+    .workspace-attendance:focus-visible { border-color: #9ddbb6; color: #0d5c38; background: #e2f7e9; }
+    .workspace-attendance:disabled { cursor: wait; opacity: .72; }
+    .workspace-attendance__icon {
+      display: inline-grid;
+      width: 26px;
+      height: 26px;
+      flex: 0 0 26px;
+      place-items: center;
+      border-radius: 7px;
+      color: currentColor;
+      background: rgba(22, 116, 73, .10);
+    }
+
+    .workspace-attendance__icon svg { width: 17px; height: 17px; }
+    .workspace-attendance__copy { min-width: 0; flex: 1; }
+    .workspace-attendance__label,
+    .workspace-attendance__elapsed { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .workspace-attendance__label { font-size: .71rem; font-weight: 750; letter-spacing: .01em; }
+    .workspace-attendance__elapsed { margin-top: 1px; font-size: .86rem; font-weight: 850; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+    .workspace-attendance[data-state="working"] { color: #0f7a50; background: #edfbf3; }
+    .workspace-attendance[data-state="complete"] { border-color: #d8e1ec; color: #59677d; background: #f7f9fc; }
+    .workspace-attendance[data-state="complete"] .workspace-attendance__icon { background: #e9eef5; }
+    .workspace-attendance[data-state="error"] { border-color: #f1cbc9; color: #b64945; background: #fff4f3; }
+    .workspace-attendance[data-state="error"] .workspace-attendance__icon { background: #ffe1df; }
+
+    .workspace-utility {
+      display: inline-grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border: 1px solid #f0e5e1;
+      border-radius: 50%;
+      color: #e66a51;
+      background: #fff7f4;
+      text-decoration: none;
+    }
+
+    .workspace-utility:hover,
+    .workspace-utility:focus-visible { color: #c95540; background: #ffede7; }
+    .workspace-utility svg { width: 18px; height: 18px; }
+
+    .workspace-topbar #notif-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #f0e5e1;
+      border-radius: 50%;
+      color: #e66a51;
+      background: #fff7f4;
+      box-shadow: none;
+    }
+
+    .workspace-topbar #notif-btn:hover,
+    .workspace-topbar #notif-btn:focus-visible {
+      border-color: #f0d2c9;
+      color: #c95540;
+      background: #ffede7;
+      box-shadow: none;
+    }
+
+    .workspace-account {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 156px;
+      margin-left: 4px;
+    }
+
+    .workspace-account__avatar {
+      display: inline-grid;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--brand);
+      font-size: .88rem;
+      font-weight: 800;
+    }
+
+    .workspace-account__copy { min-width: 0; }
+    .workspace-account__name,
+    .workspace-account__status { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .workspace-account__name { color: #202a3d; font-size: .86rem; font-weight: 800; }
+    .workspace-account__status { margin-top: 1px; color: #738096; font-size: .74rem; }
+
+    .recruitment-context-nav {
+      grid-row: 1;
+      overflow-x: auto;
+      border-bottom: 1px solid #e7eaf0;
+      background: #fff;
+      scrollbar-width: thin;
+    }
+
+    .workspace-stage { grid-row: 2; }
+
+    .recruitment-context-nav__links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: max-content;
+      padding: 9px 24px;
+    }
+
+    .recruitment-context-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: #657188;
+      font-size: .8rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .recruitment-context-nav a svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    .recruitment-context-nav a:hover,
+    .recruitment-context-nav a:focus-visible { color: #2865d9; background: #f3f7ff; }
+    .recruitment-context-nav a[aria-current="page"] { color: #2865d9; border-color: #c9dafc; background: #eaf2ff; }
+
+    .workspace-shell .sidebar-logo {
+      height: var(--topbar-h);
+      padding: 13px 18px;
+      justify-content: flex-start;
+      border-bottom: 1px solid #e7eaf0;
+    }
+
+    .workspace-shell .sidebar-logo .brand-logo { width: 156px; height: 48px; }
+    .workspace-shell .sidebar--workspace-static .sidebar-nav {
+      padding: 12px 12px 16px;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-item {
+      min-height: 42px;
+      margin: 2px 0;
+      padding: 9px 12px;
+      border-radius: 9px;
+      color: #5f6c82;
+      font-size: .86rem;
+      font-weight: 720;
+      box-shadow: none;
+      transition: background 140ms ease, color 140ms ease;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-item .nav-icon {
+      width: 18px;
+      height: 18px;
+      color: #6f7c91;
+      opacity: 1;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-item:hover,
+    .workspace-shell .sidebar--workspace-static .nav-item:focus-visible {
+      color: #275bc5;
+      background: #f3f7ff;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-item.active {
+      color: #275bc5;
+      background: #eaf2ff;
+      box-shadow: none;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-item.active .nav-icon { color: currentColor; }
+    .workspace-shell .sidebar--workspace-static .nav-group {
+      margin: 16px 0 6px;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-group:first-child { margin-top: 2px; }
+    .workspace-shell .sidebar--workspace-static .nav-group-toggle {
+      min-height: 28px;
+      padding: 0 10px 5px;
+      cursor: default;
+      pointer-events: none;
+      border-radius: 0;
+      color: #8490a4;
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-group-heading { gap: 7px; }
+    .workspace-shell .sidebar--workspace-static .nav-group-heading .nav-icon { width: 15px; height: 15px; color: #8490a4; }
+    .workspace-shell .sidebar--workspace-static .nav-group-chevron { display: none; }
+    .workspace-shell .sidebar--workspace-static .nav-group-items {
+      display: block;
+      opacity: 1;
+      overflow: visible;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-group-items-inner { min-height: auto; }
+    .workspace-shell .sidebar--workspace-static .nav-item-child {
+      min-height: 39px;
+      margin: 1px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: .83rem;
+      font-weight: 680;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-item-child::after { display: none; }
+    .workspace-shell .sidebar--workspace-static .nav-item-child .nav-icon {
+      display: block;
+      width: 17px;
+      height: 17px;
+      color: #6f7c91;
+      opacity: 1;
+    }
+
+    .workspace-shell .sidebar--workspace-static .nav-item-child.active .nav-icon { color: currentColor; }
+    .workspace-shell .sidebar--workspace-static .sidebar-user {
+      margin: 0 12px 12px;
+      padding: 10px 8px;
+      border-radius: 10px;
+      box-shadow: none;
     }
 
     .topbar .icon-btn .dot {
@@ -72,25 +425,106 @@
       font-weight: 800;
       line-height: 1;
     }
+
+    @media (max-width: 900px) {
+      .workspace-account { min-width: 42px; }
+      .workspace-account__copy { display: none; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .workspace-shell { --sidebar-w: 224px; }
+      .workspace-shell .sidebar-logo .brand-logo { width: 144px; }
+    }
+
+    @media (max-width: 768px) {
+      .workspace-shell {
+        --topbar-h: 68px;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+      }
+      .workspace-topbar { padding: 0 14px; gap: 10px; }
+      .workspace-breadcrumbs ol { gap: 7px; }
+      .workspace-breadcrumbs a,
+      .workspace-breadcrumbs [aria-current="page"] { font-size: .8rem; }
+      .workspace-breadcrumbs li:first-child,
+      .workspace-breadcrumbs li:nth-child(2) { display: none; }
+      .workspace-settings { display: none; }
+      .workspace-utilities { gap: 6px; }
+      .workspace-attendance { width: 104px; gap: 6px; padding: 6px 8px; }
+      .workspace-attendance__label { display: none; }
+      .workspace-attendance__elapsed { margin-top: 0; font-size: .8rem; }
+      .recruitment-context-nav__links { padding: 7px 12px; }
+      .recruitment-context-nav a { min-height: 40px; }
+      .workspace-shell .sidebar-logo { height: 68px; }
+      .workspace-module-menu { display: none !important; }
+    }
+
+    @media (max-width: 520px) {
+      .workspace-breadcrumbs { display: none; }
+      .workspace-attendance { width: 108px; }
+    }
   </style>
 </head>
 <body>
 <div class="app-shell workspace-shell">
   <aside class="sidebar" id="sidebar"></aside>
+  <aside class="workspace-module-menu" id="workspace-module-menu" aria-label="Module pages" hidden></aside>
 
-  <header class="topbar">
-    <div class="topbar-title" id="workspace-title">Dashboard</div>
-    <div class="topbar-actions">
-      <button class="icon-btn" id="notif-btn" title="Notifications">
+  <header class="topbar workspace-topbar" data-static-nav="true">
+    <nav class="workspace-breadcrumbs" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="#dashboard">KenadHR</a></li>
+        <li aria-hidden="true"><svg class="workspace-breadcrumb-separator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></li>
+        <li><a id="workspace-module" href="#dashboard">Workspace</a></li>
+        <li aria-hidden="true"><svg class="workspace-breadcrumb-separator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></li>
+        <li id="workspace-title" aria-current="page">Dashboard</li>
+      </ol>
+    </nav>
+    <div class="topbar-actions workspace-utilities">
+      <button class="workspace-attendance" id="workspace-attendance-control" type="button" data-state="ready" aria-label="Clock in. You are not clocked in today.">
+        <span class="workspace-attendance__icon" id="workspace-attendance-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10v18H5z"/><path d="M10 12h11M17 8l4 4-4 4"/></svg>
+        </span>
+        <span class="workspace-attendance__copy">
+          <span class="workspace-attendance__label" id="workspace-attendance-label">Clock in</span>
+          <time class="workspace-attendance__elapsed" id="workspace-attendance-elapsed" aria-live="off">Not started</time>
+        </span>
+      </button>
+      <a class="workspace-utility workspace-settings" id="workspace-settings" href="#settings" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.04.04a2 2 0 1 1-2.83 2.83l-.04-.04A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.08A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.04.04a2 2 0 1 1-2.83-2.83l.04-.04A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.08A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.04-.04a2 2 0 1 1 2.83-2.83l.04.04A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.08A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.04-.04a2 2 0 1 1 2.83 2.83l-.04.04A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-1.52.6z"/></svg>
+      </a>
+      <button class="icon-btn" id="notif-btn" title="Notifications" aria-label="Notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         <span class="dot hidden" id="notif-badge"></span>
       </button>
+      <div class="workspace-account" aria-label="Signed-in account">
+        <span class="workspace-account__avatar" id="workspace-user-initials">HR</span>
+        <span class="workspace-account__copy">
+          <span class="workspace-account__name" id="workspace-user-name">Signed in</span>
+          <span class="workspace-account__status" id="workspace-user-status">HR workspace</span>
+        </span>
+      </div>
     </div>
   </header>
 
-  <main class="main-content workspace-content">
-    <div class="workspace-loading" id="workspace-loading">Loading workspace...</div>
-    <iframe class="workspace-frame hidden" id="workspace-frame" title="KenadHR page"></iframe>
+  <main class="main-content workspace-content" id="workspace-content">
+    <nav class="recruitment-context-nav" id="recruitment-context-nav" aria-label="Recruitment navigation" hidden>
+      <div class="recruitment-context-nav__links">
+        <a data-recruitment-tab="dashboard" href="#recruitment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></a>
+        <a data-recruitment-tab="requests" href="#recruitment-requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6v3H9z"/><path d="m9 14 2 2 4-4"/></svg><span>Requests</span></a>
+        <a data-recruitment-tab="requisitions" href="#recruitment-requisitions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16v12H4z"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M4 12h16M10 15h4"/></svg><span>Requisitions</span></a>
+        <a data-recruitment-tab="postings" href="#recruitment-postings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 11h3l7-5v12l-7-5H4z"/><path d="M17 9.5a4 4 0 0 1 0 5M19.5 7a7 7 0 0 1 0 10"/></svg><span>Job postings</span></a>
+        <a data-recruitment-tab="applications" href="#applications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><circle cx="10" cy="14" r="2"/><path d="M7 19a3 3 0 0 1 6 0"/></svg><span>Applications</span></a>
+        <a data-recruitment-tab="pipeline" href="#recruitment-pipeline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 7.5 10.5 16M17 7.5 13.5 16"/></svg><span>Pipeline</span></a>
+        <a data-recruitment-tab="interviews" href="#recruitment-interviews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h3M8 17h6"/></svg><span>Interviews</span></a>
+        <a data-recruitment-tab="offers" href="#recruitment-offers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="m8 16 2 2 5-5"/></svg><span>Offers</span></a>
+        <a data-recruitment-tab="settings" href="#recruitment-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.04.04a2 2 0 1 1-2.83 2.83l-.04-.04A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.08A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.04.04a2 2 0 1 1-2.83-2.83l.04-.04A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.08A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.08A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.04-.04a2 2 0 1 1 2.83 2.83l-.04.04A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 0 0 0 1.1.4H21a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-1.52.6z"/></svg><span>Settings</span></a>
+      </div>
+    </nav>
+    <div class="workspace-stage">
+      <div class="workspace-loading" id="workspace-loading">Loading workspace...</div>
+      <iframe class="workspace-frame hidden" id="workspace-frame" title="KenadHR page"></iframe>
+    </div>
   </main>
 </div>
 
@@ -103,30 +537,30 @@ const WORKSPACE_DEFAULT = 'dashboard';
 const WORKSPACE_PAGES = {
   dashboard: { title: 'Dashboard', nav: 'dashboard' },
   announcements: { title: 'Announcements', nav: 'announcements' },
-  attendance: { title: 'Attendance', nav: 'attendance' },
-  leave: { title: 'Leave Management', nav: 'leave' },
-  calendar: { title: 'Company Calendar', nav: 'calendar' },
-  payroll: { title: 'Payroll', nav: 'payroll' },
+  attendance: { title: 'Attendance', nav: 'work' },
+  leave: { title: 'Leave Management', nav: 'work' },
+  calendar: { title: 'Company Calendar', nav: 'work' },
+  payroll: { title: 'Payroll', nav: 'finance' },
   people: { title: 'People', nav: 'people', src: '/pages/hub.html?hub=people' },
   work: { title: 'Work', nav: 'work', src: '/pages/hub.html?hub=work' },
   records: { title: 'Growth & Records', nav: 'records', src: '/pages/hub.html?hub=records' },
   finance: { title: 'Finance', nav: 'finance', src: '/pages/hub.html?hub=finance' },
   administration: { title: 'Administration', nav: 'administration', src: '/pages/hub.html?hub=administration' },
-  financials: { title: 'Financials', nav: 'financials' },
-  audit: { title: 'Audit History', nav: 'audit' },
-  assets: { title: 'Company Assets', nav: 'assets' },
-  benefits: { title: 'Benefits', nav: 'benefits' },
-  loans: { title: 'Employee Loans', nav: 'loans' },
-  todos: { title: 'To Do List', nav: 'todos' },
-  tickets: { title: 'Tickets', nav: 'tickets' },
-  messages: { title: 'Messages', nav: 'messages' },
-  documents: { title: 'Documents', nav: 'documents' },
-  performance: { title: 'Performance Reviews', nav: 'performance' },
-  training: { title: 'Training Register', nav: 'training' },
-  probation: { title: 'Probation Tracker', nav: 'probation' },
-  disciplinary: { title: 'Disciplinary Register', nav: 'disciplinary' },
-  operations: { title: 'Operations Registers', nav: 'operations' },
-  contracts: { title: 'Contract Expiry Tracker', nav: 'contracts' },
+  financials: { title: 'Financials', nav: 'finance' },
+  audit: { title: 'Audit History', nav: 'administration' },
+  assets: { title: 'Company Assets', nav: 'records' },
+  benefits: { title: 'Benefits', nav: 'finance' },
+  loans: { title: 'Employee Loans', nav: 'finance' },
+  todos: { title: 'To Do List', nav: 'work' },
+  tickets: { title: 'Tickets', nav: 'work' },
+  messages: { title: 'Messages', nav: 'work' },
+  documents: { title: 'Documents', nav: 'records' },
+  performance: { title: 'Performance Reviews', nav: 'records' },
+  training: { title: 'Training Register', nav: 'records' },
+  probation: { title: 'Probation Tracker', nav: 'records' },
+  disciplinary: { title: 'Disciplinary Register', nav: 'records' },
+  operations: { title: 'Operations Registers', nav: 'records' },
+  contracts: { title: 'Contract Expiry Tracker', nav: 'records' },
   hiring: { title: 'Recruitment', nav: 'recruitment', src: '/pages/recruitment.html' },
   recruitment: { title: 'Recruitment', nav: 'recruitment' },
   'recruitment-requests': { title: 'Recruitment Requests', nav: 'recruitment' },
@@ -145,17 +579,144 @@ const WORKSPACE_PAGES = {
   applications: { title: 'Candidate Applications', nav: 'recruitment' },
   candidate: { title: 'Candidate Profile', nav: 'recruitment' },
   onboarding: { title: 'Onboarding', nav: 'onboarding' },
-  reports: { title: 'Reports & Workflows', nav: 'reports' },
-  employees: { title: 'Employees', nav: 'employees' },
-  departments: { title: 'Departments', nav: 'departments' },
-  orgchart: { title: 'Organization Chart', nav: 'orgchart' },
+  reports: { title: 'Reports & Workflows', nav: 'administration' },
+  employees: { title: 'Employees', nav: 'people' },
+  departments: { title: 'Departments', nav: 'people' },
+  orgchart: { title: 'Organization Chart', nav: 'people' },
   settings: { title: 'Settings', nav: 'settings' },
-  'employee-profile': { title: 'Employee Profile', nav: 'employees' }
+  'employee-profile': { title: 'Employee Profile', nav: 'people' }
 };
+const WORKSPACE_MODULES = Object.freeze({
+  dashboard: { label: 'Home', href: '#dashboard' },
+  announcements: { label: 'Announcements', href: '#announcements' },
+  people: { label: 'People', href: '#people' },
+  recruitment: { label: 'Recruitment', href: '#recruitment' },
+  onboarding: { label: 'Onboarding', href: '#onboarding' },
+  work: { label: 'Work', href: '#work' },
+  finance: { label: 'Pay & Benefits', href: '#finance' },
+  records: { label: 'Growth & Records', href: '#records' },
+  administration: { label: 'Administration', href: '#administration' },
+  settings: { label: 'Settings', href: '#settings' }
+});
+const WORKSPACE_MODULE_MENUS = Object.freeze({
+  people: {
+    label: 'People',
+    items: [
+      { route: 'people', label: 'People overview' },
+      { route: 'employees', label: 'Employees', activeFor: ['employee-profile'] },
+      { route: 'departments', label: 'Departments' },
+      { route: 'orgchart', label: 'Organization chart' },
+      { route: 'onboarding', label: 'Onboarding' }
+    ]
+  },
+  recruitment: {
+    label: 'Recruitment',
+    items: [
+      { route: 'recruitment', label: 'Dashboard', activeFor: ['hiring'] },
+      { route: 'recruitment-requests', label: 'Recruitment requests', activeFor: ['recruitment-request-form'] },
+      { route: 'recruitment-requisitions', label: 'Job requisitions', activeFor: ['recruitment-form'] },
+      { route: 'recruitment-postings', label: 'Job postings', activeFor: ['recruitment-posting-form'] },
+      { route: 'applications', label: 'Applications', activeFor: ['candidate', 'recruitment-candidates'] },
+      { route: 'recruitment-pipeline', label: 'Recruitment pipeline' },
+      { route: 'recruitment-interviews', label: 'Interviews', activeFor: ['recruitment-interview-form'] },
+      { route: 'recruitment-offers', label: 'Job offers', activeFor: ['recruitment-offer-form'] },
+      { route: 'recruitment-settings', label: 'Configuration' }
+    ]
+  },
+  work: {
+    label: 'Work',
+    items: [
+      { route: 'work', label: 'Work overview' },
+      { route: 'attendance', label: 'Attendance' },
+      { route: 'leave', label: 'Leave management' },
+      { route: 'calendar', label: 'Company calendar' },
+      { route: 'todos', label: 'To do list' },
+      { route: 'messages', label: 'Messages' },
+      { route: 'tickets', label: 'Tickets' }
+    ]
+  },
+  finance: {
+    label: 'Pay & Benefits',
+    items: [
+      { route: 'finance', label: 'Pay & benefits overview' },
+      { route: 'payroll', label: 'Payroll' },
+      { route: 'benefits', label: 'Benefits' },
+      { route: 'loans', label: 'Employee loans' },
+      { route: 'financials', label: 'Financials' }
+    ]
+  },
+  records: {
+    label: 'Growth & Records',
+    items: [
+      { route: 'records', label: 'Records overview' },
+      { route: 'documents', label: 'Documents' },
+      { route: 'performance', label: 'Performance reviews' },
+      { route: 'training', label: 'Training register' },
+      { route: 'probation', label: 'Probation tracker' },
+      { route: 'contracts', label: 'Contract expiry' },
+      { route: 'assets', label: 'Company assets' },
+      { route: 'disciplinary', label: 'Disciplinary register' },
+      { route: 'operations', label: 'Operations registers' }
+    ]
+  },
+  administration: {
+    label: 'Administration',
+    items: [
+      { route: 'administration', label: 'Administration overview' },
+      { route: 'reports', label: 'Reports & workflows' },
+      { route: 'audit', label: 'Audit history', roles: ['admin'] },
+      { route: 'settings', label: 'Settings', roles: ['admin'] }
+    ]
+  }
+});
 
 const workspaceFrame = document.getElementById('workspace-frame');
 const workspaceLoading = document.getElementById('workspace-loading');
+const workspaceContent = document.getElementById('workspace-content');
+const workspaceModuleMenu = document.getElementById('workspace-module-menu');
+const recruitmentContextNav = document.getElementById('recruitment-context-nav');
+const workspaceModule = document.getElementById('workspace-module');
+const workspaceTitle = document.getElementById('workspace-title');
+const recruitmentTabLinks = Array.from(document.querySelectorAll('[data-recruitment-tab]'));
+const workspaceAttendanceControl = document.getElementById('workspace-attendance-control');
+const workspaceAttendanceIcon = document.getElementById('workspace-attendance-icon');
+const workspaceAttendanceLabel = document.getElementById('workspace-attendance-label');
+const workspaceAttendanceElapsed = document.getElementById('workspace-attendance-elapsed');
+const RECRUITMENT_TAB_ROUTES = Object.freeze({
+  hiring: 'dashboard',
+  recruitment: 'dashboard',
+  'recruitment-requests': 'requests',
+  'recruitment-request-form': 'requests',
+  'recruitment-requisitions': 'requisitions',
+  'recruitment-form': 'requisitions',
+  'recruitment-postings': 'postings',
+  'recruitment-posting-form': 'postings',
+  applications: 'applications',
+  candidate: 'applications',
+  'recruitment-candidates': 'applications',
+  'recruitment-pipeline': 'pipeline',
+  'recruitment-interviews': 'interviews',
+  'recruitment-interview-form': 'interviews',
+  'recruitment-offers': 'offers',
+  'recruitment-offer-form': 'offers',
+  'recruitment-settings': 'settings'
+});
 let syncingFromFrame = false;
+let workspaceSidebarReady = false;
+let workspaceAttendance = null;
+let workspaceAttendanceLoaded = false;
+let workspaceAttendanceBusy = false;
+let workspaceAttendanceIssue = '';
+let workspaceAttendanceOvertimeReady = false;
+let workspaceAttendanceTimerId = null;
+let workspaceAttendanceRefreshToken = 0;
+
+setupWorkspaceIdentity();
+updateWorkspaceChrome(parseWorkspaceRoute(), WORKSPACE_PAGES[parseWorkspaceRoute().page]);
+renderWorkspaceAttendance();
+workspaceAttendanceControl.addEventListener('click', () => { workspaceAttendanceAction(); });
+loadWorkspaceAttendance();
+window.addEventListener('focus', () => { loadWorkspaceAttendance(); });
 
 initializeWorkspace();
 
@@ -189,8 +750,12 @@ function navigateWorkspace(route) {
 }
 
 window.addEventListener('message', (event) => {
-  if (event.origin !== window.location.origin && event.source !== workspaceFrame.contentWindow) return;
+  if (event.origin !== window.location.origin || event.source !== workspaceFrame.contentWindow) return;
   const data = event.data || {};
+  if (data.type === 'hrconnect:attendance-updated') {
+    loadWorkspaceAttendance();
+    return;
+  }
   if (data.type !== 'hrconnect:navigate') return;
   navigateWorkspace(data.route);
 });
@@ -217,14 +782,225 @@ function parseWorkspaceRoute() {
   return { page, query };
 }
 
+function workspaceUserName() {
+  const name = [workspaceUser.first_name, workspaceUser.last_name].filter(Boolean).join(' ').trim();
+  return name || workspaceUser.email || 'Signed in';
+}
+
+function setupWorkspaceIdentity() {
+  const name = workspaceUserName();
+  const parts = name.split(/\s+/).filter(Boolean);
+  const initials = parts.length > 1
+    ? `${parts[0][0]}${parts[parts.length - 1][0]}`
+    : (parts[0] || 'HR').slice(0, 2);
+  const roleLabel = { admin: 'Administrator', manager: 'Manager', employee: 'Staff member' }[workspaceUser.role] || 'Signed in';
+
+  document.getElementById('workspace-user-initials').textContent = initials.toUpperCase();
+  document.getElementById('workspace-user-name').textContent = name;
+  document.getElementById('workspace-user-status').textContent = roleLabel;
+  document.querySelector('.workspace-account')?.setAttribute('aria-label', `Signed in as ${name}`);
+  document.getElementById('workspace-settings').hidden = workspaceUser.role !== 'admin';
+}
+
+function workspaceAttendanceSvg(state) {
+  const paths = {
+    ready: '<path d="M5 3h10v18H5z"/><path d="M10 12h11M17 8l4 4-4 4"/>',
+    working: '<path d="M5 3h10v18H5z"/><path d="M21 12H10M14 8l-4 4 4 4"/>',
+    complete: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>',
+    error: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[state] || paths.ready}</svg>`;
+}
+
+function formatWorkspaceAttendanceDuration(clockIn, clockOut = null) {
+  const start = new Date(clockIn).getTime();
+  const end = clockOut ? new Date(clockOut).getTime() : Date.now();
+  const seconds = Math.max(0, Math.floor((end - start) / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+function clearWorkspaceAttendanceTimer() {
+  if (workspaceAttendanceTimerId) window.clearInterval(workspaceAttendanceTimerId);
+  workspaceAttendanceTimerId = null;
+}
+
+function updateWorkspaceAttendanceElapsed() {
+  if (!workspaceAttendance?.clock_in || workspaceAttendance.clock_out || workspaceAttendanceBusy || workspaceAttendanceIssue) return;
+  workspaceAttendanceElapsed.textContent = formatWorkspaceAttendanceDuration(workspaceAttendance.clock_in);
+}
+
+function startWorkspaceAttendanceTimer() {
+  clearWorkspaceAttendanceTimer();
+  if (!workspaceAttendance?.clock_in || workspaceAttendance.clock_out || workspaceAttendanceBusy || workspaceAttendanceIssue) return;
+  updateWorkspaceAttendanceElapsed();
+  workspaceAttendanceTimerId = window.setInterval(updateWorkspaceAttendanceElapsed, 1000);
+}
+
+function workspaceAttendanceErrorLabel(message) {
+  if (/location|gps|permission/i.test(String(message || ''))) return 'Location needed';
+  if (/already|open attendance|clocked/i.test(String(message || ''))) return 'Status changed';
+  return 'Try again';
+}
+
+function renderWorkspaceAttendance() {
+  if (!workspaceAttendanceControl) return;
+  clearWorkspaceAttendanceTimer();
+
+  const hasClockIn = Boolean(workspaceAttendance?.clock_in);
+  const isWorking = hasClockIn && !workspaceAttendance.clock_out;
+  const isComplete = hasClockIn && Boolean(workspaceAttendance.clock_out);
+  let state = 'ready';
+  let label = 'Clock in';
+  let elapsed = 'Not started';
+  let ariaLabel = 'Clock in. You are not clocked in today.';
+  let disabled = false;
+
+  if (!workspaceAttendanceLoaded) {
+    label = 'Attendance';
+    elapsed = 'Loading…';
+    ariaLabel = 'Loading your attendance status.';
+    disabled = true;
+  } else if (workspaceAttendanceBusy) {
+    label = 'Getting location';
+    elapsed = 'Please wait';
+    ariaLabel = 'Getting your precise location for attendance.';
+    disabled = true;
+  } else if (workspaceAttendanceIssue) {
+    state = 'error';
+    label = workspaceAttendanceErrorLabel(workspaceAttendanceIssue);
+    elapsed = 'Retry';
+    ariaLabel = `${label}. ${workspaceAttendanceIssue}`;
+  } else if (isWorking) {
+    state = 'working';
+    label = 'Clock out';
+    elapsed = formatWorkspaceAttendanceDuration(workspaceAttendance.clock_in);
+    ariaLabel = 'Clock out. Your attendance timer is running.';
+  } else if (isComplete) {
+    state = 'complete';
+    label = workspaceAttendanceOvertimeReady ? 'Overtime ready' : 'Completed';
+    elapsed = workspaceAttendanceOvertimeReady ? 'Review' : formatWorkspaceAttendanceDuration(workspaceAttendance.clock_in, workspaceAttendance.clock_out);
+    ariaLabel = workspaceAttendanceOvertimeReady
+      ? 'Overtime may be eligible. Open Attendance to review it.'
+      : 'Attendance completed. Open Attendance to view today’s record.';
+  }
+
+  workspaceAttendanceControl.dataset.state = state;
+  workspaceAttendanceControl.disabled = disabled;
+  workspaceAttendanceControl.title = workspaceAttendanceIssue || '';
+  workspaceAttendanceControl.setAttribute('aria-label', ariaLabel);
+  workspaceAttendanceIcon.innerHTML = workspaceAttendanceSvg(state);
+  workspaceAttendanceLabel.textContent = label;
+  workspaceAttendanceElapsed.textContent = elapsed;
+  if (isWorking && !workspaceAttendanceBusy && !workspaceAttendanceIssue) startWorkspaceAttendanceTimer();
+}
+
+async function loadWorkspaceAttendance() {
+  if (workspaceAttendanceBusy) return;
+  const refreshToken = ++workspaceAttendanceRefreshToken;
+  try {
+    const attendance = await api.get('/attendance/today');
+    if (refreshToken !== workspaceAttendanceRefreshToken || workspaceAttendanceBusy) return;
+    workspaceAttendance = attendance?.clock_in ? attendance : null;
+    workspaceAttendanceIssue = '';
+    workspaceAttendanceOvertimeReady = false;
+  } catch (error) {
+    if (refreshToken !== workspaceAttendanceRefreshToken || workspaceAttendanceBusy) return;
+    workspaceAttendanceIssue = error.message || 'Could not load attendance status.';
+  } finally {
+    if (refreshToken !== workspaceAttendanceRefreshToken || workspaceAttendanceBusy) return;
+    workspaceAttendanceLoaded = true;
+    renderWorkspaceAttendance();
+  }
+}
+
+async function workspaceAttendanceAction() {
+  if (workspaceAttendanceBusy || !workspaceAttendanceLoaded) return;
+
+  if (workspaceAttendance?.clock_in && workspaceAttendance.clock_out) {
+    navigateWorkspace('attendance');
+    return;
+  }
+
+  const action = workspaceAttendance?.clock_in ? 'out' : 'in';
+  workspaceAttendanceRefreshToken += 1;
+  workspaceAttendanceBusy = true;
+  workspaceAttendanceIssue = '';
+  renderWorkspaceAttendance();
+
+  try {
+    const location = await requestAttendanceLocation();
+    const attendance = await api.post(`/attendance/clock-${action}`, location);
+    workspaceAttendance = attendance;
+    workspaceAttendanceOvertimeReady = action === 'out' && Boolean(attendance.overtime_eligible);
+  } catch (error) {
+    workspaceAttendanceIssue = error.message || `Could not clock ${action}.`;
+  } finally {
+    workspaceAttendanceBusy = false;
+    workspaceAttendanceLoaded = true;
+    renderWorkspaceAttendance();
+  }
+}
+
+function updateWorkspaceChrome(route, pageMeta) {
+  const isRecruitmentDashboard = route.page === 'hiring' || route.page === 'recruitment';
+  const currentTitle = isRecruitmentDashboard ? 'Dashboard' : pageMeta.title;
+  const module = WORKSPACE_MODULES[pageMeta.nav] || WORKSPACE_MODULES.dashboard;
+
+  workspaceModule.textContent = module.label;
+  workspaceModule.href = module.href;
+  workspaceTitle.textContent = currentTitle;
+  document.title = `${module.label} / ${currentTitle} - KenadHR`;
+
+  workspaceContent.classList.toggle('is-recruitment-workspace', pageMeta.nav === 'recruitment');
+  recruitmentContextNav.hidden = true;
+  renderWorkspaceModuleMenu(pageMeta.nav, route.page);
+}
+
+function workspaceModuleMenuArrow() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+}
+
+function renderWorkspaceModuleMenu(moduleKey, activePage) {
+  if (!workspaceModuleMenu) return;
+  const menu = WORKSPACE_MODULE_MENUS[moduleKey];
+  const items = menu?.items.filter((item) => !item.roles || item.roles.includes(workspaceUser.role)) || [];
+  if (!menu || !items.length) {
+    workspaceModuleMenu.hidden = true;
+    workspaceModuleMenu.innerHTML = '';
+    return;
+  }
+
+  workspaceModuleMenu.hidden = false;
+  workspaceModuleMenu.innerHTML = `
+    <div class="workspace-module-menu__heading">${menu.label}</div>
+    <nav class="workspace-module-menu__links" aria-label="${menu.label} pages">
+      ${items.map((item) => {
+        const pages = [item.route, ...(item.activeFor || [])];
+        const isActive = pages.includes(activePage);
+        return `<a class="workspace-module-menu__link" href="#${item.route}"${isActive ? ' aria-current="page"' : ''}><span>${item.label}</span>${workspaceModuleMenuArrow()}</a>`;
+      }).join('')}
+    </nav>`;
+}
+
+function updateWorkspaceSidebar(activePage) {
+  if (!workspaceSidebarReady || !document.getElementById('sidebar')?.children.length) {
+    buildSidebar(activePage, { presentation: 'workspace-static' });
+    workspaceSidebarReady = true;
+    return;
+  }
+  setSidebarActive(activePage);
+}
+
 function loadWorkspaceRoute() {
   const route = parseWorkspaceRoute();
   const pageMeta = WORKSPACE_PAGES[route.page];
   const src = pageMeta.src ? appUrl(pageMeta.src) : appUrl(`/pages/${route.page}.html${route.query}`);
 
-  document.getElementById('workspace-title').textContent = pageMeta.title;
-  document.title = `${pageMeta.title} - KenadHR`;
-  buildSidebar(pageMeta.nav);
+  updateWorkspaceChrome(route, pageMeta);
+  updateWorkspaceSidebar(pageMeta.nav);
   loadNotifCount();
 
   if (workspaceFrame.dataset.src !== src) {
@@ -247,9 +1023,8 @@ function syncRouteFromFrame() {
     syncingFromFrame = true;
     window.history.replaceState(null, '', `#${route}`);
     const pageMeta = WORKSPACE_PAGES[page];
-    document.getElementById('workspace-title').textContent = pageMeta.title;
-    document.title = `${pageMeta.title} - KenadHR`;
-    buildSidebar(pageMeta.nav);
+    updateWorkspaceChrome({ page, query: frameUrl.search }, pageMeta);
+    updateWorkspaceSidebar(pageMeta.nav);
     loadNotifCount();
     syncingFromFrame = false;
   } catch (err) {

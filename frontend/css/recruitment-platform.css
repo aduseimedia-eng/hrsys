@@ -1,4 +1,10 @@
 /* Shared Recruitment workspace shell. Load this after main.css on recruitment pages. */
+/* workspace.html owns the persistent Recruitment tabs. The child page keeps
+   this navigation only as a direct-visit fallback. */
+body.embedded-page #recruitment-nav {
+  display: none !important;
+}
+
 #recruitment-nav:empty {
   display: block;
   min-height: 110px;
