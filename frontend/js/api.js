@@ -566,6 +566,7 @@ function buildSidebar(activePage) {
     { page: 'messages',    icon: chatIcon(),       label: 'Messages',     roles: ['admin','manager','employee'] },
     { section: 'Workforce', icon: usersIcon(), roles: ['admin','manager','employee'] },
     { page: 'attendance',  icon: clockIcon(),      label: 'Attendance',   roles: ['admin','employee'] },
+    { page: 'internal-jobs', icon: briefcaseIcon(), label: 'Internal Jobs', roles: ['employee'] },
     { page: 'todos',       icon: checkIcon(),      label: 'To Do List',    roles: ['admin','manager','employee'] },
     { page: 'leave',       icon: calendarIcon(),   label: 'Leave',        roles: ['admin','manager','employee'] },
     { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
@@ -586,7 +587,7 @@ function buildSidebar(activePage) {
     { page: 'employees', icon: usersIcon(), label: 'Employees', roles: ['admin', 'manager'] },
     { page: 'departments', icon: orgIcon(), label: 'Departments', roles: ['admin', 'manager'] },
     { page: 'orgchart', icon: orgIcon(), label: 'Organization Chart', roles: ['admin', 'manager'] },
-    { page: 'hiring', icon: usersIcon(), label: 'Hiring & ATS', roles: ['admin', 'manager'] },
+    { page: 'recruitment', icon: usersIcon(), label: 'Recruitment', roles: ['admin', 'manager'] },
     { page: 'onboarding', icon: checkIcon(), label: 'Onboarding', roles: ['admin', 'manager'] },
     { section: 'Work', icon: calendarIcon(), roles: ['admin', 'manager'] },
     { page: 'attendance', icon: clockIcon(), label: 'Attendance', roles: ['admin', 'manager'] },
@@ -646,7 +647,9 @@ function buildSidebar(activePage) {
     const href = isStandaloneHrSettings
       ? appUrl('/pages/settings.html')
       : user.role === 'employee'
-      ? (item.page === 'messages'
+      ? (item.page === 'internal-jobs'
+        ? appUrl('/pages/internal-jobs.html')
+        : item.page === 'messages'
         ? appUrl('/pages/messages.html')
         : item.page === 'calendar'
           ? appUrl('/pages/calendar.html')
@@ -731,7 +734,8 @@ function setupQuickAccess(navItems, user, isManager) {
     .map(item => ({
       label: item.label,
       href: user.role === 'employee'
-        ? (item.page === 'messages' ? appUrl('/pages/messages.html')
+        ? (item.page === 'internal-jobs' ? appUrl('/pages/internal-jobs.html')
+          : item.page === 'messages' ? appUrl('/pages/messages.html')
           : item.page === 'calendar' ? appUrl('/pages/calendar.html')
             : item.page === 'benefits' ? appUrl('/pages/benefits.html')
               : item.page === 'training' ? appUrl('/pages/training.html')
@@ -747,7 +751,7 @@ function setupQuickAccess(navItems, user, isManager) {
     ['To Do List', 'todos'], ['Messages', 'messages'],
     ['Documents', 'documents'], ['Performance Reviews', 'performance'], ['Training Register', 'training'],
     ['Probation Tracker', 'probation'], ['Disciplinary Register', 'disciplinary'],
-    ['Contract Expiry Tracker', 'contracts'], ['Hiring & ATS', 'hiring'], ['Onboarding', 'onboarding'],
+    ['Contract Expiry Tracker', 'contracts'], ['Recruitment', 'recruitment'], ['Onboarding', 'onboarding'],
     ['Reports & Workflows', 'reports'], ['Employees', 'employees'], ['Departments', 'departments'],
     ['Organization Chart', 'orgchart']
   ];

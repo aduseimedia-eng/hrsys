@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 
 const db = require('../config/db');
 const authController = require('../controllers/auth.controller');
+const recruitmentController = require('../controllers/recruitment.controller');
 const employeeController = require('../controllers/employee.controller');
 const documentsController = require('../controllers/documents.controller');
 const leaveController = require('../controllers/leave.controller');
@@ -61,6 +62,92 @@ test('login returns a token and never exposes the password hash', async () => {
   assert.ok(res.body.token);
   assert.equal(res.body.user.email, 'ama@example.com');
   assert.equal('password_hash' in res.body.user, false);
+});
+
+test('HR login requires a confirmation-code service before issuing a token', async () => {
+  const hash = await bcrypt.hash('Password123!', 4);
+  mockQueries([{ rows: [{ id: 9, company_id: 1, first_name: 'Esi', last_name: 'Kusi', email: 'esi@example.com', password_hash: hash, role: 'admin', department_id: null, photo_url: null, phone: '0241234567', is_active: true }] }]);
+  const res = response();
+
+  const originalVynfyKey = process.env.VYNFY_API_KEY;
+  delete process.env.VYNFY_API_KEY;
+  try {
+    await authController.login({ body: { email: 'esi@example.com', password: 'Password123!' } }, res);
+  } finally {
+    if (originalVynfyKey === undefined) delete process.env.VYNFY_API_KEY;
+    else process.env.VYNFY_API_KEY = originalVynfyKey;
+  }
+
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.body.token, undefined);
+  assert.match(res.body.error, /confirmation is not configured/i);
+});
+
+test('internal staff application requires an open job selection', async () => {
+  const res = response();
+
+  await recruitmentController.submitInternalApplication({
+    user: { id: 8, company_id: 1, role: 'employee' },
+    body: {},
+    files: []
+  }, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.match(res.body.error, /choose an open job/i);
+});
+
+test('internal staff cannot apply twice to the same company-scoped job', async () => {
+  const calls = mockQueries([
+    { rows: [{ id: 31, title: 'Internal Auditor' }] },
+    { rows: [{ id: 99 }] }
+  ]);
+  const res = response();
+
+  await recruitmentController.submitInternalApplication({
+    user: { id: 8, company_id: 4, role: 'employee' },
+    body: { requisition_id: 31 },
+    files: []
+  }, res);
+
+  assert.equal(res.statusCode, 409);
+  assert.deepEqual(calls[0].params, [31, 4]);
+  assert.match(res.body.error, /already applied/i);
+});
+
+test('internal candidate handoff reuses the existing employee profile', async () => {
+  const calls = mockQueries([
+    { rows: [{ id: 18, company_id: 4, applicant_employee_id: 8, hired_employee_id: null }] },
+    { rows: [{ id: 8, first_name: 'Ama', last_name: 'Osei', employee_code: 'EMP-008' }] },
+    { rows: [] }
+  ]);
+  const res = response();
+
+  await recruitmentController.hireCandidate({ user: { company_id: 4 }, params: { id: 18 } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.internal_transfer, true);
+  assert.equal(calls.some(call => /INSERT INTO employees/.test(call.text)), false);
+});
+
+test('recruitment dashboard report includes vacancies, offers, and upcoming interviews', async () => {
+  const calls = mockQueries([
+    { rows: [] },
+    { rows: [{ applicants: 12, hired: 3, avg_days_in_pipeline: 9 }] },
+    { rows: [{ status: 'screening', count: 4 }] },
+    { rows: [] }, { rows: [] },
+    { rows: [{ total: 5, ongoing: 2 }] },
+    { rows: [{ total: 3, accepted: 1 }] },
+    { rows: [{ id: 4, candidate_name: 'Adwoa Mensah', requisition_title: 'Accountant' }] }
+  ]);
+  const res = response();
+
+  await recruitmentController.getReport({ user: { company_id: 4 } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.vacancies.ongoing, 2);
+  assert.equal(res.body.offers.accepted, 1);
+  assert.equal(res.body.upcoming_interviews[0].candidate_name, 'Adwoa Mensah');
+  assert.ok(calls.some(call => /candidate_interviews/.test(call.text)));
 });
 
 test('RBAC denies an employee from an admin-only route', () => {

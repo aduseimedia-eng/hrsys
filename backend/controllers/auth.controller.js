@@ -206,7 +206,7 @@ exports.login = async (req, res) => {
 
     const { rows } = await db.query(
       `SELECT id, company_id, first_name, last_name, email, password_hash, role,
-              department_id, photo_url, is_active
+              department_id, photo_url, phone, is_active
        FROM employees WHERE email = $1`,
       [email.toLowerCase().trim()]
     );
@@ -217,6 +217,46 @@ exports.login = async (req, res) => {
 
     const valid = await bcrypt.compare(password, employee.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // HR and manager accounts protect every new sign-in with a confirmation
+    // code.  This is deliberately separate from staff's one-time activation
+    // check: HR confirmation is required for every login.
+    if (['admin', 'manager'].includes(employee.role)) {
+      if (!otpEnabled()) {
+        return res.status(503).json({ error: 'HR sign-in confirmation is not configured. Please contact your administrator.' });
+      }
+      const phone = normalizeGhanaPhone(employee.phone);
+      if (!phone) {
+        return res.status(403).json({ error: 'Your HR account needs a valid Ghana phone number before you can sign in. Please contact an administrator.' });
+      }
+      const recent = await db.query(
+        "SELECT COUNT(*) FROM hr_login_otps WHERE employee_id=$1 AND created_at > NOW() - INTERVAL '15 minutes'",
+        [employee.id]
+      );
+      if (Number(recent.rows[0].count) >= 3) {
+        return res.status(429).json({ error: 'Too many confirmation-code requests. Please wait a few minutes.' });
+      }
+      await callVynfy('/otp/generate', {
+        expiry: 5,
+        length: 6,
+        medium: 'sms',
+        message: 'Your KenadHR HR sign-in confirmation code is %otp_code%. It expires in 5 minutes.',
+        number: phone,
+        otp_type: 'numeric',
+        sender_id: process.env.VYNFY_SENDER_ID || 'KenadHR'
+      });
+      const verificationId = crypto.randomUUID();
+      await db.query(
+        `INSERT INTO hr_login_otps (id, employee_id, phone, expires_at)
+         VALUES ($1,$2,$3,NOW() + INTERVAL '5 minutes')`,
+        [verificationId, employee.id, phone]
+      );
+      return res.status(202).json({
+        requires_otp: true,
+        verification_id: verificationId,
+        message: 'Confirmation code sent'
+      });
+    }
 
     const token = jwt.sign(
       { id: employee.id, role: employee.role },
@@ -229,6 +269,41 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error during login' });
+  }
+};
+
+exports.verifyHrLoginOtp = async (req, res) => {
+  try {
+    const verificationId = String(req.body.verification_id || '').trim();
+    const code = String(req.body.code || '').trim();
+    if (!verificationId || !/^\d{4,8}$/.test(code)) {
+      return res.status(400).json({ error: 'Enter the confirmation code sent to your phone' });
+    }
+    if (!otpEnabled()) {
+      return res.status(503).json({ error: 'HR sign-in confirmation is not configured. Please contact your administrator.' });
+    }
+    const { rows } = await db.query(
+      `SELECT o.id AS otp_id, o.phone, e.id, e.company_id, e.first_name, e.last_name,
+              e.email, e.role, e.department_id, e.photo_url, e.is_active
+       FROM hr_login_otps o
+       JOIN employees e ON e.id = o.employee_id
+       WHERE o.id=$1 AND o.expires_at > NOW()`,
+      [verificationId]
+    );
+    const employee = rows[0];
+    if (!employee) return res.status(400).json({ error: 'This confirmation code has expired. Sign in again to request a new one.' });
+    if (!employee.is_active) return res.status(403).json({ error: 'Account is deactivated' });
+    if (!['admin', 'manager'].includes(employee.role)) return res.status(403).json({ error: 'This confirmation code is not valid for an HR account' });
+
+    await callVynfy('/otp/verify', { code, number: employee.phone });
+    await db.query('DELETE FROM hr_login_otps WHERE id=$1', [employee.otp_id]);
+
+    const token = jwt.sign({ id: employee.id, role: employee.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const { otp_id, is_active, ...userSafe } = employee;
+    res.json({ token, user: userSafe });
+  } catch (err) {
+    console.error('HR login OTP verification error:', err);
+    res.status(err.status || 500).json({ error: err.message || 'Could not verify the confirmation code' });
   }
 };
 

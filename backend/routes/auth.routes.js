@@ -4,6 +4,7 @@ const ctrl   = require('../controllers/auth.controller');
 const auth   = require('../middleware/auth');
 
 router.post('/login',           ctrl.login);
+router.post('/login/otp/verify', ctrl.verifyHrLoginOtp);
 router.post('/staff-login',     ctrl.staffLogin);
 router.post('/staff-login/otp/verify', ctrl.verifyStaffLoginOtp);
 router.post('/setup/otp/request', ctrl.requestSetupOtp);

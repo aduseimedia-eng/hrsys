@@ -95,14 +95,19 @@ CREATE TABLE IF NOT EXISTS candidate_applications (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   full_name VARCHAR(160) NOT NULL, email VARCHAR(160) NOT NULL, phone VARCHAR(40), role_applied VARCHAR(160), cover_note TEXT,
   requisition_id INT REFERENCES job_requisitions(id) ON DELETE SET NULL, source VARCHAR(80), rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
-  owner_id INT REFERENCES employees(id) ON DELETE SET NULL, hired_employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted','screening','interview','assessment','offer','hired','rejected','reviewing','shortlisted')),
+  owner_id INT REFERENCES employees(id) ON DELETE SET NULL, applicant_employee_id INT REFERENCES employees(id) ON DELETE SET NULL, hired_employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
+  status VARCHAR(80) NOT NULL DEFAULT 'submitted',
   submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS candidate_documents (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, document_type VARCHAR(40) NOT NULL, original_name VARCHAR(255) NOT NULL, mime_type VARCHAR(150), file_data BYTEA NOT NULL, uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_notes (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, author_id INT REFERENCES employees(id) ON DELETE SET NULL, body TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_interviews (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, interviewer_id INT REFERENCES employees(id) ON DELETE SET NULL, scheduled_at TIMESTAMPTZ NOT NULL, duration_minutes INT NOT NULL DEFAULT 45, meeting_location VARCHAR(300), score SMALLINT CHECK (score BETWEEN 1 AND 5), feedback TEXT, status VARCHAR(20) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','completed','cancelled')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_offers (id SERIAL PRIMARY KEY, application_id INT NOT NULL UNIQUE REFERENCES candidate_applications(id) ON DELETE CASCADE, salary NUMERIC(12,2), start_date DATE, message TEXT, status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','accepted','declined')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS recruitment_stages (
+  id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  stage_key VARCHAR(60) NOT NULL, name VARCHAR(100) NOT NULL, sort_order INT NOT NULL DEFAULT 100,
+  is_system BOOLEAN NOT NULL DEFAULT FALSE, UNIQUE(company_id, stage_key)
+);
 
 -- Pending first-time HR registrations. The password is stored only as a bcrypt hash
 -- until the phone number has been verified through the OTP provider.
@@ -120,6 +125,15 @@ CREATE TABLE hr_signup_otps (
 
 -- Pending codes used when an HR-created staff account signs in for the first time.
 CREATE TABLE staff_login_otps (
+  id            VARCHAR(64) PRIMARY KEY,
+  employee_id   INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  phone         VARCHAR(20) NOT NULL,
+  expires_at    TIMESTAMPTZ NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- A fresh confirmation code is required for every HR/Admin or manager sign-in.
+CREATE TABLE hr_login_otps (
   id            VARCHAR(64) PRIMARY KEY,
   employee_id   INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   phone         VARCHAR(20) NOT NULL,

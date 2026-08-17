@@ -2,8 +2,10 @@ const router=require('express').Router(),ctrl=require('../controllers/recruitmen
 const staff=[auth,rbac('admin','manager')];
 router.get('/public/:slug/jobs',ctrl.getPublicJobs);
 router.post('/public/:slug/apply',uploadApplicant.array('documents',5),ctrl.submitApplication);
+router.get('/internal/jobs',auth,ctrl.getInternalJobs);router.get('/internal/applications',auth,ctrl.getInternalApplications);router.post('/internal/apply',auth,uploadApplicant.array('documents',5),ctrl.submitInternalApplication);
 router.get('/application-link',...staff,ctrl.getApplicationLink);
-router.get('/jobs',...staff,ctrl.getJobs);router.post('/jobs',...staff,ctrl.createJob);router.put('/jobs/:id',...staff,ctrl.updateJob);
+router.get('/stages',...staff,ctrl.getStages);router.post('/stages',...staff,ctrl.createStage);router.delete('/stages/:stageId',...staff,ctrl.deleteStage);
+router.get('/jobs',...staff,ctrl.getJobs);router.post('/jobs',...staff,ctrl.createJob);router.put('/jobs/:id',...staff,ctrl.updateJob);router.delete('/jobs/:id',...staff,ctrl.deleteJob);router.get('/jobs/:id/candidates',...staff,ctrl.getJobCandidates);
 router.get('/applications',...staff,ctrl.getApplications);router.get('/applications/:id',...staff,ctrl.getCandidate);router.patch('/applications/:id',...staff,ctrl.updateStatus);
 router.post('/applications/:id/notes',...staff,ctrl.addNote);router.post('/applications/:id/interviews',...staff,ctrl.createInterview);router.patch('/applications/:id/interviews/:interviewId',...staff,ctrl.updateInterview);
 router.put('/applications/:id/offer',...staff,ctrl.saveOffer);router.post('/applications/:id/hire',...staff,ctrl.hireCandidate);router.get('/report',...staff,ctrl.getReport);
