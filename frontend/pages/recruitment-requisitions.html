@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Job Requisitions - KenadHR</title><link rel="stylesheet" href="../css/main.css"><link rel="stylesheet" href="../css/recruitment-platform.css"></head>
+<body><div class="app-shell"><aside class="sidebar" id="sidebar"></aside><header class="topbar"><div class="topbar-title">Job requisitions</div></header><main class="main-content">
+  <nav id="recruitment-nav"></nav><div id="recruitment-notice" class="recruitment-notice" hidden></div>
+  <header class="recruitment-page-header"><div><h1>Job requisitions</h1><p>Turn approved workforce needs into approved, owned roles ready for posting.</p></div><div class="recruitment-actions"><a class="btn btn-outline" href="recruitment-requests.html">View requests</a><a class="btn btn-primary" href="recruitment-form.html">New requisition</a></div></header>
+  <div class="recruitment-filterbar"><label class="form-label" for="requisition-filter" style="margin:0">Approval</label><select id="requisition-filter" class="form-control"><option value="">All requisitions</option><option value="draft">Draft</option><option value="pending">Pending approval</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></div>
+  <div class="recruitment-table-wrap"><table><thead><tr><th>Requisition</th><th>Manager</th><th>Headcount</th><th>Applicants</th><th>Postings</th><th>Approval</th><th></th></tr></thead><tbody id="requisition-rows"></tbody></table></div>
+</main></div><script src="../js/api.js"></script><script src="../js/recruitment-platform.js"></script><script src="../js/recruitment-requisitions-page.js"></script></body></html>

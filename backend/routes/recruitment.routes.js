@@ -1,8 +1,13 @@
-const router=require('express').Router(),ctrl=require('../controllers/recruitment.controller'),auth=require('../middleware/auth'),rbac=require('../middleware/rbac'),{uploadApplicant}=require('../config/multer');
+const router=require('express').Router(),ctrl=require('../controllers/recruitment.controller'),platform=require('../controllers/recruitment-platform.controller'),auth=require('../middleware/auth'),rbac=require('../middleware/rbac'),{uploadApplicant}=require('../config/multer');
 const staff=[auth,rbac('admin','manager')];
 router.get('/public/:slug/jobs',ctrl.getPublicJobs);
 router.post('/public/:slug/apply',uploadApplicant.array('documents',5),ctrl.submitApplication);
 router.get('/internal/jobs',auth,ctrl.getInternalJobs);router.get('/internal/applications',auth,ctrl.getInternalApplications);router.post('/internal/apply',auth,uploadApplicant.array('documents',5),ctrl.submitInternalApplication);
+router.get('/overview',...staff,platform.getOverview);
+router.get('/requests',...staff,platform.getRequests);router.post('/requests',...staff,platform.createRequest);router.get('/requests/:id',...staff,platform.getRequest);router.put('/requests/:id',...staff,platform.updateRequest);router.post('/requests/:id/submit',...staff,platform.submitRequest);router.post('/requests/:id/approve',...staff,platform.approveRequest);router.post('/requests/:id/reject',...staff,platform.rejectRequest);router.post('/requests/:id/convert',...staff,platform.convertRequest);
+router.get('/requisitions',...staff,platform.getRequisitions);router.post('/requisitions',...staff,platform.createRequisition);router.get('/requisitions/:id',...staff,platform.getRequisition);router.put('/requisitions/:id',...staff,platform.updateRequisition);router.post('/requisitions/:id/submit',...staff,platform.submitRequisition);router.post('/requisitions/:id/approve',...staff,platform.approveRequisition);router.post('/requisitions/:id/reject',...staff,platform.rejectRequisition);router.post('/requisitions/:id/close',...staff,platform.closeRequisition);
+router.get('/postings',...staff,platform.getPostings);router.post('/postings',...staff,platform.createPosting);router.get('/postings/:id',...staff,platform.getPosting);router.put('/postings/:id',...staff,platform.updatePosting);
+router.get('/pipeline',...staff,platform.getPipeline);router.get('/interviews',...staff,platform.getInterviews);router.get('/offers',...staff,platform.getOffers);
 router.get('/application-link',...staff,ctrl.getApplicationLink);
 router.get('/stages',...staff,ctrl.getStages);router.post('/stages',...staff,ctrl.createStage);router.delete('/stages/:stageId',...staff,ctrl.deleteStage);
 router.get('/jobs',...staff,ctrl.getJobs);router.post('/jobs',...staff,ctrl.createJob);router.put('/jobs/:id',...staff,ctrl.updateJob);router.delete('/jobs/:id',...staff,ctrl.deleteJob);router.get('/jobs/:id/candidates',...staff,ctrl.getJobCandidates);

@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const db = require('../config/db');
 const authController = require('../controllers/auth.controller');
 const recruitmentController = require('../controllers/recruitment.controller');
+const recruitmentPlatformController = require('../controllers/recruitment-platform.controller');
 const employeeController = require('../controllers/employee.controller');
 const documentsController = require('../controllers/documents.controller');
 const leaveController = require('../controllers/leave.controller');
@@ -116,8 +117,9 @@ test('internal staff cannot apply twice to the same company-scoped job', async (
 
 test('internal candidate handoff reuses the existing employee profile', async () => {
   const calls = mockQueries([
-    { rows: [{ id: 18, company_id: 4, applicant_employee_id: 8, hired_employee_id: null }] },
+    { rows: [{ id: 18, company_id: 4, applicant_employee_id: 8, hired_employee_id: null, status: 'offer-acceptance', offer_status: 'accepted', title: 'Internal Auditor' }] },
     { rows: [{ id: 8, first_name: 'Ama', last_name: 'Osei', employee_code: 'EMP-008' }] },
+    { rows: [] },
     { rows: [] }
   ]);
   const res = response();
@@ -127,6 +129,7 @@ test('internal candidate handoff reuses the existing employee profile', async ()
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.internal_transfer, true);
   assert.equal(calls.some(call => /INSERT INTO employees/.test(call.text)), false);
+  assert.ok(calls.some(call => /UPDATE employees SET job_title/.test(call.text)));
 });
 
 test('recruitment dashboard report includes vacancies, offers, and upcoming interviews', async () => {
@@ -148,6 +151,44 @@ test('recruitment dashboard report includes vacancies, offers, and upcoming inte
   assert.equal(res.body.offers.accepted, 1);
   assert.equal(res.body.upcoming_interviews[0].candidate_name, 'Adwoa Mensah');
   assert.ok(calls.some(call => /candidate_interviews/.test(call.text)));
+});
+
+test('recruitment requests are numbered after creation', async () => {
+  const calls = mockQueries([
+    { rows: [{ id: 41, title: 'Payroll Officer' }] },
+    { rows: [{ id: 41, request_number: 'RR-000041', title: 'Payroll Officer' }] }
+  ]);
+  const res = response();
+
+  await recruitmentPlatformController.createRequest({
+    user: { id: 8, company_id: 4 },
+    body: { title: 'Payroll Officer', headcount: 1, status: 'draft' }
+  }, res);
+
+  assert.equal(res.statusCode, 201);
+  assert.equal(res.body.request_number, 'RR-000041');
+  assert.ok(calls.some(call => /INSERT INTO recruitment_requests/.test(call.text)));
+});
+
+test('candidate stage changes record immutable pipeline history', async () => {
+  const calls = mockQueries([
+    { rows: [] },
+    { rows: [{ id: 3 }] },
+    { rows: [{ status: 'screening' }] },
+    { rows: [{ id: 21, status: 'shortlisted' }] },
+    { rows: [] }
+  ]);
+  const res = response();
+
+  await recruitmentController.updateStatus({
+    user: { id: 9, company_id: 4 },
+    params: { id: 21 },
+    body: { status: 'shortlisted', note: 'Meets the essential criteria' }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, 'shortlisted');
+  assert.ok(calls.some(call => /INSERT INTO candidate_stage_events/.test(call.text)));
 });
 
 test('RBAC denies an employee from an admin-only route', () => {

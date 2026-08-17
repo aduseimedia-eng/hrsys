@@ -84,30 +84,84 @@ CREATE TABLE employees (
 );
 
 -- Recruitment and applicant tracking
+CREATE TABLE IF NOT EXISTS recruitment_requests (
+  id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  request_number VARCHAR(40), title VARCHAR(160) NOT NULL,
+  department_id INT REFERENCES departments(id) ON DELETE SET NULL,
+  requested_by_id INT REFERENCES employees(id) ON DELETE SET NULL,
+  hiring_manager_id INT REFERENCES employees(id) ON DELETE SET NULL,
+  headcount INT NOT NULL DEFAULT 1 CHECK (headcount > 0), employment_type VARCHAR(30), location VARCHAR(160),
+  justification TEXT, target_start_date DATE,
+  status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','submitted','approved','rejected','converted')),
+  reviewed_by_id INT REFERENCES employees(id) ON DELETE SET NULL, reviewed_at TIMESTAMPTZ, reviewer_note TEXT,
+  converted_requisition_id INT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(company_id, request_number)
+);
+CREATE TABLE IF NOT EXISTS recruitment_request_approvals (
+  id SERIAL PRIMARY KEY, request_id INT NOT NULL REFERENCES recruitment_requests(id) ON DELETE CASCADE,
+  reviewer_id INT REFERENCES employees(id) ON DELETE SET NULL,
+  decision VARCHAR(20) NOT NULL CHECK (decision IN ('submitted','approved','rejected')),
+  note TEXT, decided_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 CREATE TABLE IF NOT EXISTS job_requisitions (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   title VARCHAR(160) NOT NULL, department_id INT REFERENCES departments(id) ON DELETE SET NULL,
   hiring_manager_id INT REFERENCES employees(id) ON DELETE SET NULL, description TEXT,
   location VARCHAR(160), employment_type VARCHAR(30), status VARCHAR(20) NOT NULL DEFAULT 'open'
-    CHECK (status IN ('draft','open','closed')), closes_at DATE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    CHECK (status IN ('draft','open','closed')), closes_at DATE,
+  request_id INT REFERENCES recruitment_requests(id) ON DELETE SET NULL, requisition_code VARCHAR(40),
+  headcount INT NOT NULL DEFAULT 1 CHECK (headcount > 0),
+  approval_status VARCHAR(20) NOT NULL DEFAULT 'approved' CHECK (approval_status IN ('draft','pending','approved','rejected')),
+  approved_by_id INT REFERENCES employees(id) ON DELETE SET NULL, approved_at TIMESTAMPTZ, approval_note TEXT,
+  target_start_date DATE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(company_id, requisition_code)
+);
+ALTER TABLE recruitment_requests
+  ADD CONSTRAINT fk_recruitment_request_converted_requisition
+  FOREIGN KEY (converted_requisition_id) REFERENCES job_requisitions(id) ON DELETE SET NULL;
+CREATE TABLE IF NOT EXISTS job_postings (
+  id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  requisition_id INT NOT NULL REFERENCES job_requisitions(id) ON DELETE CASCADE,
+  channel VARCHAR(30) NOT NULL CHECK (channel IN ('internal','company-site','external')),
+  title VARCHAR(160) NOT NULL, summary TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','closed')),
+  published_at TIMESTAMPTZ, closes_at DATE, external_url VARCHAR(500),
+  created_by_id INT REFERENCES employees(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(requisition_id, channel)
 );
 CREATE TABLE IF NOT EXISTS candidate_applications (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   full_name VARCHAR(160) NOT NULL, email VARCHAR(160) NOT NULL, phone VARCHAR(40), role_applied VARCHAR(160), cover_note TEXT,
   requisition_id INT REFERENCES job_requisitions(id) ON DELETE SET NULL, source VARCHAR(80), rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
   owner_id INT REFERENCES employees(id) ON DELETE SET NULL, applicant_employee_id INT REFERENCES employees(id) ON DELETE SET NULL, hired_employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
-  status VARCHAR(80) NOT NULL DEFAULT 'submitted',
-  submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  status VARCHAR(80) NOT NULL DEFAULT 'submitted', rejected_reason TEXT, hired_at TIMESTAMPTZ,
+  submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS candidate_documents (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, document_type VARCHAR(40) NOT NULL, original_name VARCHAR(255) NOT NULL, mime_type VARCHAR(150), file_data BYTEA NOT NULL, uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_notes (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, author_id INT REFERENCES employees(id) ON DELETE SET NULL, body TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_interviews (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, interviewer_id INT REFERENCES employees(id) ON DELETE SET NULL, scheduled_at TIMESTAMPTZ NOT NULL, duration_minutes INT NOT NULL DEFAULT 45, meeting_location VARCHAR(300), score SMALLINT CHECK (score BETWEEN 1 AND 5), feedback TEXT, status VARCHAR(20) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','completed','cancelled')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS candidate_offers (id SERIAL PRIMARY KEY, application_id INT NOT NULL UNIQUE REFERENCES candidate_applications(id) ON DELETE CASCADE, salary NUMERIC(12,2), start_date DATE, message TEXT, status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','accepted','declined')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS candidate_offers (id SERIAL PRIMARY KEY, application_id INT NOT NULL UNIQUE REFERENCES candidate_applications(id) ON DELETE CASCADE, salary NUMERIC(12,2), start_date DATE, message TEXT, status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','accepted','declined')), sent_at TIMESTAMPTZ, accepted_at TIMESTAMPTZ, declined_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS candidate_stage_events (
+  id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE,
+  from_stage_key VARCHAR(60), to_stage_key VARCHAR(60) NOT NULL,
+  changed_by_id INT REFERENCES employees(id) ON DELETE SET NULL, note TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 CREATE TABLE IF NOT EXISTS recruitment_stages (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   stage_key VARCHAR(60) NOT NULL, name VARCHAR(100) NOT NULL, sort_order INT NOT NULL DEFAULT 100,
   is_system BOOLEAN NOT NULL DEFAULT FALSE, UNIQUE(company_id, stage_key)
 );
+CREATE INDEX IF NOT EXISTS idx_recruitment_requests_company_status ON recruitment_requests(company_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recruitment_request_approvals_request ON recruitment_request_approvals(request_id, decided_at DESC);
+CREATE INDEX IF NOT EXISTS idx_requisitions_company ON job_requisitions(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_job_requisitions_company_approval ON job_requisitions(company_id, approval_status, status);
+CREATE INDEX IF NOT EXISTS idx_job_postings_company_status ON job_postings(company_id, status, closes_at);
+CREATE INDEX IF NOT EXISTS idx_candidate_applications_company ON candidate_applications(company_id, submitted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_candidate_applications_requisition ON candidate_applications(requisition_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_applications_internal_employee_requisition ON candidate_applications(company_id, requisition_id, applicant_employee_id) WHERE applicant_employee_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_candidate_stage_events_application ON candidate_stage_events(application_id, created_at DESC);
 
 -- Pending first-time HR registrations. The password is stored only as a bcrypt hash
 -- until the phone number has been verified through the OTP provider.
