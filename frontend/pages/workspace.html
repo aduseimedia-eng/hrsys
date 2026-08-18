@@ -8,14 +8,14 @@
   <link rel="icon" type="image/jpeg" href="/assets/title_icon.jpg">
   <link rel="apple-touch-icon" href="/assets/title_icon.jpg">
   <title>KenadHR Workspace</title>
-  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/main.css?v=20260818-menu">
   <style>
     body {
       overflow: hidden;
     }
 
     .workspace-shell {
-      --sidebar-w: 244px;
+      --sidebar-w: 300px;
       --topbar-h: 82px;
       position: relative;
       grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
@@ -528,7 +528,7 @@
   </main>
 </div>
 
-<script src="../js/api.js"></script>
+<script src="../js/api.js?v=20260818-menu"></script>
 <script>
 const workspaceUser = requireAuth();
 if (!workspaceUser) throw new Error('redirect');
@@ -1000,7 +1000,7 @@ function loadWorkspaceRoute() {
   const src = pageMeta.src ? appUrl(pageMeta.src) : appUrl(`/pages/${route.page}.html${route.query}`);
 
   updateWorkspaceChrome(route, pageMeta);
-  updateWorkspaceSidebar(pageMeta.nav);
+  updateWorkspaceSidebar(route.page);
   loadNotifCount();
 
   if (workspaceFrame.dataset.src !== src) {

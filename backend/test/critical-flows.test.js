@@ -84,6 +84,30 @@ test('HR login requires a confirmation-code service before issuing a token', asy
   assert.match(res.body.error, /confirmation is not configured/i);
 });
 
+test('HR login accepts a stored Ghana number with an international trunk prefix', async () => {
+  const hash = await bcrypt.hash('Password123!', 4);
+  const calls = mockQueries([
+    { rows: [{ id: 9, company_id: 1, first_name: 'Esi', last_name: 'Kusi', email: 'esi@example.com', password_hash: hash, role: 'admin', department_id: null, photo_url: null, phone: '+233 024 123 4567', is_active: true }] },
+    { rows: [{ count: '0' }] },
+    { rows: [] }
+  ]);
+  const originalVynfyKey = process.env.VYNFY_API_KEY;
+  const originalFetch = global.fetch;
+  process.env.VYNFY_API_KEY = 'test-key';
+  global.fetch = async () => ({ ok: true, json: async () => ({ success: true }) });
+  try {
+    const res = response();
+    await authController.login({ body: { email: 'esi@example.com', password: 'Password123!' } }, res);
+    assert.equal(res.statusCode, 202);
+    assert.equal(res.body.requires_otp, true);
+    assert.deepEqual(calls[2].params.slice(1), [9, '233241234567']);
+  } finally {
+    if (originalVynfyKey === undefined) delete process.env.VYNFY_API_KEY;
+    else process.env.VYNFY_API_KEY = originalVynfyKey;
+    global.fetch = originalFetch;
+  }
+});
+
 test('internal staff application requires an open job selection', async () => {
   const res = response();
 

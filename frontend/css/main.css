@@ -1171,6 +1171,32 @@ tbody tr:hover { background: #f7faff; }
 .sidebar-user .logout-btn:hover { background: #f3f3f3; }
 @media (max-width: 768px) { .main-content { padding: 20px 16px; } .sidebar { box-shadow: 18px 0 48px rgba(29,43,77,.14); } }
 
+/* Application navigation: quiet parent menus with clearly indented submenus. */
+.sidebar { background: #fbfbfc; border-right: 1px solid #e4e5e8; }
+.sidebar-logo { height: 82px; padding: 16px 22px; justify-content: flex-start; gap: 10px; background: #fff; border-bottom: 1px solid #eeeeef; }
+.sidebar-logo .brand-logo { width: 34px; height: 34px; object-fit: cover; object-position: left center; flex: 0 0 34px; }
+.sidebar-workspace-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #252525; font-size: .95rem; font-weight: 700; }
+.sidebar-workspace-chevron { flex: 0 0 auto; color: #8a8a8a; }
+.sidebar-nav { padding: 12px 14px 18px; }
+.sidebar-jump { width: 100%; height: 44px; margin: 0 0 16px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border: 1px solid #e3e3e5; border-radius: 10px; background: #fff; color: #777; text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,.02); }
+.sidebar-jump:hover, .sidebar-jump:focus-visible { border-color: #c9c9cd; color: #292929; outline: none; }
+.sidebar-jump span { flex: 1; font-size: .9rem; }
+.sidebar-jump kbd { padding: 2px 5px; border: 1px solid #e4e4e6; border-radius: 4px; background: #f7f7f8; color: #89898c; font-family: inherit; font-size: .66rem; }
+.nav-group { margin: 5px 0; }
+.nav-group-toggle, .nav-item { min-height: 44px; margin: 1px 0; padding: 8px 11px; border-radius: 10px; color: #4d4d50; font-size: .92rem; font-weight: 550; }
+.nav-group-toggle:hover, .nav-item:hover { background: #f0f0f1; color: #242426; }
+.nav-group-heading { gap: 10px; }
+.nav-item > .nav-icon, .nav-group-heading > .nav-icon { width: 34px; height: 34px; padding: 8px; border-radius: 8px; background: #eeeeef; color: #626266; opacity: 1; }
+.nav-group-chevron { color: #777; }
+.nav-item.active { color: #202023; background: #ececee; box-shadow: none; font-weight: 650; }
+.nav-item.active::before { display: none; }
+.nav-item-child { min-height: 38px; margin: 1px 0 1px 27px; padding: 7px 10px 7px 29px; border-radius: 8px; color: #4c4c4f; font-weight: 500; }
+.nav-item-child .nav-icon { display: none; }
+.nav-item-child::after { left: 11px; top: -2px; width: 12px; height: 29px; border-color: #d9d9dc; border-radius: 0; }
+.nav-item-child:first-child::after { top: -9px; height: 36px; }
+.nav-item-child.active { background: #ededee; }
+.sidebar-user { margin: 0 14px 14px; border-radius: 12px; background: #fff; }
+
 /* On phones, the navigation becomes a branded blue drawer and uses the white logo asset. */
 @media (max-width: 768px) {
   .sidebar { background:#174FAE; border-right:0; box-shadow:18px 0 48px rgba(23,79,174,.28); }

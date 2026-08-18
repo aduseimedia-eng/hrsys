@@ -13,7 +13,12 @@ const otpEnabled = () => Boolean(process.env.VYNFY_API_KEY) && process.env.PHONE
 const signupPaymentRequired = () => process.env.SIGNUP_PAYMENT_REQUIRED === 'true';
 
 function normalizeGhanaPhone(value) {
-  const digits = String(value || '').replace(/\D/g, '');
+  let digits = String(value || '').replace(/\D/g, '');
+  // People often save an international number with either the local trunk
+  // prefix (+233 024...) or the international access prefix (00233...).
+  // Canonicalise those equivalent representations before sending to Vynfy.
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (/^2330\d{9}$/.test(digits)) digits = `233${digits.slice(4)}`;
   if (/^0\d{9}$/.test(digits)) return `233${digits.slice(1)}`;
   if (/^233\d{9}$/.test(digits)) return digits;
   return null;
@@ -225,9 +230,14 @@ exports.login = async (req, res) => {
       if (!otpEnabled()) {
         return res.status(503).json({ error: 'HR sign-in confirmation is not configured. Please contact your administrator.' });
       }
-      const phone = normalizeGhanaPhone(employee.phone);
+      // Permit a password-verified HR user to repair a stale or missing phone
+      // number instead of locking the administrator out of the workspace.
+      const phone = normalizeGhanaPhone(employee.phone) || normalizeGhanaPhone(req.body.phone);
       if (!phone) {
-        return res.status(403).json({ error: 'Your HR account needs a valid Ghana phone number before you can sign in. Please contact an administrator.' });
+        return res.status(403).json({ error: 'Enter the valid Ghana phone number for this HR account to receive a confirmation code.' });
+      }
+      if (phone !== normalizeGhanaPhone(employee.phone)) {
+        await db.query('UPDATE employees SET phone=$1 WHERE id=$2', [phone, employee.id]);
       }
       const recent = await db.query(
         "SELECT COUNT(*) FROM hr_login_otps WHERE employee_id=$1 AND created_at > NOW() - INTERVAL '15 minutes'",

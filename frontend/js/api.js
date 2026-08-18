@@ -596,13 +596,44 @@ function buildSidebar(activePage, options = {}) {
   const workspaceNavItems = [
     { page: 'dashboard', icon: gridIcon(), label: 'Dashboard', roles: ['admin', 'manager'] },
     { page: 'announcements', icon: chatIcon(), label: 'Announcements', roles: ['admin'] },
-    { page: 'people', icon: usersIcon(), label: 'People', roles: ['admin', 'manager'], activeFor: ['employees', 'departments', 'orgchart', 'employee-profile'] },
-    { page: 'recruitment', icon: briefcaseIcon(), label: 'Recruitment', roles: ['admin', 'manager'], activeFor: ['hiring', 'recruitment-requests', 'recruitment-request-form', 'recruitment-requisitions', 'recruitment-form', 'recruitment-postings', 'recruitment-posting-form', 'recruitment-candidates', 'recruitment-pipeline', 'recruitment-interviews', 'recruitment-interview-form', 'recruitment-offers', 'recruitment-offer-form', 'recruitment-settings', 'applications', 'candidate'] },
+    { section: 'People', icon: usersIcon(), roles: ['admin', 'manager'] },
+    { page: 'employees', icon: usersIcon(), label: 'Employees', roles: ['admin', 'manager'], activeFor: ['employee-profile', 'people'] },
+    { page: 'departments', icon: orgIcon(), label: 'Departments', roles: ['admin', 'manager'] },
+    { page: 'orgchart', icon: orgIcon(), label: 'Organization chart', roles: ['admin', 'manager'] },
     { page: 'onboarding', icon: checkIcon(), label: 'Onboarding', roles: ['admin', 'manager'] },
-    { page: 'work', icon: calendarIcon(), label: 'Work', roles: ['admin', 'manager'], activeFor: ['attendance', 'leave', 'calendar', 'todos', 'messages', 'tickets'] },
-    { page: 'finance', icon: walletIcon(), label: 'Pay & Benefits', roles: ['admin', 'manager'], activeFor: ['payroll', 'benefits', 'loans', 'financials'] },
-    { page: 'records', icon: docIcon(), label: 'Growth & Records', roles: ['admin', 'manager'], activeFor: ['documents', 'performance', 'training', 'probation', 'contracts', 'assets', 'disciplinary', 'operations'] },
-    { page: 'administration', icon: settingsIcon(), label: 'Administration', roles: ['admin', 'manager'], activeFor: ['reports', 'audit'] },
+    { section: 'Recruitment', icon: briefcaseIcon(), roles: ['admin', 'manager'] },
+    { page: 'recruitment-requests', icon: docIcon(), label: 'Recruitment requests', roles: ['admin', 'manager'], activeFor: ['recruitment', 'hiring', 'recruitment-request-form'] },
+    { page: 'recruitment-requisitions', icon: briefcaseIcon(), label: 'Job requisitions', roles: ['admin', 'manager'], activeFor: ['recruitment-form'] },
+    { page: 'recruitment-postings', icon: chatIcon(), label: 'Job postings', roles: ['admin', 'manager'], activeFor: ['recruitment-posting-form'] },
+    { page: 'applications', icon: usersIcon(), label: 'Applications', roles: ['admin', 'manager'], activeFor: ['candidate', 'recruitment-candidates'] },
+    { page: 'recruitment-pipeline', icon: gridIcon(), label: 'Recruitment pipeline', roles: ['admin', 'manager'] },
+    { page: 'recruitment-interviews', icon: calendarIcon(), label: 'Interviews', roles: ['admin', 'manager'], activeFor: ['recruitment-interview-form'] },
+    { page: 'recruitment-offers', icon: docIcon(), label: 'Job offers', roles: ['admin', 'manager'], activeFor: ['recruitment-offer-form'] },
+    { page: 'recruitment-settings', icon: settingsIcon(), label: 'Configuration', roles: ['admin', 'manager'] },
+    { section: 'Work', icon: calendarIcon(), roles: ['admin', 'manager'] },
+    { page: 'attendance', icon: clockIcon(), label: 'Attendance', roles: ['admin', 'manager'], activeFor: ['work'] },
+    { page: 'leave', icon: calendarIcon(), label: 'Leave management', roles: ['admin', 'manager'] },
+    { page: 'calendar', icon: calendarIcon(), label: 'Company calendar', roles: ['admin', 'manager'] },
+    { page: 'todos', icon: checkIcon(), label: 'To do list', roles: ['admin', 'manager'] },
+    { page: 'messages', icon: chatIcon(), label: 'Messages', roles: ['admin', 'manager'] },
+    { page: 'tickets', icon: docIcon(), label: 'Tickets', roles: ['admin', 'manager'] },
+    { section: 'Pay & Benefits', icon: walletIcon(), roles: ['admin', 'manager'] },
+    { page: 'payroll', icon: walletIcon(), label: 'Payroll', roles: ['admin', 'manager'], activeFor: ['finance'] },
+    { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },
+    { page: 'loans', icon: walletIcon(), label: 'Employee loans', roles: ['admin', 'manager'] },
+    { page: 'financials', icon: walletIcon(), label: 'Financials', roles: ['admin', 'manager'] },
+    { section: 'Growth & Records', icon: docIcon(), roles: ['admin', 'manager'] },
+    { page: 'documents', icon: docIcon(), label: 'Documents', roles: ['admin', 'manager'], activeFor: ['records'] },
+    { page: 'performance', icon: starIcon(), label: 'Performance reviews', roles: ['admin', 'manager'] },
+    { page: 'training', icon: checkIcon(), label: 'Training register', roles: ['admin', 'manager'] },
+    { page: 'probation', icon: clockIcon(), label: 'Probation tracker', roles: ['admin', 'manager'] },
+    { page: 'contracts', icon: docIcon(), label: 'Contract expiry', roles: ['admin', 'manager'] },
+    { page: 'assets', icon: docIcon(), label: 'Company assets', roles: ['admin', 'manager'] },
+    { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary register', roles: ['admin', 'manager'] },
+    { page: 'operations', icon: gridIcon(), label: 'Operations registers', roles: ['admin', 'manager'] },
+    { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
+    { page: 'reports', icon: gridIcon(), label: 'Reports & workflows', roles: ['admin', 'manager'], activeFor: ['administration'] },
+    { page: 'audit', icon: docIcon(), label: 'Audit history', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
   ];
   const navItems = isWorkspaceStatic
@@ -628,7 +659,7 @@ function buildSidebar(activePage, options = {}) {
       if (currentGroup) navHtml += '</div></div></div>';
       currentGroup = item.section.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       navHtml += `<div class="nav-group" data-nav-group="${currentGroup}">
-        <button class="nav-group-toggle" type="button" aria-expanded="${isWorkspaceStatic ? 'true' : 'false'}"${isWorkspaceStatic ? ' tabindex="-1"' : ''}>
+        <button class="nav-group-toggle" type="button" aria-expanded="false">
           <span class="nav-group-heading">${item.icon}<span>${item.section}</span></span>
           <svg class="nav-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </button>
@@ -676,12 +707,20 @@ function buildSidebar(activePage, options = {}) {
 
   sidebar.innerHTML = `
     <div class="sidebar-logo">
-        <img class="brand-logo" src="${appUrl('/assets/logo.png?v=6')}" alt="KenadHR">
+      <img class="brand-logo" src="${appUrl('/assets/logo.png?v=6')}" alt="KenadHR">
+      <span class="sidebar-workspace-name">${escapeAvatarText(user.company_name || 'KenadHR Workspace')}</span>
+      <svg class="sidebar-workspace-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       <button class="sidebar-close-btn" type="button" aria-label="Close menu">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
-    <nav class="sidebar-nav">${navHtml}</nav>
+    <nav class="sidebar-nav">
+      <button class="sidebar-jump" type="button" aria-label="Jump to a page">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <span>Jump to...</span><kbd>Ctrl K</kbd>
+      </button>
+      ${navHtml}
+    </nav>
     <div class="sidebar-user">
       ${user.photo_url
         ? avatarEl(user, 'sm').replace('class="avatar avatar-sm"', 'class="user-avatar"')
@@ -701,11 +740,19 @@ function buildSidebar(activePage, options = {}) {
   refreshCompanyBranding();
   addPageBackButton(activePage);
   setupQuickAccess(navItems, user, isManager);
-  if (!isWorkspaceStatic) setupSidebarGroups(sidebar, activePage, user);
+  setupSidebarGroups(sidebar, activePage, user);
+  setupSidebarJump(sidebar);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
   loadMessageNavCount();
   loadAnnouncementNavCount();
+}
+
+function setupSidebarJump(sidebar) {
+  sidebar.querySelector('.sidebar-jump')?.addEventListener('click', () => {
+    const input = document.querySelector('.quick-access-input');
+    input?.focus();
+  });
 }
 
 function setSidebarActive(activePage) {
@@ -727,6 +774,17 @@ function setSidebarActive(activePage) {
       link.removeAttribute('aria-current');
     }
   });
+
+  // Workspace routes change without rebuilding the sidebar. Keep the selected
+  // item's parent menu open so the active page never disappears into a closed
+  // submenu after navigation.
+  const activeLink = sidebar.querySelector('.nav-item.active[data-nav-parent]');
+  if (activeLink) {
+    const group = sidebar.querySelector(`.nav-group[data-nav-group="${activeLink.dataset.navParent}"]`);
+    const toggle = group?.querySelector('.nav-group-toggle');
+    group?.classList.add('is-open');
+    toggle?.setAttribute('aria-expanded', 'true');
+  }
 
   return hasActiveItem;
 }
