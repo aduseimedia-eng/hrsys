@@ -6,25 +6,19 @@
   <title>Dashboard - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
-    body {
-      overflow: hidden;
-    }
+    body { overflow: auto; background: #f7f9fc; }
 
-    .app-shell {
-      height: 100vh;
-      min-height: 100vh;
-      overflow: hidden;
-    }
+    .app-shell { height: auto; min-height: 100vh; overflow: visible; }
 
     .dashboard-page {
       max-width: none;
       width: 100%;
       min-height: calc(100vh - var(--topbar-h));
-      padding: 22px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 16px;
-      overflow-y: auto;
+      overflow: visible;
     }
 
     .topbar .icon-btn .dot {
@@ -71,6 +65,8 @@
       font-size: .9rem;
       margin-top: 4px;
     }
+    .dashboard-live-status { display:inline-flex; align-items:center; gap:6px; margin-top:6px; color:#60708b; font-size:.75rem; font-weight:650; }
+    .dashboard-live-status::before { content:''; width:7px; height:7px; border-radius:50%; background:#2563eb; box-shadow:0 0 0 4px #e8f0ff; }
 
     .header-actions {
       display: flex;
@@ -109,12 +105,17 @@
     }
 
     .metric-card {
-      min-height: 108px;
-      padding: 16px;
+      position: relative;
+      min-height: 122px;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      overflow: hidden;
+      box-shadow: 0 7px 22px rgba(30, 55, 95, .07);
     }
+
+    .metric-card::after { content: none; }
 
     .metric-label {
       display: flex;
@@ -127,10 +128,13 @@
       text-transform: uppercase;
       letter-spacing: .04em;
     }
+    .metric-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:11px; background:#eef3ff; color:#356ce2; text-transform:none; }
+    .metric-icon svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .metric-card:nth-child(n) .metric-icon { background:#eaf1ff; color:#1e4fa8; }
 
     .metric-value {
       color: var(--text-primary);
-      font-size: 1.62rem;
+      font-size: 1.72rem;
       line-height: 1;
       font-weight: 800;
       margin-top: 12px;
@@ -142,25 +146,20 @@
       margin-top: 7px;
     }
 
-    .dashboard-workspace {
-      flex: 1;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
-      gap: 16px;
-      min-height: 0;
-    }
+    .dashboard-workspace { display:grid; grid-template-columns:minmax(0, 1fr) minmax(285px, .38fr); gap:18px; align-items:start; }
+    .workspace-primary { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-areas:"workforce attendance" "department attention" "todos todos" "reports reports"; gap:18px; min-width:0; }
+    .workspace-rail { display:grid; align-content:start; gap:18px; position:sticky; top:18px; min-width:0; }
+    .panel-workforce { grid-area: workforce; }
+    .panel-attendance { grid-area: attendance; }
+    .panel-attention { grid-area: attention; }
+    .panel-todos { grid-area: todos; }
+    .panel-today { grid-area: department; }
+    .panel-reports { grid-area: reports; }
 
-    .workspace-primary,
-    .workspace-rail {
-      display: grid;
-      gap: 16px;
-      align-content: start;
-      min-width: 0;
-    }
-
-    .workspace-rail {
-      grid-template-rows: auto auto auto;
-    }
+    .dash-panel { overflow: hidden; box-shadow: 0 7px 22px rgba(30, 55, 95, .06); }
+    .dash-panel-header { position:relative; min-height:56px; padding:12px 16px; }
+    .dash-panel-header::before { content:none; }
+    .dash-panel-body { padding:14px 16px; }
 
     .attendance-summary-strip {
       display: grid;
@@ -300,9 +299,9 @@
       white-space: nowrap;
     }
 
-    .mini-badge.good { background: var(--success-bg); color: var(--success-fg); }
-    .mini-badge.warn { background: var(--warning-bg); color: var(--warning-fg); }
-    .mini-badge.danger { background: var(--danger-bg); color: var(--danger-fg); }
+    .mini-badge.good,
+    .mini-badge.warn,
+    .mini-badge.danger { background:#eaf1ff; color:#1e4fa8; }
 
     .avatar-line {
       display: flex;
@@ -321,11 +320,39 @@
       font-size: .86rem;
     }
     .dashboard-chart { display:grid; gap:12px; }
+    .live-chart-host { height:220px; }
+    .attendance-live-chart { height:190px; margin:0 0 16px; }
     .dashboard-chart-row { display:grid; grid-template-columns:110px minmax(0,1fr) 34px; align-items:center; gap:10px; font-size:.8rem; }
     .dashboard-chart-row span:first-child { color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .dashboard-chart-bar { height:14px; border-radius:99px; background:var(--navy-50); overflow:hidden; box-shadow:inset 0 0 0 1px rgba(30,64,175,.06); }
     .dashboard-chart-bar i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--navy-500),var(--mint-500)); }
     .dashboard-chart-bar i.late { background:linear-gradient(90deg,#f59e0b,#fbbf24); }.dashboard-chart-bar i.leave { background:linear-gradient(90deg,#64748b,#94a3b8); }
+    .department-chart { display:grid; gap:14px; }
+    .department-chart.live-chart-host { height:340px; padding:4px 0 0; }
+    .department-chart-row { display:grid; grid-template-columns:minmax(100px, .8fr) minmax(90px, 1.6fr) 26px; align-items:center; gap:10px; }
+    .department-chart-row span { color:var(--text-secondary); font-size:.8rem; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .department-chart-track { height:10px; overflow:hidden; border-radius:999px; background:#edf1f7; }
+    .department-chart-track i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#1e3a8a,#4f86e8); }
+    .department-chart-row strong { color:var(--text-primary); font-size:.82rem; text-align:right; }
+    .workforce-donut-layout { display:grid; grid-template-columns:minmax(155px, .9fr) minmax(170px, 1fr); gap:16px; align-items:center; min-height:192px; }
+    .workforce-donut { position:relative; width:158px; aspect-ratio:1; margin:auto; border-radius:50%; display:grid; place-items:center; }
+    .workforce-donut::after { content:''; width:96px; aspect-ratio:1; border-radius:50%; background:#fff; box-shadow:0 0 0 1px #f2f4f8; }
+    .workforce-donut-center { position:absolute; z-index:1; text-align:center; }.workforce-donut-center span { display:block; color:var(--text-muted); font-size:.72rem; font-weight:700; }.workforce-donut-center strong { display:block; margin-top:2px; color:var(--text-primary); font-size:1.55rem; }
+    .workforce-legend { display:grid; gap:13px; }.workforce-legend-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:10px; border-bottom:1px dashed #e6e9ef; }.workforce-legend-item:last-child { border-bottom:0; }.workforce-legend-item span { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:.82rem; font-weight:650; }.workforce-legend-item i { width:9px;height:9px;border-radius:50%;background:#9074e9; }.workforce-legend-item:nth-child(2) i{background:#41bd8c}.workforce-legend-item:nth-child(3) i{background:#ee7893}.workforce-legend-item:nth-child(4) i{background:#eeb744}.workforce-legend-item strong { color:var(--text-primary); font-size:.9rem; }
+    .attendance-column-chart { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; align-items:end; min-height:170px; padding:8px 4px 0; border-bottom:1px solid #e7eaf0; }
+    .attendance-column { min-width:0; display:grid; grid-template-rows:auto 90px auto; gap:7px; text-align:center; }
+    .attendance-column strong { color:var(--text-primary); font-size:.9rem; }
+    .attendance-column-track { display:flex; align-items:end; height:90px; padding:0 12px; border-radius:10px 10px 0 0; background:#f6f8fc; overflow:hidden; }
+    .attendance-column-bar { width:100%; min-height:5px; border-radius:8px 8px 0 0; background:linear-gradient(180deg,#5b8cf3,#1e3a8a); transition:height 260ms ease; }
+    .attendance-column.late .attendance-column-bar { background:linear-gradient(180deg,#78a4ef,#2f5fae); }.attendance-column.leave .attendance-column-bar { background:linear-gradient(180deg,#9db6e8,#496da9); }.attendance-column.absent .attendance-column-bar { background:linear-gradient(180deg,#b7c9ed,#5874aa); }
+    .attendance-column span { overflow:hidden; color:var(--text-muted); font-size:.7rem; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+    .dashboard-reports { overflow:visible; }
+    .dashboard-reports-frame { display:block; width:100%; min-height:0; height:1px; border:0; background:transparent; overflow:hidden; }
+    .dashboard-reports-details { border-top:1px solid var(--border); }
+    .dashboard-reports-details summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:54px; padding:12px 16px; color:#1e3a8a; font-size:.86rem; font-weight:750; cursor:pointer; list-style:none; }
+    .dashboard-reports-details summary::-webkit-details-marker { display:none; }
+    .dashboard-reports-details summary::after { content:'+'; display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:#edf3ff; color:#1e4fa8; font-size:1.1rem; }
+    .dashboard-reports-details[open] summary::after { content:'–'; }
 
     .loading-minimal {
       padding: 24px;
@@ -339,15 +366,11 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .dashboard-workspace {
-        grid-template-columns: 1fr;
-      }
-
-      .workspace-rail {
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        grid-template-rows: none;
-        align-items: start;
-      }
+      .dashboard-workspace { grid-template-columns:1fr; }
+      .department-chart.live-chart-host { height:300px; }
+      .workspace-primary { grid-template-areas:"workforce attendance" "department attention" "todos todos" "reports reports"; }
+      .workspace-rail { position:static; grid-template-columns:repeat(3, minmax(0, 1fr)); }
+      .workforce-donut-layout { grid-template-columns:1fr; }
     }
 
     @media (max-width: 720px) {
@@ -383,10 +406,10 @@
         justify-content: center;
       }
 
-      .metric-grid,
-      .workspace-rail {
-        grid-template-columns: 1fr;
-      }
+      .metric-grid { grid-template-columns:1fr; }
+      .dashboard-workspace { grid-template-columns:1fr; }
+      .workspace-primary { grid-template-columns:1fr; grid-template-areas:"workforce" "attendance" "department" "attention" "todos" "reports"; }
+      .workspace-rail { grid-template-columns:1fr; }
 
       .queue-item,
       .todo-item,
@@ -438,7 +461,6 @@
   <header class="topbar">
     <div class="topbar-title">Dashboard</div>
     <div class="topbar-actions">
-      <a href="reports.html" class="btn btn-outline btn-sm">Reports</a>
       <button class="icon-btn dashboard-notif-btn" id="notif-btn" type="button" title="Notifications" aria-label="Open notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         <span class="dot hidden" id="notif-badge"></span>
@@ -450,13 +472,13 @@
     <section class="dashboard-header">
       <div>
         <div class="dashboard-eyebrow">HR overview</div>
-        <h1 id="dashboard-title">Good day, HR.</h1>
-        <p>Key workforce signals, open work, and core people operations in one quiet view.</p>
+        <h1 id="dashboard-title">Dashboard</h1>
+        <p id="dashboard-subtitle">Today’s workforce, attendance, and actions at a glance.</p>
       </div>
       <div class="header-actions">
         <span class="date-chip" id="date-chip">Today</span>
-        <a href="employees.html" class="btn btn-primary">Employees</a>
-        <a href="leave.html" class="btn btn-outline">Approvals</a>
+        <a href="#employees" data-workspace-page="employees" class="btn btn-outline">Employees</a>
+        <a href="#leave" data-workspace-page="leave" class="btn btn-primary">Approvals</a>
       </div>
     </section>
 
@@ -466,18 +488,18 @@
 
     <section class="dashboard-workspace">
       <div class="workspace-primary">
-        <article class="dash-panel">
-          <div class="dash-panel-header"><div><h2>Workforce Mix</h2><span>Active employees by employment type</span></div><a href="employees.html" class="btn btn-outline btn-sm">Employees</a></div>
+        <article class="dash-panel panel-workforce">
+          <div class="dash-panel-header"><div><h2>Workforce Mix</h2><span>Active employees by employment type</span></div><a href="#employees" data-workspace-page="employees" class="btn btn-outline btn-sm">Employees</a></div>
           <div class="dash-panel-body"><div class="dashboard-chart" id="workforce-chart"><div class="loading-minimal">Loading workforce data...</div></div></div>
         </article>
 
-        <article class="dash-panel">
+        <article class="dash-panel panel-attention">
           <div class="dash-panel-header">
             <div>
               <h2>Needs Attention</h2>
               <span>Open work for HR/Admin</span>
             </div>
-            <a href="reports.html" class="btn btn-outline btn-sm">View all</a>
+            <a href="#dashboard-reports" class="btn btn-outline btn-sm">View all</a>
           </div>
           <div class="dash-panel-body">
             <div class="queue-list" id="attention-list">
@@ -486,41 +508,42 @@
           </div>
         </article>
 
-        <article class="dash-panel">
+        <article class="dash-panel panel-attendance">
           <div class="dash-panel-header">
             <div>
               <h2>Attendance Today</h2>
               <span>Live clock-in and attendance overview</span>
             </div>
-            <a href="attendance.html" class="btn btn-outline btn-sm">Open attendance</a>
+            <a href="#attendance" data-workspace-page="attendance" class="btn btn-outline btn-sm">Open attendance</a>
           </div>
           <div class="dash-panel-body" id="dashboard-attendance">
             <div class="loading-minimal">Loading attendance...</div>
           </div>
         </article>
 
-        <article class="dash-panel">
+        <article class="dash-panel panel-today">
           <div class="dash-panel-header">
-            <div>
-              <h2>Announcements</h2>
-              <span>Latest company updates</span>
-            </div>
-            <a href="announcements.html" class="btn btn-outline btn-sm">Manage</a>
+            <div><h2>Department Headcount</h2><span>Active employees by department</span></div>
+            <a href="#departments" data-workspace-page="departments" class="btn btn-outline btn-sm">Departments</a>
           </div>
-          <div class="dash-panel-body">
-            <div class="announcement-list" id="announcement-list">
-              <div class="loading-minimal">Loading announcements...</div>
-            </div>
-          </div>
+          <div class="dash-panel-body"><div class="department-chart" id="department-chart"><div class="loading-minimal">Loading department data...</div></div></div>
         </article>
 
-        <article class="dash-panel">
+        <article class="dash-panel dashboard-reports panel-reports" id="dashboard-reports">
+          <div class="dash-panel-header"><div><h2>Reports &amp; Workflows</h2><span>Detailed workforce, leave, attendance, payroll, and performance reporting</span></div></div>
+          <details class="dashboard-reports-details" id="dashboard-reports-details">
+            <summary>Open reports and workflows</summary>
+            <iframe class="dashboard-reports-frame" data-src="reports.html?embed=1" title="Reports and workflows"></iframe>
+          </details>
+        </article>
+
+        <article class="dash-panel panel-todos">
           <div class="dash-panel-header">
             <div>
               <h2>To Do List</h2>
               <span>Priority tasks for HR and staff</span>
             </div>
-            <a href="todos.html" class="btn btn-outline btn-sm">Open page</a>
+            <a href="#todos" data-workspace-page="todos" class="btn btn-outline btn-sm">Open page</a>
           </div>
           <div class="dash-panel-body">
             <div class="todo-list" id="todo-list">
@@ -531,37 +554,25 @@
       </div>
 
       <aside class="workspace-rail" aria-label="Dashboard context">
-        <article class="dash-panel">
+        <article class="dash-panel panel-announcements">
           <div class="dash-panel-header">
             <div>
-              <h2>Today</h2>
-              <span>Operational snapshot</span>
+              <h2>Announcements</h2>
+              <span>Latest company updates</span>
             </div>
+            <a href="#announcements" data-workspace-page="announcements" class="btn btn-outline btn-sm">Manage</a>
           </div>
-          <div class="dash-panel-body">
-            <div class="today-list" id="today-list">
-              <div class="loading-minimal">Loading snapshot...</div>
-            </div>
-          </div>
+          <div class="dash-panel-body"><div class="announcement-list" id="announcement-list"><div class="loading-minimal">Loading announcements...</div></div></div>
         </article>
 
-        <article class="dash-panel">
-          <div class="dash-panel-header">
-            <div>
-              <h2>Upcoming Birthdays</h2>
-              <span>People moments in the next 30 days</span>
-            </div>
-          </div>
-          <div class="dash-panel-body">
-            <div class="birthday-list" id="birthday-list">
-              <div class="loading-minimal">Loading birthdays...</div>
-            </div>
-          </div>
+        <article class="dash-panel panel-birthdays">
+          <div class="dash-panel-header"><div><h2>Upcoming Birthdays</h2><span>Staff celebrations in the next 30 days</span></div></div>
+          <div class="dash-panel-body"><div class="birthday-list" id="birthday-list"><div class="loading-minimal">Loading birthdays...</div></div></div>
         </article>
 
-        <article class="dash-panel">
-          <div class="dash-panel-header"><div><h2>Upcoming Expiries</h2><span>Documents expiring in the next 30 days</span></div><a href="documents.html" class="btn btn-outline btn-sm">Documents</a></div>
-          <div class="dash-panel-body"><div class="today-list" id="expiry-list"><div class="loading-minimal">Loading expiries...</div></div></div>
+        <article class="dash-panel panel-events">
+          <div class="dash-panel-header"><div><h2>Upcoming Events</h2><span>Company calendar for the next 30 days</span></div><a href="#calendar" data-workspace-page="calendar" class="btn btn-outline btn-sm">Calendar</a></div>
+          <div class="dash-panel-body"><div class="event-list" id="event-list"><div class="loading-minimal">Loading events...</div></div></div>
         </article>
 
       </aside>
@@ -570,15 +581,37 @@
 </div>
 
 <script src="../js/api.js"></script>
+<script src="/vendor/chartjs/chart.umd.min.js"></script>
 <script src="../js/charts.js"></script>
 <script>
+window.addEventListener('message', (event) => {
+  if (event.origin !== window.location.origin || event.data?.type !== 'kenadhr:report-height') return;
+  const frame = document.querySelector('.dashboard-reports-frame');
+  if (frame && Number.isFinite(event.data.height)) frame.style.height = `${Math.max(1, event.data.height)}px`;
+});
+document.getElementById('dashboard-reports-details').addEventListener('toggle', (event) => {
+  const frame = event.currentTarget.querySelector('.dashboard-reports-frame');
+  if (event.currentTarget.open && !frame.getAttribute('src')) frame.src = frame.dataset.src;
+});
 const user = requireAuth();
 if (!user) throw new Error('redirect');
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('[data-workspace-page]');
+  if (!link) return;
+  event.preventDefault();
+  const destination = adminWorkspaceUrl(link.dataset.workspacePage);
+  if (window.top !== window.self) window.top.location.assign(destination);
+  else window.location.assign(destination);
+});
 
 buildSidebar('dashboard');
 loadDashboard();
+window.addEventListener('focus', () => loadDashboard({ silent: true }));
+window.setInterval(() => {
+  if (document.visibilityState === 'visible') loadDashboard({ silent: true });
+}, 60000);
 
-async function loadDashboard() {
+async function loadDashboard({ silent = false } = {}) {
   try {
     updateHeader();
     const attendanceDate = new Date().toISOString().slice(0, 10);
@@ -590,10 +623,11 @@ async function loadDashboard() {
       api.get('/notifications/announcements'),
       api.get('/todos?status=open'),
       api.get('/attendance/summary'),
-      api.get(`/attendance/report?limit=5&date=${attendanceDate}`)
+      api.get('/attendance/trend?days=7'),
+      api.get(`/company-calendar?from=${attendanceDate}&to=${new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)}`)
     ]);
 
-    const [statsResult, leaveResult, teamResult, announcementsResult, todosResult, attendanceSummaryResult, attendanceReportResult] = results;
+    const [statsResult, leaveResult, teamResult, announcementsResult, todosResult, attendanceSummaryResult, attendanceTrendResult, eventsResult] = results;
     const stats = statsResult.status === 'fulfilled' ? statsResult.value : {
       total_employees: 0, payroll_this_month: 0, on_leave_today: 0,
       upcoming_birthdays: [], recent_hires: []
@@ -603,7 +637,8 @@ async function loadDashboard() {
     const announcements = announcementsResult.status === 'fulfilled' ? announcementsResult.value : [];
     const todos = todosResult.status === 'fulfilled' ? todosResult.value : [];
     const attendanceSummary = attendanceSummaryResult.status === 'fulfilled' ? attendanceSummaryResult.value : { summary: {} };
-    const attendanceRows = attendanceReportResult.status === 'fulfilled' ? attendanceReportResult.value : [];
+    const attendanceTrend = attendanceTrendResult.status === 'fulfilled' ? attendanceTrendResult.value : [];
+    const events = eventsResult.status === 'fulfilled' ? eventsResult.value : [];
 
     let payrollRows = [];
     if (user.role === 'admin') {
@@ -615,18 +650,18 @@ async function loadDashboard() {
       }
     }
 
-    const data = { stats, leaveQueue, teamSummary, payrollRows, announcements, todos, attendanceSummary, attendanceRows };
+    const data = { stats, leaveQueue, teamSummary, payrollRows, announcements, todos, attendanceSummary, attendanceTrend, events };
     renderMetrics(data);
     renderWorkforceChart(stats);
-    renderExpiries(stats);
     renderAttention(data);
-    renderToday(data);
+    renderDepartmentChart(stats);
     renderAnnouncements(announcements);
     renderTodos(data);
     renderDashboardAttendance(data);
     renderBirthdays(stats);
+    renderEvents(events);
     loadNotifCount();
-    if (results.some((result) => result.status === 'rejected')) {
+    if (!silent && results.some((result) => result.status === 'rejected')) {
       toast('Some dashboard information could not be refreshed. Please try again.', 'warning');
     }
   } catch (err) {
@@ -634,38 +669,25 @@ async function loadDashboard() {
     document.getElementById('attention-list').innerHTML = '<div class="empty-minimal">Work queue is unavailable right now.</div>';
     document.getElementById('announcement-list').innerHTML = '<div class="empty-minimal">Announcements are unavailable right now.</div>';
     document.getElementById('todo-list').innerHTML = '<div class="empty-minimal">To do items are unavailable right now.</div>';
-    document.getElementById('today-list').innerHTML = '<div class="empty-minimal">Today\'s snapshot is unavailable right now.</div>';
+    document.getElementById('department-chart').innerHTML = '<div class="empty-minimal">Department data is unavailable right now.</div>';
     document.getElementById('birthday-list').innerHTML = '<div class="empty-minimal">Birthdays are unavailable right now.</div>';
     document.getElementById('workforce-chart').innerHTML = '<div class="empty-minimal">Workforce chart is unavailable right now.</div>';
-    document.getElementById('expiry-list').innerHTML = '<div class="empty-minimal">Expiry information is unavailable right now.</div>';
+    document.getElementById('event-list').innerHTML = '<div class="empty-minimal">Upcoming events are unavailable right now.</div>';
     document.getElementById('dashboard-attendance').innerHTML = '<div class="empty-minimal">Attendance is unavailable right now.</div>';
     toast(err.message || 'Could not load dashboard', 'error');
   }
 }
 
-function renderDashboardAttendance({ attendanceSummary, attendanceRows }) {
-  const summary = attendanceSummary?.summary || {};
-  const present = Number(summary.present || 0);
-  const late = Number(summary.late || 0);
-  const onLeave = Number(summary['on-leave'] || 0);
-  const absent = Number(summary.absent || 0);
-  const rows = (attendanceRows || []).slice(0, 5);
+function renderDashboardAttendance({ attendanceTrend }) {
   const target = document.getElementById('dashboard-attendance');
-  const list = rows.length ? rows.map((row) => {
-    const parts = String(row.employee_name || '').trim().split(/\s+/);
-    const avatar = avatarEl({ first_name: parts[0] || '?', last_name: parts.slice(1).join(' '), photo_url: row.photo_url || null }, 'sm');
-    return `<div class="attendance-person">
-      <div class="attendance-person-info">${avatar}<div><strong>${escapeHtml(row.employee_name || 'Employee')}</strong><span>${escapeHtml(row.job_title || row.department_name || 'Staff')}</span></div></div>
-      ${fmt.statusBadge(row.status || 'present')}
-    </div>`;
-  }).join('') : '<div class="empty-minimal">No attendance records have been logged today.</div>';
-  target.innerHTML = `
-    <div class="attendance-summary-strip">
-      <div class="attendance-summary-cell"><span>Present</span><strong>${present}</strong></div>
-      <div class="attendance-summary-cell leave"><span>On leave</span><strong>${onLeave}</strong></div>
-    </div>
-    <div class="dashboard-chart" style="margin:0 0 16px">${attendanceBars([{label:'Present',value:present,cls:''},{label:'Late',value:late,cls:'late'},{label:'On leave',value:onLeave,cls:'leave'},{label:'Absent',value:absent,cls:'leave'}])}</div>
-    <div class="attendance-list">${list}</div>`;
+  target.innerHTML = '<div class="attendance-live-chart" id="attendance-live-chart"></div>';
+  const trend = attendanceTrend || [];
+  const labels = trend.map((row) => new Date(`${String(row.work_date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-GB', { weekday:'short' }));
+  mountDashboardChart(target.querySelector('#attendance-live-chart'), () => KenadCharts.line(target.querySelector('#attendance-live-chart'), labels, [
+    { label:'Present', data:trend.map(row => Number(row.present || 0)), color:'#1e3a8a', pointStyle:'circle' },
+    { label:'Late', data:trend.map(row => Number(row.late || 0)), color:'#5b8cf3', pointStyle:'rectRot' },
+    { label:'On leave', data:trend.map(row => Number(row.on_leave || 0)), color:'#8fb3f4', pointStyle:'triangle' }
+  ]));
 }
 
 function attendanceBars(rows) {
@@ -675,9 +697,10 @@ function attendanceBars(rows) {
 
 function updateHeader() {
   const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('dashboard-title').textContent = `${greeting}, ${user.first_name}.`;
+  document.getElementById('dashboard-title').textContent = 'Dashboard';
+  document.getElementById('dashboard-subtitle').textContent = now.toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
   document.getElementById('date-chip').textContent = now.toLocaleDateString('en-GB', {
     weekday: 'short',
     day: '2-digit',
@@ -685,50 +708,44 @@ function updateHeader() {
   });
 }
 
-function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows }) {
+function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows, attendanceSummary }) {
   const total = Number(stats.total_employees || 0);
   const pendingLeave = countByStatus(leaveQueue, 'pending');
-  const pendingPayroll = countByStatus(payrollRows, 'pending');
-  const reviewed = (teamSummary || []).filter((person) => Number(person.review_count || 0) > 0).length;
-  const reviewCoverage = total ? Math.round((reviewed / total) * 100) : 0;
+  const attendance = attendanceSummary?.summary || {};
+  const present = Number(attendance.present || 0);
+  const onLeave = Number(stats.on_leave_today || attendance['on-leave'] || 0);
 
   const metrics = [
     {
-      label: 'Employees',
+      label: 'Total employees',
       value: total,
       note: 'active records',
-      tone: 'info'
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 4.5a3 3 0 0 1 0 5.8M18.5 20a5 5 0 0 0-2.7-4.45"/></svg>'
     },
     {
-      label: 'Approvals',
+      label: 'Present today',
+      value: present,
+      note: present ? 'clocked in today' : 'no clock-ins yet',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>'
+    },
+    {
+      label: 'On leave',
+      value: onLeave,
+      note: pendingLeave ? `${pendingLeave} request${pendingLeave === 1 ? '' : 's'} pending` : 'leave requests are clear',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>'
+    },
+    {
+      label: 'Open approvals',
       value: pendingLeave,
-      note: 'leave requests open',
-      tone: pendingLeave ? 'warn' : ''
-    },
-    {
-      label: 'Payroll',
-      value: shortMoney(stats.payroll_this_month),
-      note: `${pendingPayroll} pending records`,
-      tone: pendingPayroll ? 'warn' : ''
-    },
-    {
-      label: 'Reviews',
-      value: `${reviewCoverage}%`,
-      note: `${reviewed}/${total} employees covered`,
-      tone: reviewCoverage >= 80 ? '' : 'danger'
-    },
-    {
-      label: 'Expiries',
-      value: (stats.upcoming_expiries || []).length,
-      note: 'documents due within 30 days',
-      tone: (stats.upcoming_expiries || []).length ? 'warn' : ''
+      note: 'leave requests to review',
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h9l3 3v13H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M14 4v4h4M9.5 13h5M9.5 16h5"/></svg>'
     }
   ];
 
   document.getElementById('metric-grid').innerHTML = metrics.map((metric) => `
     <article class="metric-card">
       <div class="metric-label">
-        <span>${escapeHtml(metric.label)}</span>
+        <span>${escapeHtml(metric.label)}</span><span class="metric-icon" aria-hidden="true">${metric.icon}</span>
       </div>
       <div>
         <div class="metric-value">${escapeHtml(metric.value)}</div>
@@ -740,14 +757,48 @@ function renderMetrics({ stats, leaveQueue, teamSummary, payrollRows }) {
 
 function renderWorkforceChart(stats) {
   const labels = { staff: 'Staff', contractual: 'Contractual', national_service: 'National service', internship: 'Internship' };
-  const rows = stats.employment_type_breakdown || [];
+  const colors = ['#1e3a8a', '#2563eb', '#5b8cf3', '#a9c4f6'];
+  const sourceRows = stats.employment_type_breakdown || [];
+  const order = ['staff', 'contractual', 'national_service', 'internship'];
+  const counts = new Map(sourceRows.map(row => [row.employment_type, Number(row.count || 0)]));
+  const rows = order.map(type => ({ employment_type: type, count: counts.get(type) || 0 }));
   if (!rows.length) { document.getElementById('workforce-chart').innerHTML = '<div class="empty-minimal">No active employee records yet.</div>'; return; }
-  KenadCharts.doughnut('#workforce-chart', rows.map(row => labels[row.employment_type] || row.employment_type || 'Unspecified'), rows.map(row => Number(row.count || 0)));
+  const total = rows.reduce((sum, row) => sum + row.count, 0);
+  let position = 0;
+  const stops = rows.map((row, index) => {
+    const end = position + (total ? row.count / total * 100 : 25);
+    const stop = `${colors[index]} ${position}% ${Math.max(position + .8, end - 1.1)}%, #fff ${Math.max(position + .8, end - 1.1)}% ${end}%`;
+    position = end;
+    return stop;
+  });
+  const target = document.getElementById('workforce-chart');
+  target.classList.add('live-chart-host');
+  mountDashboardChart(target, () => KenadCharts.doughnut(target, rows.map(row => labels[row.employment_type]), rows.map(row => row.count)));
+}
+
+function renderDepartmentChart(stats) {
+  const rows = stats.department_breakdown || [];
+  const target = document.getElementById('department-chart');
+  if (!rows.length) {
+    target.innerHTML = '<div class="empty-minimal">No active employees have been assigned to departments yet.</div>';
+    return;
+  }
+  target.classList.add('live-chart-host');
+  mountDashboardChart(target, () => KenadCharts.pie(target, rows.map(row => row.department_name), rows.map(row => Number(row.count || 0))));
+}
+
+function mountDashboardChart(target, render) {
+  try {
+    render();
+  } catch (error) {
+    console.error('Dashboard chart could not render', error);
+    if (target) target.innerHTML = '<div class="empty-minimal">Chart data will appear after the next refresh.</div>';
+  }
 }
 
 function renderExpiries(stats) {
   const rows = stats.upcoming_expiries || [];
-  document.getElementById('expiry-list').innerHTML = rows.length ? rows.map(row => `<a class="today-item" href="documents.html"><div><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.employee_name)} · ${escapeHtml(row.doc_type || 'Document')}</span></div><div class="item-meta"><span class="mini-badge warn">${fmt.date(row.expiry_date)}</span></div></a>`).join('') : '<div class="empty-minimal">No document expiries in the next 30 days.</div>';
+  document.getElementById('expiry-list').innerHTML = rows.length ? rows.map(row => `<a class="today-item" href="#documents" data-workspace-page="documents"><div><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.employee_name)} · ${escapeHtml(row.doc_type || 'Document')}</span></div><div class="item-meta"><span class="mini-badge warn">${fmt.date(row.expiry_date)}</span></div></a>`).join('') : '<div class="empty-minimal">No document expiries in the next 30 days.</div>';
 }
 
 function renderAttention({ stats, leaveQueue, teamSummary, payrollRows }) {
@@ -763,26 +814,26 @@ function renderAttention({ stats, leaveQueue, teamSummary, payrollRows }) {
       detail: pendingLeave ? 'Approve or decline pending requests.' : 'No pending time off approvals.',
       badge: pendingLeave ? 'Review' : 'Clear',
       tone: pendingLeave ? 'warn' : 'good',
-      href: 'leave.html'
+      page: 'leave'
     },
     {
       title: pendingPayroll ? `${plural(pendingPayroll, 'payroll record')} pending` : 'Payroll is ready',
       detail: `${countByStatus(payrollRows, 'processed') + countByStatus(payrollRows, 'paid')} records processed this month.`,
       badge: pendingPayroll ? 'Action' : 'Ready',
       tone: pendingPayroll ? 'warn' : 'good',
-      href: 'payroll.html'
+      page: 'payroll'
     },
     {
       title: reviewsDue ? `${plural(reviewsDue, 'review')} not on file` : 'Reviews are covered',
       detail: `${reviewed}/${total} employee records have performance feedback.`,
       badge: reviewsDue ? 'Due' : 'Done',
       tone: reviewsDue ? 'danger' : 'good',
-      href: 'performance.html'
+      page: 'performance'
     }
   ];
 
   document.getElementById('attention-list').innerHTML = items.map((item) => `
-    <a class="queue-item" href="${item.href}">
+    <a class="queue-item" href="#${item.page}" data-workspace-page="${item.page}">
       <div>
         <strong>${escapeHtml(item.title)}</strong>
         <span>${escapeHtml(item.detail)}</span>
@@ -803,13 +854,13 @@ function renderToday({ stats, leaveQueue, payrollRows }) {
   const processedPayroll = countByStatus(payrollRows, 'processed') + countByStatus(payrollRows, 'paid');
 
   const rows = [
-    ['On leave today', onLeave, `${upcomingLeave} upcoming approved periods`, 'leave.html'],
-    ['People moments', birthdays, `${recentHires} recent hires to follow up`, 'employees.html'],
-    ['Payroll processed', processedPayroll, 'current month records', 'payroll.html']
+    ['On leave today', onLeave, `${upcomingLeave} upcoming approved periods`, 'leave'],
+    ['People moments', birthdays, `${recentHires} recent hires to follow up`, 'employees'],
+    ['Payroll processed', processedPayroll, 'current month records', 'payroll']
   ];
 
-  document.getElementById('today-list').innerHTML = rows.map(([title, value, detail, href]) => `
-    <a class="today-item" href="${href}">
+  document.getElementById('today-list').innerHTML = rows.map(([title, value, detail, page]) => `
+    <a class="today-item" href="#${page}" data-workspace-page="${page}">
       <div>
         <strong>${escapeHtml(title)}</strong>
         <span>${escapeHtml(detail)}</span>
@@ -848,7 +899,7 @@ function renderTodos({ todos }) {
     detail: todo.detail,
     badge: todo.owner || 'Everyone',
     tone: todo.priority === 'High' ? 'danger' : todo.priority === 'Medium' ? 'warn' : '',
-    href: 'todos.html'
+    page: 'todos'
   }));
 
   if (!items.length) {
@@ -857,7 +908,7 @@ function renderTodos({ todos }) {
   }
 
   document.getElementById('todo-list').innerHTML = items.map((item) => `
-    <a class="todo-item" href="${item.href}">
+    <a class="todo-item" href="#${item.page}" data-workspace-page="${item.page}">
       <div>
         <strong>${escapeHtml(item.title)}</strong>
         <span>${escapeHtml(item.detail)}</span>
@@ -868,10 +919,17 @@ function renderTodos({ todos }) {
 }
 
 function renderBirthdays(stats) {
-  const rows = (stats.upcoming_birthdays || []).slice(0, 5);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const horizon = new Date(today);
+  horizon.setDate(horizon.getDate() + 30);
+  const rows = (stats.upcoming_birthdays || []).filter((employee) => {
+    const nextBirthday = new Date(`${String(employee.next_birthday || '').slice(0, 10)}T00:00:00`);
+    return !Number.isNaN(nextBirthday.getTime()) && nextBirthday >= today && nextBirthday <= horizon;
+  }).slice(0, 5);
   const target = document.getElementById('birthday-list');
   if (!rows.length) {
-    target.innerHTML = '<div class="empty-minimal">No upcoming birthdays.</div>';
+    target.innerHTML = '<div class="empty-minimal">Add staff dates of birth to show upcoming birthdays.</div>';
     return;
   }
 
@@ -884,8 +942,23 @@ function renderBirthdays(stats) {
           <span>${escapeHtml(employee.job_title || 'Team member')}</span>
         </div>
       </div>
-      <div class="item-meta"><span class="mini-badge">${escapeHtml(birthdayLabel(employee.date_of_birth))}</span></div>
+      <div class="item-meta"><span class="mini-badge">${escapeHtml(birthdayLabel(employee.next_birthday || employee.date_of_birth))}</span></div>
     </div>
+  `).join('');
+}
+
+function renderEvents(events) {
+  const rows = (events || []).slice(0, 4);
+  const target = document.getElementById('event-list');
+  if (!rows.length) {
+    target.innerHTML = '<div class="empty-minimal">No company events scheduled for the next 30 days.</div>';
+    return;
+  }
+  target.innerHTML = rows.map((event) => `
+    <a class="event-item" href="#calendar" data-workspace-page="calendar">
+      <div><strong>${escapeHtml(event.title || 'Company event')}</strong><span>${escapeHtml(event.category || 'Event')}</span></div>
+      <div class="item-meta"><span class="mini-badge">${fmt.date(event.start_date)}</span></div>
+    </a>
   `).join('');
 }
 

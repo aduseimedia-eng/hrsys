@@ -354,3 +354,31 @@ exports.getSummary = async (req, res) => {
     res.status(500).json({ error: 'Could not fetch summary' });
   }
 };
+
+// ─── HR: seven-day attendance trend for the live dashboard ─────────────────
+exports.getTrend = async (req, res) => {
+  try {
+    const requestedDays = Number(req.query.days || 7);
+    const days = Math.min(31, Math.max(2, Number.isFinite(requestedDays) ? requestedDays : 7));
+    const { rows } = await db.query(
+      `WITH dates AS (
+         SELECT generate_series(CURRENT_DATE - ($2::int - 1), CURRENT_DATE, INTERVAL '1 day')::date AS work_date
+       )
+       SELECT dates.work_date,
+         COUNT(a.id) FILTER (WHERE a.status = 'present')::int AS present,
+         COUNT(a.id) FILTER (WHERE a.status = 'late')::int AS late,
+         (SELECT COUNT(*)::int FROM leave_requests lr
+          WHERE lr.company_id = $1 AND lr.status = 'approved'
+            AND dates.work_date BETWEEN lr.start_date AND lr.end_date) AS on_leave
+       FROM dates
+       LEFT JOIN attendance a ON a.company_id = $1 AND a.work_date = dates.work_date
+       GROUP BY dates.work_date
+       ORDER BY dates.work_date ASC`,
+      [req.user.company_id, days],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not fetch attendance trend' });
+  }
+};

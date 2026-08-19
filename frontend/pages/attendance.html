@@ -7,36 +7,52 @@
   <link rel="stylesheet" href="../css/main.css">
   <style>
     .clock-section {
-      background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 68%, #10192f));
-      border-radius: var(--radius-xl);
-      padding: 32px;
+      background: var(--navy-950);
+      border-radius: 14px;
+      padding: 22px 24px;
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 24px;
-      margin-bottom: 24px;
+      margin-bottom: 18px;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
     }
     .clock-main-time {
       font-family: var(--font-display);
-      font-size: 3.5rem;
+      font-size: 2.35rem;
       font-weight: 700;
       letter-spacing: -.04em;
       line-height: 1;
     }
     .clock-main-date { color:rgba(255,255,255,.5); margin-top:6px; font-size:.95rem; }
-    .clock-actions { display:flex; flex-direction:column; gap:12px; min-width:200px; }
+    .clock-actions { display:flex; flex-direction:column; gap:8px; min-width:190px; position:relative; z-index:1; }
     .clock-status-info { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
     .clock-info-row { display:flex; justify-content:space-between; font-size:.875rem; }
     .clock-info-label { color:rgba(255,255,255,.5); }
     .clock-info-val   { color:#fff; font-weight:500; }
-    .clock-in-btn  { background:var(--mint-500);color:var(--brand-dark);font-weight:700; }
-    .clock-in-btn:hover  { background:color-mix(in srgb, var(--mint-500) 84%, #000); }
-    .clock-out-btn { background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.2); }
+    .clock-actions .btn { display:flex !important; min-height:42px; visibility:visible !important; opacity:1 !important; }
+    .clock-in-btn  { background:#fff !important;color:var(--navy-950) !important;font-weight:800; }
+    .clock-in-btn:hover  { background:var(--navy-100) !important; }
+    .clock-out-btn { background:var(--navy-700) !important;color:#fff !important;border:1px solid #7ca4f4; }
     .clock-out-btn:hover { background:rgba(255,255,255,.15); }
-    .attendance-filter { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+    .attendance-filter { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; padding:12px; border:1px solid var(--border); border-radius:10px; background:#fff; }
+    .attendance-section-title { display:flex; align-items:end; justify-content:space-between; gap:16px; margin:20px 0 10px; }
+    .attendance-section-title h2 { margin:0; color:var(--text-primary); font-size:1rem; }
+    .attendance-section-title p { margin:3px 0 0; color:var(--text-muted); font-size:.78rem; }
+    .attendance-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+    .attendance-summary .stat-card { min-height:88px; padding:15px 16px; border:1px solid var(--border); box-shadow:none; background:#fff; }
+    .attendance-summary .stat-card .stat-icon { display:none; }
+    .attendance-operations { display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:16px; align-items:start; }
+    .attendance-attention { border:1px solid var(--border); border-radius:10px; background:#fff; overflow:hidden; }
+    .attendance-attention h3 { margin:0; padding:14px 15px; border-bottom:1px solid var(--border); font-size:.9rem; }
+    .attendance-attention-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 15px; border-bottom:1px solid var(--border); font-size:.8rem; }
+    .attendance-attention-item:last-child { border-bottom:0; }
+    .attendance-attention-item span { color:var(--text-muted); }
+    .attendance-attention-item strong { color:var(--text-primary); }
+    .attendance-chart-card { margin:0 0 16px; box-shadow:none; }
+    .attendance-chart-card .card-header { background:#fff; }
     @media (max-width: 640px) {
       .clock-section { padding:22px 18px; border-radius:16px; flex-direction:column; align-items:stretch; gap:20px; }
       .clock-main-time { font-size:2.55rem; }
@@ -47,12 +63,13 @@
       .clock-info-row { font-size:.82rem; }
       .attendance-filter { display:grid; grid-template-columns:1fr; gap:10px; }
       .attendance-filter .form-control, .attendance-filter .btn { width:100%; max-width:none !important; }
-      #att-summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+      #att-summary, .attendance-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
       #att-summary .stat-card { padding:12px 8px; justify-content:center; text-align:center; }
       #att-summary .stat-icon { display:none; }
       #att-summary .stat-value { font-size:1.25rem; }
       #att-summary .stat-label { font-size:.68rem; }
       #tab-my .table-container, #tab-hr .table-container { margin:0 -2px; }
+      .attendance-operations { grid-template-columns:1fr; }
     }
     @media (max-width: 380px) { #att-summary { grid-template-columns:1fr; } }
   </style>
@@ -70,6 +87,7 @@
     </div>
   </header>
   <main class="main-content">
+    <div class="page-header"><div><h1>Attendance</h1><p>Track today's workforce activity, exceptions, and approved time.</p></div></div>
     <!-- Clock widget -->
     <div class="clock-section">
       <div>
@@ -77,7 +95,7 @@
         <div class="clock-main-date" id="clock-date"></div>
       </div>
       <div class="clock-actions">
-        <div style="font-size:.8rem;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Today's Attendance</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.55);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">My attendance today</div>
         <button id="clock-in-btn"  class="btn clock-in-btn"  style="justify-content:center" onclick="clockAction('in')">Clock In</button>
         <button id="clock-out-btn" class="btn clock-out-btn" style="justify-content:center" onclick="clockAction('out')" disabled>Clock Out</button>
         <p style="margin:10px 0 0;color:rgba(255,255,255,.66);font-size:.75rem;line-height:1.4">Your precise location is recorded only when you clock in or out.</p>
@@ -119,15 +137,18 @@
         <button class="btn btn-outline" onclick="loadHrReport()">Filter</button>
         <button class="btn btn-primary" id="attendance-export-btn" style="display:none" onclick="exportAttendance()">Export Attendance</button>
       </div>
-      <!-- Summary cards -->
-      <div class="stat-grid" id="att-summary" style="margin-bottom:20px"></div>
-      <div class="card" style="margin-bottom:20px"><div class="card-header"><h3>Attendance distribution</h3></div><div class="card-body"><div id="attendance-chart" style="height:250px"></div></div></div>
+      <div class="attendance-summary" id="att-summary"></div>
+      <div class="attendance-operations">
+        <div><div class="attendance-section-title"><div><h2>Today's team</h2><p>Live clock-in status for the selected date.</p></div></div>
       <div class="table-container">
         <table>
           <thead><tr><th>Employee</th><th>Department</th><th>Clock In</th><th>Clock Out</th><th>Location</th><th>Duration</th><th>Status</th></tr></thead>
           <tbody id="hr-tbody"><tr><td colspan="7"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
         </table>
+      </div></div>
+      <aside class="attendance-attention" id="attendance-attention"><h3>Needs attention</h3><div class="attendance-attention-item"><div><strong>Loading exceptions</strong><span>Checking attendance data</span></div></div></aside>
       </div>
+      <div class="card attendance-chart-card"><div class="card-header"><h3>Attendance distribution</h3></div><div class="card-body"><div id="attendance-chart" style="height:220px"></div></div></div>
       <div style="margin-top:28px">
         <h3 style="margin-bottom:6px">Overtime requests</h3>
         <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:12px">Review late clock-out overtime before it is included in payroll.</p>
@@ -248,9 +269,15 @@ async function loadHrReport() {
   const s = summary.summary;
   document.getElementById('att-summary').innerHTML = `
     <div class="stat-card"><div class="stat-icon green"></div><div><div class="stat-value">${s.present||0}</div><div class="stat-label">Present</div></div></div>
+    <div class="stat-card"><div class="stat-icon amber"></div><div><div class="stat-value">${s.late||0}</div><div class="stat-label">Late</div></div></div>
     <div class="stat-card"><div class="stat-icon rose"></div><div><div class="stat-value">${s.absent||0}</div><div class="stat-label">Absent</div></div></div>
-    <div class="stat-card"><div class="stat-icon blue"></div><div><div class="stat-value">${s['on-leave']||0}</div><div class="stat-label">On Leave</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue"></div><div><div class="stat-value">${s['on-leave']||0}</div><div class="stat-label">On leave</div></div></div>
   `;
+  document.getElementById('attendance-attention').innerHTML = `
+    <h3>Needs attention</h3>
+    <div class="attendance-attention-item"><div><strong>${s.late||0} late arrival${Number(s.late||0) === 1 ? '' : 's'}</strong><span>Review today's late clock-ins.</span></div><span class="badge badge-warning">${s.late||0}</span></div>
+    <div class="attendance-attention-item"><div><strong>${s.absent||0} absent</strong><span>Employees without a record.</span></div><span class="badge badge-danger">${s.absent||0}</span></div>
+    <div class="attendance-attention-item"><div><strong>${s['on-leave']||0} on leave</strong><span>Approved time away today.</span></div><span class="badge badge-info">${s['on-leave']||0}</span></div>`;
   KenadCharts.doughnut('#attendance-chart', ['Present', 'Late', 'Absent', 'On leave'], [Number(s.present||0), Number(s.late||0), Number(s.absent||0), Number(s['on-leave']||0)]);
 
   const tbody = document.getElementById('hr-tbody');

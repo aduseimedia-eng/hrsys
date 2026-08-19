@@ -16,6 +16,7 @@ router.get ('/overtime/settings', auth, ctrl.getOvertimeSettings);
 router.put ('/overtime/settings', auth, rbac('admin'), ctrl.updateOvertimeSettings);
 router.get ('/report',     auth, rbac('admin','manager'), ctrl.getReport);
 router.get ('/summary',    auth, rbac('admin','manager'), ctrl.getSummary);
+router.get ('/trend',      auth, rbac('admin','manager'), ctrl.getTrend);
 router.get ('/export',     auth, rbac('admin'), ctrl.exportReport);
 
 module.exports = router;

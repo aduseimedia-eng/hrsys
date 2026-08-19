@@ -8,37 +8,36 @@
   <link rel="icon" type="image/jpeg" href="/assets/title_icon.jpg">
   <link rel="apple-touch-icon" href="/assets/title_icon.jpg">
   <title>KenadHR Workspace</title>
-  <link rel="stylesheet" href="../css/main.css?v=20260818-menu">
+  <link rel="stylesheet" href="../css/main.css?v=20260818-menu8">
   <style>
-    body {
-      overflow: hidden;
-    }
+    body { overflow: auto; }
 
     .workspace-shell {
       --sidebar-w: 300px;
-      --topbar-h: 82px;
+      --topbar-h: 72px;
       position: relative;
       grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-      grid-template-rows: var(--topbar-h) minmax(0, 1fr);
-      height: 100vh;
+      grid-template-rows: var(--topbar-h) auto;
+      height: auto;
       min-height: 100vh;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .workspace-content {
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      /* A two-row grid was stretching its empty first row when the optional
+         recruitment bar is hidden, pushing every page down from the header. */
+      display: block;
       min-width: 0;
-      min-height: 0;
+      min-height: calc(100vh - var(--topbar-h));
       padding: 0;
-      overflow: hidden;
+      overflow: visible;
       background: var(--bg-page);
     }
 
     .workspace-stage {
       position: relative;
-      min-height: 0;
-      overflow: hidden;
+      min-height: 1px;
+      overflow: visible;
     }
 
     .workspace-module-menu {
@@ -91,7 +90,8 @@
 
     .workspace-frame {
       width: 100%;
-      height: 100%;
+      height: 1px;
+      min-height: 1px;
       border: 0;
       display: block;
       background: var(--bg-page);
@@ -120,8 +120,8 @@
     .workspace-topbar {
       min-width: 0;
       min-height: var(--topbar-h);
-      padding: 0 28px;
-      gap: 20px;
+      padding: 0 24px;
+      gap: 16px;
       background: #fff;
       border-bottom-color: #e7eaf0;
       box-shadow: none;
@@ -144,7 +144,7 @@
     .workspace-breadcrumbs a,
     .workspace-breadcrumbs [aria-current="page"] {
       overflow: hidden;
-      color: #33415d;
+      color: var(--navy-700);
       font-size: .92rem;
       font-weight: 650;
       text-decoration: none;
@@ -154,7 +154,7 @@
 
     .workspace-breadcrumbs a:hover,
     .workspace-breadcrumbs a:focus-visible { color: var(--brand); }
-    .workspace-breadcrumbs [aria-current="page"] { color: var(--brand); }
+    .workspace-breadcrumbs [aria-current="page"] { color: var(--navy-950); font-weight:800; }
 
     .workspace-breadcrumb-separator {
       width: 15px;
@@ -167,29 +167,29 @@
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 8px;
       flex: 0 0 auto;
     }
 
     .workspace-attendance {
       display: inline-flex;
-      width: 164px;
-      height: 48px;
+      width: 158px;
+      height: 44px;
       align-items: center;
       gap: 8px;
       padding: 6px 10px;
       overflow: hidden;
-      border: 1px solid #c9edd7;
-      border-radius: 9px;
-      color: #167449;
-      background: #effaf2;
+      border: 1px solid var(--navy-200);
+      border-radius: 10px;
+      color: var(--navy-800);
+      background: var(--navy-50);
       font: inherit;
       text-align: left;
       transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
     }
 
     .workspace-attendance:hover,
-    .workspace-attendance:focus-visible { border-color: #9ddbb6; color: #0d5c38; background: #e2f7e9; }
+    .workspace-attendance:focus-visible { border-color: var(--navy-400); color: var(--navy-950); background: var(--navy-100); }
     .workspace-attendance:disabled { cursor: wait; opacity: .72; }
     .workspace-attendance__icon {
       display: inline-grid;
@@ -197,9 +197,9 @@
       height: 26px;
       flex: 0 0 26px;
       place-items: center;
-      border-radius: 7px;
+      border-radius: 8px;
       color: currentColor;
-      background: rgba(22, 116, 73, .10);
+      background: var(--navy-100);
     }
 
     .workspace-attendance__icon svg { width: 17px; height: 17px; }
@@ -208,43 +208,43 @@
     .workspace-attendance__elapsed { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .workspace-attendance__label { font-size: .71rem; font-weight: 750; letter-spacing: .01em; }
     .workspace-attendance__elapsed { margin-top: 1px; font-size: .86rem; font-weight: 850; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-    .workspace-attendance[data-state="working"] { color: #0f7a50; background: #edfbf3; }
-    .workspace-attendance[data-state="complete"] { border-color: #d8e1ec; color: #59677d; background: #f7f9fc; }
-    .workspace-attendance[data-state="complete"] .workspace-attendance__icon { background: #e9eef5; }
-    .workspace-attendance[data-state="error"] { border-color: #f1cbc9; color: #b64945; background: #fff4f3; }
-    .workspace-attendance[data-state="error"] .workspace-attendance__icon { background: #ffe1df; }
+    .workspace-attendance[data-state="working"] { color: var(--navy-800); background: var(--navy-50); }
+    .workspace-attendance[data-state="complete"] { border-color: var(--navy-200); color: var(--navy-700); background: #f8fbff; }
+    .workspace-attendance[data-state="complete"] .workspace-attendance__icon { background: var(--navy-100); }
+    .workspace-attendance[data-state="error"] { border-color: var(--navy-200); color: var(--navy-800); background: var(--navy-50); }
+    .workspace-attendance[data-state="error"] .workspace-attendance__icon { background: var(--navy-100); }
 
     .workspace-utility {
       display: inline-grid;
       width: 40px;
       height: 40px;
       place-items: center;
-      border: 1px solid #f0e5e1;
-      border-radius: 50%;
-      color: #e66a51;
-      background: #fff7f4;
+      border: 1px solid var(--navy-200);
+      border-radius: 10px;
+      color: var(--navy-800);
+      background: #fff;
       text-decoration: none;
     }
 
     .workspace-utility:hover,
-    .workspace-utility:focus-visible { color: #c95540; background: #ffede7; }
+    .workspace-utility:focus-visible { color: var(--navy-950); background: var(--navy-50); }
     .workspace-utility svg { width: 18px; height: 18px; }
 
     .workspace-topbar #notif-btn {
       width: 40px;
       height: 40px;
-      border: 1px solid #f0e5e1;
-      border-radius: 50%;
-      color: #e66a51;
-      background: #fff7f4;
+      border: 1px solid var(--navy-200);
+      border-radius: 10px;
+      color: var(--navy-800);
+      background: #fff;
       box-shadow: none;
     }
 
     .workspace-topbar #notif-btn:hover,
     .workspace-topbar #notif-btn:focus-visible {
-      border-color: #f0d2c9;
-      color: #c95540;
-      background: #ffede7;
+      border-color: var(--navy-400);
+      color: var(--navy-950);
+      background: var(--navy-50);
       box-shadow: none;
     }
 
@@ -252,8 +252,48 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      min-width: 156px;
+      min-width: 164px;
       margin-left: 4px;
+      padding: 4px 8px 4px 5px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      text-align: left;
+    }
+    .workspace-account:hover,
+    .workspace-account:focus-visible { border-color:var(--navy-200); background: var(--navy-50); outline: none; }
+    .workspace-account[aria-expanded="true"] { border-color:var(--navy-200); background: var(--navy-100); }
+    .workspace-account__chevron { flex: 0 0 auto; color: #7d8798; transition: transform 160ms ease; }
+    .workspace-account[aria-expanded="true"] .workspace-account__chevron { transform: rotate(180deg); }
+    .workspace-account-menu {
+      position: absolute;
+      z-index: 400;
+      top: calc(var(--topbar-h) - 8px);
+      right: 22px;
+      width: 218px;
+      padding: 7px;
+      border: 1px solid #e2e7ef;
+      border-radius: 11px;
+      background: #fff;
+      box-shadow: 0 14px 32px rgba(31, 46, 76, .16);
+    }
+    .workspace-account-menu a,
+    .workspace-account-menu button {
+      display: block;
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 7px;
+      color: #44516a;
+      font: 650 .83rem var(--font-body);
+      text-align: left;
+      text-decoration: none;
+    }
+    .workspace-account-menu a:hover,
+    .workspace-account-menu a:focus-visible,
+    .workspace-account-menu button:hover,
+    .workspace-account-menu button:focus-visible { color: #244fba; background: #f0f5ff; outline: none; }
+    .workspace-account-menu button { margin-top: 4px; border-top: 1px solid #edf0f4; border-radius: 0 0 7px 7px; color: #b64c4a; }
+    .workspace-account-menu button:hover,
+    .workspace-account-menu button:focus-visible { color: #a63a38; background: #fff3f2; }
     }
 
     .workspace-account__avatar {
@@ -262,7 +302,7 @@
       height: 42px;
       flex: 0 0 42px;
       place-items: center;
-      border-radius: 50%;
+      border-radius: 10px;
       color: #fff;
       background: var(--brand);
       font-size: .88rem;
@@ -283,7 +323,7 @@
       scrollbar-width: thin;
     }
 
-    .workspace-stage { grid-row: 2; }
+    .workspace-stage { grid-row: auto; }
 
     .recruitment-context-nav__links {
       display: flex;
@@ -313,13 +353,14 @@
     .recruitment-context-nav a[aria-current="page"] { color: #2865d9; border-color: #c9dafc; background: #eaf2ff; }
 
     .workspace-shell .sidebar-logo {
-      height: var(--topbar-h);
+      min-height: 158px;
+      height: auto;
       padding: 13px 18px;
-      justify-content: flex-start;
+      justify-content: center;
       border-bottom: 1px solid #e7eaf0;
     }
 
-    .workspace-shell .sidebar-logo .brand-logo { width: 156px; height: 48px; }
+    .workspace-shell .sidebar-logo .brand-logo { width: min(100%, 210px); height: 76px; object-fit: contain; object-position: center; }
     .workspace-shell .sidebar--workspace-static .sidebar-nav {
       padding: 12px 12px 16px;
     }
@@ -473,8 +514,6 @@
   <header class="topbar workspace-topbar" data-static-nav="true">
     <nav class="workspace-breadcrumbs" aria-label="Breadcrumb">
       <ol>
-        <li><a href="#dashboard">KenadHR</a></li>
-        <li aria-hidden="true"><svg class="workspace-breadcrumb-separator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></li>
         <li><a id="workspace-module" href="#dashboard">Workspace</a></li>
         <li aria-hidden="true"><svg class="workspace-breadcrumb-separator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></li>
         <li id="workspace-title" aria-current="page">Dashboard</li>
@@ -497,12 +536,19 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         <span class="dot hidden" id="notif-badge"></span>
       </button>
-      <div class="workspace-account" aria-label="Signed-in account">
+      <button class="workspace-account" id="workspace-account-menu-button" type="button" aria-label="Signed-in account" aria-expanded="false" aria-controls="workspace-account-menu">
         <span class="workspace-account__avatar" id="workspace-user-initials">HR</span>
         <span class="workspace-account__copy">
           <span class="workspace-account__name" id="workspace-user-name">Signed in</span>
           <span class="workspace-account__status" id="workspace-user-status">HR workspace</span>
         </span>
+        <svg class="workspace-account__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="workspace-account-menu" id="workspace-account-menu" role="menu" hidden>
+        <a href="#settings" role="menuitem">My profile &amp; account</a>
+        <a href="#settings" role="menuitem">Company settings</a>
+        <a href="#settings" role="menuitem">Change password</a>
+        <button type="button" role="menuitem" id="workspace-sign-out">Sign out</button>
       </div>
     </div>
   </header>
@@ -523,12 +569,12 @@
     </nav>
     <div class="workspace-stage">
       <div class="workspace-loading" id="workspace-loading">Loading workspace...</div>
-      <iframe class="workspace-frame hidden" id="workspace-frame" title="KenadHR page"></iframe>
+      <iframe class="workspace-frame hidden" id="workspace-frame" title="KenadHR page" scrolling="no"></iframe>
     </div>
   </main>
 </div>
 
-<script src="../js/api.js?v=20260818-menu"></script>
+<script src="../js/api.js?v=20260818-menu8"></script>
 <script>
 const workspaceUser = requireAuth();
 if (!workspaceUser) throw new Error('redirect');
@@ -579,7 +625,6 @@ const WORKSPACE_PAGES = {
   applications: { title: 'Candidate Applications', nav: 'recruitment' },
   candidate: { title: 'Candidate Profile', nav: 'recruitment' },
   onboarding: { title: 'Onboarding', nav: 'onboarding' },
-  reports: { title: 'Reports & Workflows', nav: 'administration' },
   employees: { title: 'Employees', nav: 'people' },
   departments: { title: 'Departments', nav: 'people' },
   orgchart: { title: 'Organization Chart', nav: 'people' },
@@ -663,7 +708,6 @@ const WORKSPACE_MODULE_MENUS = Object.freeze({
     label: 'Administration',
     items: [
       { route: 'administration', label: 'Administration overview' },
-      { route: 'reports', label: 'Reports & workflows' },
       { route: 'audit', label: 'Audit history', roles: ['admin'] },
       { route: 'settings', label: 'Settings', roles: ['admin'] }
     ]
@@ -711,6 +755,13 @@ let workspaceAttendanceOvertimeReady = false;
 let workspaceAttendanceTimerId = null;
 let workspaceAttendanceRefreshToken = 0;
 
+if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+function resetWorkspaceScroll() {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
 setupWorkspaceIdentity();
 updateWorkspaceChrome(parseWorkspaceRoute(), WORKSPACE_PAGES[parseWorkspaceRoute().page]);
 renderWorkspaceAttendance();
@@ -752,6 +803,13 @@ function navigateWorkspace(route) {
 window.addEventListener('message', (event) => {
   if (event.origin !== window.location.origin || event.source !== workspaceFrame.contentWindow) return;
   const data = event.data || {};
+  if (data.type === 'hrconnect:page-height' && Number.isFinite(data.height)) {
+    const nextHeight = Math.max(1, Math.ceil(data.height));
+    if (Math.abs(workspaceFrame.getBoundingClientRect().height - nextHeight) > 1) {
+      workspaceFrame.style.height = `${nextHeight}px`;
+    }
+    return;
+  }
   if (data.type === 'hrconnect:attendance-updated') {
     loadWorkspaceAttendance();
     return;
@@ -763,6 +821,10 @@ window.addEventListener('message', (event) => {
 workspaceFrame.addEventListener('load', () => {
   workspaceLoading.classList.add('hidden');
   workspaceFrame.classList.remove('hidden');
+  workspaceFrame.contentWindow?.scrollTo(0, 0);
+  resetWorkspaceScroll();
+  requestAnimationFrame(resetWorkspaceScroll);
+  window.setTimeout(resetWorkspaceScroll, 80);
   syncRouteFromFrame();
 });
 
@@ -800,6 +862,17 @@ function setupWorkspaceIdentity() {
   document.getElementById('workspace-user-status').textContent = roleLabel;
   document.querySelector('.workspace-account')?.setAttribute('aria-label', `Signed in as ${name}`);
   document.getElementById('workspace-settings').hidden = workspaceUser.role !== 'admin';
+  const accountButton = document.getElementById('workspace-account-menu-button');
+  const accountMenu = document.getElementById('workspace-account-menu');
+  const closeAccountMenu = () => { accountMenu.hidden = true; accountButton.setAttribute('aria-expanded', 'false'); };
+  accountButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const willOpen = accountMenu.hidden;
+    accountMenu.hidden = !willOpen;
+    accountButton.setAttribute('aria-expanded', String(willOpen));
+  });
+  document.addEventListener('click', closeAccountMenu);
+  document.getElementById('workspace-sign-out').addEventListener('click', logout);
 }
 
 function workspaceAttendanceSvg(state) {
@@ -956,7 +1029,10 @@ function updateWorkspaceChrome(route, pageMeta) {
 
   workspaceContent.classList.toggle('is-recruitment-workspace', pageMeta.nav === 'recruitment');
   recruitmentContextNav.hidden = true;
-  renderWorkspaceModuleMenu(pageMeta.nav, route.page);
+  // The sidebar is the single source of navigation. Keeping a second module
+  // menu here duplicates the same links and obscures the workspace content.
+  workspaceModuleMenu.hidden = true;
+  workspaceModuleMenu.innerHTML = '';
 }
 
 function workspaceModuleMenuArrow() {
@@ -1004,6 +1080,9 @@ function loadWorkspaceRoute() {
   loadNotifCount();
 
   if (workspaceFrame.dataset.src !== src) {
+    // Every module begins at its own page header instead of inheriting the
+    // vertical position from the page the user just left.
+    resetWorkspaceScroll();
     workspaceLoading.classList.remove('hidden');
     workspaceFrame.classList.add('hidden');
     workspaceFrame.dataset.src = src;

@@ -17,6 +17,9 @@
       border-radius: var(--radius-xl);
       overflow: hidden;
     }
+    /* The workspace owns the page scroll. A viewport-relative message panel
+       inside its iframe can collapse to the iframe's initial 1px height. */
+    body.embedded-page .messages-layout { height: 660px; min-height: 660px; }
     .inbox-panel {
       border-right: 1.5px solid var(--border);
       display: flex;

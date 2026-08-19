@@ -206,6 +206,11 @@
       buildSidebar('recruitment');
       Promise.resolve(loadNotifCount()).catch(() => {});
       renderRecruitmentNavigation(active);
+    } else {
+      // The workspace sidebar is the only recruitment navigation in an
+      // embedded route. Remove the direct-visit fallback so it cannot reserve
+      // an invisible block above the page heading.
+      document.getElementById('recruitment-nav')?.remove();
     }
     return user;
   }

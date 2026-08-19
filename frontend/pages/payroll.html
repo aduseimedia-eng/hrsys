@@ -34,6 +34,9 @@
       max-width: 680px;
       margin: 0 auto;
     }
+    .payslip-modal { max-height:none; overflow:visible; }
+    .payslip-modal .modal-body { overflow:visible; }
+    @media (max-width:640px) { .payslip-modal { max-height:90vh; overflow:hidden; } .payslip-modal .modal-body { overflow:auto; } }
     .payslip-detail-header {
       display: flex;
       justify-content: space-between;
@@ -169,12 +172,12 @@
 
 <!-- Payslip Detail Modal -->
 <div id="payslip-modal" class="modal-overlay" style="display:none">
-  <div class="modal modal-lg">
+  <div class="modal modal-lg payslip-modal">
     <div class="modal-header">
       <h3>Payslip</h3>
       <div style="display:flex;gap:8px">
         <button class="btn btn-outline btn-sm" onclick="printPayslip()">Download PDF</button>
-        <button class="modal-close" onclick="document.getElementById('payslip-modal').style.display='none'">x</button>
+        <button class="modal-close" aria-label="Close" onclick="closePayslipModal()">×</button>
       </div>
     </div>
     <div class="modal-body" id="payslip-detail"></div>

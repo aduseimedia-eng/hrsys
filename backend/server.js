@@ -40,6 +40,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── Static file serving (uploads) ───────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/vendor/chartjs', express.static(path.join(__dirname, 'node_modules', 'chart.js', 'dist')));
 
 // ─── API Routes ───────────────────────────────────────────────
 app.use('/api/auth',          require('./routes/auth.routes'));

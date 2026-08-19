@@ -12,16 +12,15 @@ const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
 const otpEnabled = () => Boolean(process.env.VYNFY_API_KEY) && process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
 const signupPaymentRequired = () => process.env.SIGNUP_PAYMENT_REQUIRED === 'true';
 
-function normalizeGhanaPhone(value) {
-  let digits = String(value || '').replace(/\D/g, '');
-  // People often save an international number with either the local trunk
-  // prefix (+233 024...) or the international access prefix (00233...).
-  // Canonicalise those equivalent representations before sending to Vynfy.
-  if (digits.startsWith('00')) digits = digits.slice(2);
+function normalizeInternationalPhone(value) {
+  const raw = String(value || '').trim();
+  let digits = raw.replace(/\D/g, '');
+  if (raw.startsWith('00')) digits = digits.slice(2);
+  // Preserve the Ghana local format already used by existing workspaces while
+  // requiring internationally routable E.164-style numbers everywhere else.
+  if (/^0\d{9}$/.test(digits)) digits = `233${digits.slice(1)}`;
   if (/^2330\d{9}$/.test(digits)) digits = `233${digits.slice(4)}`;
-  if (/^0\d{9}$/.test(digits)) return `233${digits.slice(1)}`;
-  if (/^233\d{9}$/.test(digits)) return digits;
-  return null;
+  return /^\d{8,15}$/.test(digits) && !digits.startsWith('0') ? digits : null;
 }
 
 function setupDetails(body) {
@@ -138,9 +137,9 @@ exports.requestSetupOtp = async (req, res) => {
     if (!otpEnabled()) return res.status(404).json({ error: 'Route not found' });
     const details = setupDetails(req.body);
     const validationError = validateSetupDetails(details);
-    const phone = normalizeGhanaPhone(req.body.phone);
+    const phone = normalizeInternationalPhone(req.body.phone);
     if (validationError) return res.status(400).json({ error: validationError });
-    if (!phone) return res.status(400).json({ error: 'Enter a valid Ghana phone number' });
+    if (!phone) return res.status(400).json({ error: 'Enter a valid phone number with its country code' });
     const recent = await client.query(
       "SELECT COUNT(*) FROM hr_signup_otps WHERE phone=$1 AND created_at > NOW() - INTERVAL '15 minutes'",
       [phone]
@@ -232,11 +231,11 @@ exports.login = async (req, res) => {
       }
       // Permit a password-verified HR user to repair a stale or missing phone
       // number instead of locking the administrator out of the workspace.
-      const phone = normalizeGhanaPhone(employee.phone) || normalizeGhanaPhone(req.body.phone);
+      const phone = normalizeInternationalPhone(employee.phone) || normalizeInternationalPhone(req.body.phone);
       if (!phone) {
-        return res.status(403).json({ error: 'Enter the valid Ghana phone number for this HR account to receive a confirmation code.' });
+        return res.status(403).json({ error: 'Enter a valid phone number with country code for this HR account to receive a confirmation code.' });
       }
-      if (phone !== normalizeGhanaPhone(employee.phone)) {
+      if (phone !== normalizeInternationalPhone(employee.phone)) {
         await db.query('UPDATE employees SET phone=$1 WHERE id=$2', [phone, employee.id]);
       }
       const recent = await db.query(
@@ -339,11 +338,11 @@ exports.staffLogin = async (req, res) => {
 
     // A staff account is issued by HR, then the staff member confirms its phone
     // the first time they sign in. Existing accounts remain unusable until HR
-    // records a valid Ghana phone number for them.
+    // records a valid phone number with a country code for them.
     if (otpEnabled() && !employee.phone_verified_at) {
-      const phone = normalizeGhanaPhone(employee.phone);
+      const phone = normalizeInternationalPhone(employee.phone);
       if (!phone) {
-        return res.status(403).json({ error: 'Your account needs a valid Ghana phone number before first sign in. Please contact HR.' });
+        return res.status(403).json({ error: 'Your account needs a valid phone number with country code before first sign in. Please contact HR.' });
       }
       const recent = await db.query(
         "SELECT COUNT(*) FROM staff_login_otps WHERE employee_id=$1 AND created_at > NOW() - INTERVAL '15 minutes'",

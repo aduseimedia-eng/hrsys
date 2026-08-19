@@ -3,14 +3,14 @@
    this navigation only as a direct-visit fallback. */
 body.embedded-page #recruitment-nav {
   display: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
 }
 
-#recruitment-nav:empty {
-  display: block;
-  min-height: 110px;
-  margin: 0 0 24px;
-  visibility: hidden;
-}
+/* Do not reserve a placeholder for the direct-visit navigation. In workspace
+   pages the navigation lives in the left sidebar, and an empty placeholder
+   creates a large blank band above the page title. */
+#recruitment-nav:empty { display: none; }
 
 .recruitment-platform-nav {
   margin: 0 0 24px;
@@ -118,15 +118,15 @@ body.embedded-page #recruitment-nav {
 }
 
 .recruitment-platform-nav__link:focus-visible {
-  outline: 3px solid rgba(63, 146, 125, .28);
+  outline: 3px solid rgba(30, 58, 138, .28);
   outline-offset: 2px;
 }
 
 .recruitment-platform-nav__link.is-active,
 .recruitment-platform-nav__link[aria-current="page"] {
-  border-color: var(--mint-200);
-  background: var(--mint-100);
-  color: var(--navy-950);
+  border-color: var(--navy-200);
+  background: var(--navy-100);
+  color: var(--navy-800);
 }
 
 .recruitment-platform-nav__divider {
@@ -215,10 +215,6 @@ body.embedded-page #recruitment-nav {
 }
 
 @media (max-width: 700px) {
-  #recruitment-nav:empty {
-    min-height: 103px;
-    margin-bottom: 18px;
-  }
 
   .recruitment-platform-nav {
     margin-bottom: 18px;
@@ -593,16 +589,16 @@ body.embedded-page #recruitment-nav {
 .recruitment-status--accepted,
 .recruitment-status--hired,
 .recruitment-status--open,
-.recruitment-status--completed { color: var(--emerald-600); background: var(--emerald-100); }
+.recruitment-status--completed,
 .recruitment-status--pending,
 .recruitment-status--submitted,
 .recruitment-status--sent,
-.recruitment-status--scheduled { color: var(--amber-600); background: var(--amber-100); }
+.recruitment-status--scheduled,
 .recruitment-status--rejected,
 .recruitment-status--declined,
 .recruitment-status--closed,
-.recruitment-status--cancelled { color: var(--rose-600); background: var(--rose-100); }
-.recruitment-status--draft { color: var(--violet-600); background: var(--violet-100); }
+.recruitment-status--cancelled,
+.recruitment-status--draft { color: var(--navy-800); background: var(--navy-100); }
 
 .recruitment-filterbar {
   margin-bottom: 16px;

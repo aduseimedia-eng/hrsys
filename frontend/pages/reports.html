@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/suite.css">
   <link rel="stylesheet" href="../css/workspace.css">
+  <script>const embeddedReport = new URLSearchParams(location.search).has('embed'); if (!embeddedReport) location.replace('dashboard.html#dashboard-reports'); else document.documentElement.classList.add('report-embed');</script>
   <style>
     .report-toolbar {
       display: flex;
@@ -92,6 +93,16 @@
       padding: 12px;
       background: var(--bg-page);
     }
+    html.report-embed .suite-hero,
+    html.report-embed #report-kpis,
+    html.report-embed .suite-grid { display: none; }
+    html.report-embed .main-content { padding: 0 !important; background: transparent; }
+    html.report-embed,
+    html.report-embed body { height: auto !important; overflow: hidden !important; }
+    html.report-embed .report-toolbar { margin: 0 0 14px; }
+    html.report-embed .report-grid-wide { margin: 0; }
+    html.report-embed .report-table-wrap { overflow: visible; }
+    html.report-embed .report-table-wrap table { width: 100%; min-width: 0; }
     @media (max-width: 1100px) {
       .report-grid-wide { grid-template-columns: 1fr; }
     }
@@ -229,6 +240,12 @@ const state = {
 
 document.getElementById('date-filter').value = new Date().toISOString().slice(0, 10);
 bootReports();
+
+if (embeddedReport) {
+  const reportHeight = () => parent.postMessage({ type: 'kenadhr:report-height', height: Math.ceil(document.documentElement.scrollHeight + 8) }, location.origin);
+  new ResizeObserver(reportHeight).observe(document.body);
+  window.addEventListener('load', reportHeight);
+}
 
 async function bootReports() {
   try {

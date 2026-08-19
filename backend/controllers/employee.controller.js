@@ -24,6 +24,7 @@ exports.getDashboard = async (req, res) => {
       birthdays,
       recent,
       employmentTypes,
+      departments,
       expiries,
     ] = await Promise.all([
       db.query(
@@ -43,12 +44,21 @@ exports.getDashboard = async (req, res) => {
         [req.user.company_id, month, year],
       ),
       db.query(
-        `SELECT id, first_name, last_name, photo_url, date_of_birth, job_title
-         FROM employees
-         WHERE company_id = $1
-           AND is_active = true
-           AND TO_CHAR(date_of_birth, 'MM-DD') BETWEEN TO_CHAR(NOW(),'MM-DD') AND TO_CHAR(NOW() + INTERVAL '30 days','MM-DD')
-         ORDER BY TO_CHAR(date_of_birth,'MM-DD') LIMIT 5`,
+        `WITH employee_birthdays AS (
+           SELECT id, first_name, last_name, photo_url, date_of_birth, job_title,
+             CASE
+               WHEN to_date(EXTRACT(YEAR FROM CURRENT_DATE)::int || '-' || to_char(date_of_birth, 'MM-DD'), 'YYYY-MM-DD') >= CURRENT_DATE
+                 THEN to_date(EXTRACT(YEAR FROM CURRENT_DATE)::int || '-' || to_char(date_of_birth, 'MM-DD'), 'YYYY-MM-DD')
+               ELSE to_date((EXTRACT(YEAR FROM CURRENT_DATE)::int + 1) || '-' || to_char(date_of_birth, 'MM-DD'), 'YYYY-MM-DD')
+             END AS next_birthday
+           FROM employees
+           WHERE company_id = $1 AND is_active = true AND date_of_birth IS NOT NULL
+         )
+         SELECT id, first_name, last_name, photo_url, date_of_birth, job_title, next_birthday
+         FROM employee_birthdays
+         WHERE next_birthday BETWEEN CURRENT_DATE AND CURRENT_DATE + 30
+         ORDER BY next_birthday, first_name, last_name
+         LIMIT 5`,
         [req.user.company_id],
       ),
       db.query(
@@ -58,6 +68,15 @@ exports.getDashboard = async (req, res) => {
       ),
       db.query(
         `SELECT employment_type, COUNT(*)::int AS count FROM employees WHERE company_id=$1 AND is_active=true GROUP BY employment_type`,
+        [req.user.company_id],
+      ),
+      db.query(
+        `SELECT d.name AS department_name, COUNT(emp.id)::int AS count
+         FROM departments d
+         LEFT JOIN employees emp ON emp.department_id = d.id AND emp.is_active = true
+         WHERE d.company_id = $1
+         GROUP BY d.id, d.name
+         ORDER BY count DESC, department_name ASC`,
         [req.user.company_id],
       ),
       db.query(
@@ -74,6 +93,7 @@ exports.getDashboard = async (req, res) => {
       upcoming_birthdays: birthdays.rows,
       recent_hires: recent.rows,
       employment_type_breakdown: employmentTypes.rows,
+      department_breakdown: departments.rows,
       upcoming_expiries: expiries.rows,
     });
   } catch (err) {

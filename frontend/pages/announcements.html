@@ -55,39 +55,15 @@
       background: var(--navy-800);
       color: #fff;
     }
-    .announcement-table {
-      overflow-x: auto;
-    }
-    .announcement-table table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 780px;
-    }
-    .announcement-table th,
-    .announcement-table td {
-      padding: 13px 12px;
-      border-bottom: 1px solid var(--border);
-      text-align: left;
-      vertical-align: top;
-      font-size: .82rem;
-    }
-    .announcement-table th {
-      color: var(--text-muted);
-      font-size: .72rem;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-    .announcement-table strong {
-      display: block;
-      color: var(--text-primary);
-      font-size: .9rem;
-      margin-bottom: 4px;
-    }
-    .announcement-table p {
-      color: var(--text-secondary);
-      line-height: 1.45;
-      max-width: 520px;
-    }
+    .ann-feed { display:grid; gap:10px; }
+    .ann-card { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:16px; align-items:start; padding:16px; border:1px solid var(--border); border-radius:10px; background:#fff; transition:border-color var(--duration), box-shadow var(--duration); }
+    .ann-card:hover { border-color:var(--navy-200); box-shadow:var(--shadow-sm); }
+    .ann-card.is-pinned { border-left:4px solid var(--navy-700); padding-left:13px; }
+    .ann-card-title { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+    .ann-card strong { color:var(--text-primary); font-size:.96rem; }
+    .ann-card p { margin-top:5px; color:var(--text-secondary); font-size:.86rem; line-height:1.55; max-width:760px; white-space:pre-wrap; }
+    .ann-card-meta { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-top:10px; color:var(--text-muted); font-size:.75rem; font-weight:650; }
+    .ann-card-meta span + span::before { content:'·'; margin-right:7px; color:var(--navy-400); }
     .ann-actions {
       display: flex;
       justify-content: flex-end;
@@ -125,6 +101,8 @@
       .ann-filter {
         flex: 1;
       }
+      .ann-card { grid-template-columns:1fr; }
+      .ann-actions { justify-content:flex-start; }
     }
   </style>
 </head>
@@ -265,38 +243,19 @@ function renderAnnouncements() {
     return;
   }
 
-  target.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Announcement</th>
-          <th>Author</th>
-          <th>Status</th>
-          <th>Date</th>
-          <th style="text-align:right">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map((item) => `
-          <tr>
-            <td>
-              <strong>${escapeHtml(item.title)}</strong>
-              <p>${escapeHtml(item.body)}</p>
-            </td>
-            <td>${escapeHtml(item.author_name || 'HR')}</td>
-            <td><span class="suite-pill ${item.is_pinned ? 'good' : ''}">${item.is_pinned ? 'Pinned' : 'Published'}</span></td>
-            <td>${escapeHtml(fmt.datetime(item.created_at))}</td>
-            <td>
-              <div class="ann-actions">
-                <button class="btn btn-outline btn-sm" type="button" onclick="editAnnouncement(${item.id})">Edit</button>
-                <button class="btn btn-danger btn-sm" type="button" onclick="showDeleteAnnouncementModal(${item.id})">Delete</button>
-              </div>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
+  target.innerHTML = `<div class="ann-feed">${rows.map((item) => `
+    <article class="ann-card ${item.is_pinned ? 'is-pinned' : ''}">
+      <div>
+        <div class="ann-card-title"><strong>${escapeHtml(item.title)}</strong><span class="badge badge-info">${item.is_pinned ? 'Pinned' : 'Published'}</span></div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="ann-card-meta"><span>${escapeHtml(item.author_name || 'HR')}</span><span>${escapeHtml(fmt.datetime(item.created_at))}</span></div>
+      </div>
+      <div class="ann-actions">
+        <button class="btn btn-outline btn-sm" type="button" onclick="editAnnouncement(${item.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" type="button" onclick="showDeleteAnnouncementModal(${item.id})">Delete</button>
+      </div>
+    </article>
+  `).join('')}</div>`;
 }
 
 function openAnnouncementModal(item = null) {

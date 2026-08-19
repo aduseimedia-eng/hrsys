@@ -131,6 +131,12 @@ async function viewPayslip(id) {
       </div>
     </div>`;
   document.getElementById('payslip-modal').style.display = 'flex';
+  window.dispatchEvent(new Event('hrconnect:request-page-height'));
+}
+
+function closePayslipModal() {
+  document.getElementById('payslip-modal').style.display = 'none';
+  window.dispatchEvent(new Event('hrconnect:request-page-height'));
 }
 
 function printPayslip() {

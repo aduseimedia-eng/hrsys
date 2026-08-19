@@ -7,21 +7,38 @@
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
   <style>
-    .calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
-    .cal-header { padding:7px 3px; color:var(--text-muted); text-align:center; font-size:.72rem; font-weight:800; text-transform:uppercase; }
-    .cal-day { aspect-ratio:1; display:grid; place-items:center; position:relative; width:100%; border:0; border-radius:8px; background:transparent; color:inherit; font:inherit; font-size:.84rem; }
+    .calendar-layout { display:grid; grid-template-columns:230px minmax(0,1fr) 265px; overflow:hidden; border:1px solid var(--border); border-radius:14px; background:#fff; box-shadow:var(--shadow-sm); }
+    .calendar-panel { min-width:0; padding:22px; border-right:1px solid var(--border); }
+    .calendar-panel:last-child { border-right:0; border-left:1px solid var(--border); }
+    .calendar-panel h2 { margin:0; color:var(--text-primary); font-size:1rem; }
+    .calendar-panel p { margin:5px 0 18px; color:var(--text-secondary); font-size:.8rem; line-height:1.45; }
+    .calendar-main { padding:20px; min-width:0; }
+    .calendar-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .calendar-nav h2 { margin:0; color:var(--text-primary); font-size:1.05rem; }
+    .calendar-nav-buttons { display:flex; gap:4px; }
+    .calendar-nav .btn { min-width:32px; padding:0 9px; }
+    .calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
+    .cal-header { padding:7px 3px; color:var(--text-muted); text-align:center; font-size:.67rem; font-weight:800; text-transform:uppercase; }
+    .cal-day { min-height:76px; display:flex; align-items:flex-start; justify-content:flex-start; position:relative; width:100%; padding:8px; border:1px solid #eef1f6; border-radius:8px; background:#fbfcff; color:var(--text-primary); font:inherit; font-size:.78rem; text-align:left; }
     .cal-day.has-events { cursor:pointer; }
-    .cal-day.has-events:hover, .cal-day.has-events:focus-visible { box-shadow:0 0 0 2px var(--navy-500); outline:0; }
-    .cal-day.today { background:var(--navy-800); color:#fff; font-weight:800; }
-    .cal-day.public-holiday { background:var(--mint-100); color:var(--navy-950); font-weight:800; }
-    .cal-day.company-event { background:var(--violet-100); color:var(--violet-600); font-weight:800; }
-    .cal-day.on-leave { outline:2px solid var(--amber-500); outline-offset:-2px; }
-    .cal-day.public-holiday::after, .cal-day.company-event::after { content:''; position:absolute; bottom:5px; width:5px; height:5px; border-radius:50%; background:currentColor; }
-    .calendar-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; }
-    .calendar-actions, .calendar-legend { display:flex; align-items:center; gap:8px; }
-    .calendar-legend { flex-wrap:wrap; gap:16px; margin-top:16px; font-size:.8rem; }
-    .legend { display:flex; align-items:center; gap:6px; }
-    .legend i { width:14px; height:14px; border-radius:4px; }
+    .cal-day.has-events:hover, .cal-day.has-events:focus-visible, .cal-day.selected { border-color:var(--navy-500); background:var(--navy-50); box-shadow:0 0 0 1px var(--navy-500); outline:0; }
+    .cal-day.today { border-color:var(--navy-800); background:var(--navy-800); color:#fff; font-weight:800; }
+    .cal-day.public-holiday { background:#edf9f1; }
+    .cal-day.company-event { background:#f1f5ff; }
+    .cal-day.on-leave { border-bottom:3px solid var(--amber-500); }
+    .cal-day-num { position:relative; z-index:1; }
+    .cal-event-dot { position:absolute; right:8px; bottom:8px; width:6px; height:6px; border-radius:50%; background:var(--navy-700); box-shadow:-9px 0 0 var(--violet-500); }
+    .cal-day.today .cal-event-dot { background:#fff; box-shadow:-9px 0 0 #bfdbfe; }
+    .calendar-legend { display:flex; flex-wrap:wrap; gap:10px; padding-top:15px; font-size:.72rem; }
+    .legend { display:flex; align-items:center; gap:5px; }
+    .legend i { width:10px; height:10px; border-radius:50%; }
+    .calendar-composer { display:grid; gap:11px; }
+    .calendar-composer .form-group { margin:0; }
+    .calendar-composer .form-label { font-size:.7rem; }
+    .calendar-composer .form-control { min-height:37px; font-size:.78rem; }
+    .calendar-composer textarea.form-control { min-height:65px; }
+    .calendar-selection { display:grid; gap:10px; }
+    .calendar-selection-empty { display:grid; min-height:140px; place-items:center; border:1px dashed #dce3ef; border-radius:10px; color:var(--text-muted); font-size:.8rem; text-align:center; }
     .calendar-event-list { display:grid; gap:10px; }
     .calendar-event-detail { padding:13px; border:1px solid var(--border); border-radius:10px; background:var(--bg-subtle); }
     .calendar-event-type { display:inline-flex; margin-bottom:7px; padding:4px 8px; border-radius:999px; background:var(--navy-100); color:var(--navy-700); font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.03em; }
@@ -31,12 +48,8 @@
     .calendar-event-detail strong, .calendar-event-detail p { display:block; }
     .calendar-event-detail strong { font-size:.9rem; }
     .calendar-event-detail p { margin:5px 0 0; color:var(--text-secondary); font-size:.82rem; line-height:1.45; }
-    @media (max-width:640px) {
-      .calendar-nav h3 { font-size:.95rem; }
-      .calendar-actions .btn { padding:0 10px; }
-      .cal-header { font-size:.62rem; }
-      .cal-day { font-size:.76rem; }
-      .calendar-grid { gap:3px; }
+    @media (max-width:1000px) { .calendar-layout { grid-template-columns:210px minmax(0,1fr); } .calendar-panel:last-child { grid-column:1 / -1; border-left:0; border-top:1px solid var(--border); } }
+    @media (max-width:680px) { .calendar-layout { display:block; } .calendar-panel { border-right:0; border-top:1px solid var(--border); } .calendar-panel:first-child { border-top:0; } .calendar-main { padding:14px; } .cal-day { min-height:48px; padding:6px; } .cal-header { font-size:.58rem; } .calendar-legend { display:none; } }
     }
   </style>
 </head>
@@ -57,13 +70,17 @@
     </header>
     <main class="main-content">
       <div class="page-header"><div><h1>Company Calendar</h1><p>Company events, public holidays, and approved leave in one view.</p></div></div>
-      <section class="card">
+      <section class="calendar-layout">
+        <aside class="calendar-panel"><h2>Calendar</h2><p>Plan company events, public holidays, and team availability.</p><div class="calendar-composer"><button class="btn btn-primary" id="add-event" type="button" style="display:none" onclick="openEventModal()">Add event</button><button class="btn btn-outline" type="button" onclick="goToToday()">Go to today</button></div><div class="calendar-legend"><span class="legend"><i style="background:var(--navy-800)"></i>Today</span><span class="legend"><i style="background:#56a67d"></i>Holiday</span><span class="legend"><i style="background:var(--violet-500)"></i>Event</span><span class="legend"><i style="background:var(--amber-500)"></i>Leave</span></div></aside>
+        <div class="calendar-main">
         <div class="card-header"><div class="calendar-nav">
           <button class="btn btn-outline btn-sm" type="button" onclick="changeMonth(-1)">←</button>
           <h3 id="calendar-title"></h3>
           <div class="calendar-actions"><button class="btn btn-primary btn-sm" id="add-event" type="button" style="display:none" onclick="openEventModal()">Add event</button><button class="btn btn-outline btn-sm" type="button" onclick="changeMonth(1)">→</button></div>
         </div></div>
         <div class="card-body"><div class="calendar-grid" id="calendar-grid"></div><div class="calendar-legend"><span class="legend"><i style="background:var(--navy-800)"></i>Today</span><span class="legend"><i style="background:var(--mint-100)"></i>Public holiday</span><span class="legend"><i style="background:var(--violet-100)"></i>Company event</span><span class="legend"><i style="background:var(--amber-100);border:2px solid var(--amber-500)"></i>Approved leave</span></div></div>
+        </div>
+        <aside class="calendar-panel"><h2 id="calendar-selection-title">Event details</h2><p id="calendar-selection-subtitle">Select a date to see what is planned.</p><div id="calendar-selection" class="calendar-selection"><div class="calendar-selection-empty">Choose a date with an event<br>to view its details.</div></div></aside>
       </section>
     </main>
   </div>
@@ -108,6 +125,16 @@
     function closeEventModal() { document.getElementById('event-modal').style.display = 'none'; }
     async function saveEvent() { try { const payload = { title:document.getElementById('event-title').value, start_date:document.getElementById('event-start').value, end_date:document.getElementById('event-end').value, category:document.getElementById('event-category').value, description:document.getElementById('event-description').value }; const isEditing = Boolean(editingEventId); if (isEditing) await api.patch(`/company-calendar/${editingEventId}`, payload); else await api.post('/company-calendar', payload); closeEventModal(); editingEventId = null; await renderCalendar(); toast(isEditing ? 'Company event updated' : 'Company event added', 'success'); } catch (error) { toast(error.message || 'Could not save event', 'error'); } }
     async function deleteEvent(id) { if (!window.confirm('Delete this company event?')) return; try { await api.delete(`/company-calendar/${id}`); closeCalendarDetails(); await renderCalendar(); toast('Company event deleted', 'success'); } catch (error) { toast(error.message || 'Could not delete event', 'error'); } }
+    function goToToday() { view = new Date(); renderCalendar(); }
+    function openCalendarDetails(date) {
+      const items = calendarMarks[date] || [];
+      const readableDate = new Date(`${date}T00:00:00`).toLocaleDateString('en-GH', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+      document.getElementById('calendar-selection-title').textContent = readableDate;
+      document.getElementById('calendar-selection-subtitle').textContent = items.length ? `${items.length} item${items.length === 1 ? '' : 's'} planned` : 'Nothing planned for this date.';
+      document.getElementById('calendar-selection').innerHTML = items.length
+        ? items.map((item) => `<article class="calendar-event-detail ${item.type}"><span class="calendar-event-type">${esc(item.eventType)}</span><strong>${esc(item.label)}</strong>${item.description ? `<p>${esc(item.description)}</p>` : ''}</article>`).join('')
+        : '<div class="calendar-selection-empty">No events or leave scheduled.</div>';
+    }
     renderCalendar();
   </script>
 </body>

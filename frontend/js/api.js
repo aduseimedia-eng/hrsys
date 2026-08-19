@@ -67,6 +67,11 @@ async function refreshCompanyBranding() {
     const branding = await api.get('/company/branding');
     branding.logo_url = branding.uploaded_logo || branding.logo_url || '';
     localStorage.setItem(`hrconnect.branding.${user.company_id}`, JSON.stringify(branding));
+    if (branding.name) {
+      document.querySelectorAll('.sidebar-workspace-name').forEach((element) => {
+        element.textContent = branding.name;
+      });
+    }
     applyCompanyBranding();
   } catch (_) {}
 }
@@ -113,6 +118,7 @@ function isEmbeddedWorkspacePage() {
 
 function activateEmbeddedWorkspacePage() {
   if (!isEmbeddedWorkspacePage() || !document.body || document.body.classList.contains('embedded-page')) return;
+  document.documentElement.classList.add('embedded-page-root');
   document.body.classList.add('embedded-page');
 }
 
@@ -122,6 +128,42 @@ function activateEmbeddedWorkspacePage() {
 activateEmbeddedWorkspacePage();
 if (!document.body && document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', activateEmbeddedWorkspacePage);
+}
+
+// Let the workspace shell size its frame to the page instead of making each
+// module a fixed-height, independently scrolling panel.
+if (isEmbeddedWorkspacePage()) {
+  let embeddedHeightFrame = 0;
+  let embeddedResizeObserver;
+  const publishEmbeddedHeight = () => {
+    cancelAnimationFrame(embeddedHeightFrame);
+    embeddedHeightFrame = requestAnimationFrame(() => {
+      // Do not measure documentElement.scrollHeight here. Once the parent makes
+      // the iframe taller, that value can become the iframe viewport height and
+      // be reported back as new content height forever. Measure the real module
+      // instead, which lets the outer workspace own the only page scroll.
+      const content = document.querySelector('main.main-content');
+      const contentHeight = content
+        ? Math.max(1, Math.ceil(content.offsetTop + content.scrollHeight))
+        : Math.max(1, Math.ceil(document.body?.scrollHeight || 1));
+      const openModal = Array.from(document.querySelectorAll('.modal-overlay')).find((overlay) => getComputedStyle(overlay).display !== 'none');
+      const modalHeight = openModal?.querySelector('.modal')?.scrollHeight || 0;
+      const height = Math.max(contentHeight, modalHeight ? Math.ceil(modalHeight + 80) : 0);
+      window.parent.postMessage({ type: 'hrconnect:page-height', height }, window.location.origin);
+    });
+  };
+  window.addEventListener('load', publishEmbeddedHeight);
+  document.addEventListener('DOMContentLoaded', () => {
+    const content = document.querySelector('main.main-content') || document.body;
+    embeddedResizeObserver = new ResizeObserver(publishEmbeddedHeight);
+    embeddedResizeObserver.observe(content);
+    // Lists such as Messages and To do render after their API calls. A mutation
+    // observer republishes their real height even when their outer box keeps
+    // the same computed size during that render.
+    new MutationObserver(publishEmbeddedHeight).observe(content, { childList: true, subtree: true });
+    publishEmbeddedHeight();
+  });
+  window.addEventListener('hrconnect:request-page-height', publishEmbeddedHeight);
 }
 
 function ensureMockApi() {
@@ -397,10 +439,17 @@ function toast(message, type = 'info', duration = 3500) {
 }
 
 // ─── Format helpers ─────────────────────────────────────────
+function companyPreferences() {
+  try {
+    const user = api?.getUser?.();
+    return JSON.parse(localStorage.getItem(`hrconnect.company-preferences.${user?.company_id || 'default'}`) || '{}');
+  } catch (_) { return {}; }
+}
+
 const fmt = {
   date(d) {
     if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    return new Date(d).toLocaleDateString(companyPreferences().locale || 'en-GB', { day:'2-digit', month:'short', year:'numeric' });
   },
   time(d) {
     if (!d) return '—';
@@ -410,9 +459,10 @@ const fmt = {
     if (!d) return '—';
     return `${fmt.date(d)} ${fmt.time(d)}`;
   },
-  currency(n, currency = 'GHS') {
+  currency(n, currency) {
     if (n == null) return '—';
-    return new Intl.NumberFormat('en-GH', { style:'currency', currency }).format(n);
+    const preferences = companyPreferences();
+    return new Intl.NumberFormat(preferences.locale || 'en-GB', { style:'currency', currency: currency || preferences.currency || 'USD' }).format(n);
   },
   duration(clockIn, clockOut) {
     if (!clockIn || !clockOut) return '—';
@@ -589,7 +639,6 @@ function buildSidebar(activePage, options = {}) {
     { page: 'assets', icon: docIcon(), label: 'Company Assets', roles: ['admin', 'manager'] },
     { page: 'financials', icon: walletIcon(), label: 'Expenses', roles: ['admin', 'manager'] },
     { section: 'Administration', icon: briefcaseIcon(), roles: ['admin', 'manager'] },
-    { page: 'reports', icon: gridIcon(), label: 'Reports & Workflows', roles: ['admin', 'manager'] },
     { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'], standalone: true },
   ];
@@ -632,7 +681,6 @@ function buildSidebar(activePage, options = {}) {
     { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary register', roles: ['admin', 'manager'] },
     { page: 'operations', icon: gridIcon(), label: 'Operations registers', roles: ['admin', 'manager'] },
     { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
-    { page: 'reports', icon: gridIcon(), label: 'Reports & workflows', roles: ['admin', 'manager'], activeFor: ['administration'] },
     { page: 'audit', icon: docIcon(), label: 'Audit history', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
   ];
@@ -707,20 +755,14 @@ function buildSidebar(activePage, options = {}) {
 
   sidebar.innerHTML = `
     <div class="sidebar-logo">
-      <img class="brand-logo" src="${appUrl('/assets/logo.png?v=6')}" alt="KenadHR">
+      <img class="brand-logo" src="${appUrl('/assets/logo-transparent.png?v=1')}" alt="KenadHR">
       <span class="sidebar-workspace-name">${escapeAvatarText(user.company_name || 'KenadHR Workspace')}</span>
       <svg class="sidebar-workspace-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       <button class="sidebar-close-btn" type="button" aria-label="Close menu">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
-    <nav class="sidebar-nav">
-      <button class="sidebar-jump" type="button" aria-label="Jump to a page">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-        <span>Jump to...</span><kbd>Ctrl K</kbd>
-      </button>
-      ${navHtml}
-    </nav>
+    <nav class="sidebar-nav">${navHtml}</nav>
     <div class="sidebar-user">
       ${user.photo_url
         ? avatarEl(user, 'sm').replace('class="avatar avatar-sm"', 'class="user-avatar"')
@@ -735,24 +777,19 @@ function buildSidebar(activePage, options = {}) {
       </button>
     </div>
   `;
-  sidebar.classList.toggle('sidebar--workspace-static', isWorkspaceStatic);
+  // Workspace navigation uses the same expandable menu behavior as the rest
+  // of the app. Do not attach the legacy static-sidebar class: it forces all
+  // submenu lists open and hides their controls.
+  sidebar.classList.remove('sidebar--workspace-static');
   applyCompanyBranding();
   refreshCompanyBranding();
   addPageBackButton(activePage);
   setupQuickAccess(navItems, user, isManager);
   setupSidebarGroups(sidebar, activePage, user);
-  setupSidebarJump(sidebar);
   setupSidebarScrollMemory(sidebar, previousScrollTop);
   setupMobileSidebar(sidebar);
   loadMessageNavCount();
   loadAnnouncementNavCount();
-}
-
-function setupSidebarJump(sidebar) {
-  sidebar.querySelector('.sidebar-jump')?.addEventListener('click', () => {
-    const input = document.querySelector('.quick-access-input');
-    input?.focus();
-  });
 }
 
 function setSidebarActive(activePage) {
@@ -780,6 +817,11 @@ function setSidebarActive(activePage) {
   // submenu after navigation.
   const activeLink = sidebar.querySelector('.nav-item.active[data-nav-parent]');
   if (activeLink) {
+    sidebar.querySelectorAll('.nav-group').forEach((candidate) => {
+      const isActiveParent = candidate.dataset.navGroup === activeLink.dataset.navParent;
+      candidate.classList.toggle('is-open', isActiveParent);
+      candidate.querySelector('.nav-group-toggle')?.setAttribute('aria-expanded', String(isActiveParent));
+    });
     const group = sidebar.querySelector(`.nav-group[data-nav-group="${activeLink.dataset.navParent}"]`);
     const toggle = group?.querySelector('.nav-group-toggle');
     group?.classList.add('is-open');
@@ -836,7 +878,6 @@ function setupQuickAccess(navItems, user, isManager) {
     ['Documents', 'documents'], ['Performance Reviews', 'performance'], ['Training Register', 'training'],
     ['Probation Tracker', 'probation'], ['Disciplinary Register', 'disciplinary'],
     ['Contract Expiry Tracker', 'contracts'], ['Recruitment', 'recruitment'], ['Onboarding', 'onboarding'],
-    ['Reports & Workflows', 'reports'], ['Employees', 'employees'], ['Departments', 'departments'],
     ['Organization Chart', 'orgchart']
   ];
   if (user.role === 'admin') {
@@ -944,26 +985,19 @@ function setSidebarScrollTop(value) {
 }
 
 function setupSidebarGroups(sidebar, activePage, user) {
-  const storageKey = `hrconnect.sidebar.groups.${user.company_id || 'default'}.${user.role}`;
-  let savedGroups = {};
-  try { savedGroups = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (_) {}
-
   sidebar.querySelectorAll('.nav-group').forEach(group => {
-    const groupName = group.dataset.navGroup;
     const toggle = group.querySelector('.nav-group-toggle');
     const containsActivePage = Boolean(group.querySelector('.nav-item.active'));
-    const isFirstGroup = group === sidebar.querySelector('.nav-group');
-    const hasSavedState = Object.prototype.hasOwnProperty.call(savedGroups, groupName);
-    const isOpen = containsActivePage || savedGroups[groupName] === true || (!hasSavedState && isFirstGroup);
+    const isOpen = containsActivePage;
     group.classList.toggle('is-open', isOpen);
     toggle?.setAttribute('aria-expanded', String(isOpen));
 
     toggle?.addEventListener('click', () => {
       const nextOpen = !group.classList.contains('is-open');
-      group.classList.toggle('is-open', nextOpen);
-      toggle.setAttribute('aria-expanded', String(nextOpen));
-      savedGroups[groupName] = nextOpen;
-      try { localStorage.setItem(storageKey, JSON.stringify(savedGroups)); } catch (_) {}
+      sidebar.querySelectorAll('.nav-group').forEach((candidate) => {
+        candidate.classList.toggle('is-open', candidate === group && nextOpen);
+        candidate.querySelector('.nav-group-toggle')?.setAttribute('aria-expanded', String(candidate === group && nextOpen));
+      });
     });
   });
 }
