@@ -1,1 +1,258 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Training Register - KenadHR</title><link rel="stylesheet" href="../css/main.css"></head><body><div class="app-shell"><aside class="sidebar" id="sidebar"></aside><header class="topbar"><div class="topbar-title">Training Register</div><div class="topbar-actions" id="training-actions"></div></header><main class="main-content"><div class="page-header"><div><h1 id="training-title">Training Register</h1><p id="training-intro">Track staff learning, certificates, and renewal dates.</p></div><div id="training-page-action"></div></div><div class="table-container"><table><thead><tr><th>Employee</th><th>Course</th><th>Provider</th><th>Completed</th><th>Certificate expiry</th><th>Cost</th><th>Status</th><th id="training-action-head"></th></tr></thead><tbody id="training-body"></tbody></table></div></main></div><div id="training-modal" class="modal-overlay" style="display:none"><div class="modal modal-lg"><div class="modal-header"><h3 id="training-modal-title">Add Training Record</h3><button class="modal-close" onclick="closeTraining()">x</button></div><div class="modal-body"><input type="hidden" id="training-id"><div class="form-grid"><div class="form-group"><label class="form-label">Employee</label><select id="tr-employee" class="form-control form-select"></select></div><div class="form-group"><label class="form-label required">Course title</label><input id="tr-course" class="form-control"></div><div class="form-group"><label class="form-label">Provider</label><input id="tr-provider" class="form-control"></div><div class="form-group"><label class="form-label">Training type</label><input id="tr-type" class="form-control" placeholder="e.g. Compliance"></div><div class="form-group"><label class="form-label">Start date</label><input id="tr-start" type="date" class="form-control"></div><div class="form-group"><label class="form-label">Completion date</label><input id="tr-completion" type="date" class="form-control"></div><div class="form-group"><label class="form-label">Certificate number</label><input id="tr-certificate" class="form-control"></div><div class="form-group"><label class="form-label">Certificate expiry</label><input id="tr-expiry" type="date" class="form-control"></div><div class="form-group"><label class="form-label">Cost (GHS)</label><input id="tr-cost" type="number" min="0" step="0.01" class="form-control"></div><div class="form-group"><label class="form-label">Status</label><select id="tr-status" class="form-control form-select"><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="expired">Expired</option></select></div><div class="form-group span-2"><label class="form-label">Notes</label><textarea id="tr-notes" class="form-control" rows="3"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="closeTraining()">Cancel</button><button class="btn btn-primary" onclick="saveTraining()">Save</button></div></div></div><script src="../js/api.js"></script><script>const user=requireAuth();if(!user)throw Error('redirect');const canManage=['admin','manager'].includes(user.role);let rows=[],employees=[];buildSidebar('training');loadNotifCount();const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));function closeTraining(){document.getElementById('training-modal').style.display='none'}async function load(){if(canManage){[rows,employees]=await Promise.all([api.get('/training'),api.get('/employees?limit=1000')]);employees=employees.employees;}else{rows=await api.get('/training/mine');document.getElementById('training-title').textContent='My Training';document.getElementById('training-intro').textContent='Your recorded learning and certificate history.';}render()}function render(){document.getElementById('training-action-head').textContent=canManage?'Action':'';document.getElementById('training-body').innerHTML=rows.length?rows.map(r=>`<tr><td>${canManage?`${esc(r.employee_name)}<br><small>${esc(r.employee_code||'')}</small>`:'You'}</td><td><strong>${esc(r.course_title)}</strong><br><small>${esc(r.training_type||'')}</small></td><td>${esc(r.provider||'—')}</td><td>${r.completion_date?fmt.date(r.completion_date):'—'}</td><td>${r.certificate_expiry?fmt.date(r.certificate_expiry):'—'}</td><td>${fmt.currency(r.cost||0)}</td><td>${fmt.statusBadge(r.status)}</td><td>${canManage?`<button class="btn btn-outline btn-sm" onclick="openTraining(${r.id})">Edit</button>`:''}</td></tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><p>No training records yet.</p></div></td></tr>`}function openTraining(id){const r=id?rows.find(item=>item.id===id):null;document.getElementById('training-modal-title').textContent=r?'Edit Training Record':'Add Training Record';document.getElementById('training-id').value=r?.id||'';document.getElementById('tr-employee').innerHTML=employees.map(e=>`<option value="${e.id}" ${r?.employee_id===e.id?'selected':''}>${esc(e.first_name+' '+e.last_name)}</option>`).join('');['course','provider','type','start','completion','certificate','expiry','cost','notes'].forEach(k=>document.getElementById('tr-'+k).value=r?.[({course:'course_title',type:'training_type',start:'start_date',completion:'completion_date',certificate:'certificate_number',expiry:'certificate_expiry',cost:'cost',notes:'notes'}[k]||k)]||'');document.getElementById('tr-status').value=r?.status||'scheduled';document.getElementById('training-modal').style.display='flex'}async function saveTraining(){try{const body={employee_id:Number(document.getElementById('tr-employee').value),course_title:document.getElementById('tr-course').value,provider:document.getElementById('tr-provider').value,training_type:document.getElementById('tr-type').value,start_date:document.getElementById('tr-start').value,completion_date:document.getElementById('tr-completion').value,certificate_number:document.getElementById('tr-certificate').value,certificate_expiry:document.getElementById('tr-expiry').value,cost:document.getElementById('tr-cost').value,status:document.getElementById('tr-status').value,notes:document.getElementById('tr-notes').value},id=document.getElementById('training-id').value;if(id)await api.put(`/training/${id}`,body);else await api.post('/training',body);closeTraining();toast('Training record saved','success');load()}catch(e){toast(e.message,'error')}}if(canManage){const button='<button class="btn btn-primary" onclick="openTraining()">Add Training</button>';document.getElementById('training-actions').innerHTML=button;document.getElementById('training-page-action').innerHTML=button}load().catch(e=>toast(e.message,'error'));</script></body></html>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Training Register - KenadHR</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <style>.training-modal{max-height:none;overflow:visible}.training-modal .modal-body{overflow:visible}@media(max-width:640px){.training-modal{max-height:90vh;overflow:hidden}.training-modal .modal-body{overflow:auto}}</style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar"></aside>
+      <header class="topbar">
+        <div class="topbar-title">Training Register</div>
+        <div class="topbar-actions" id="training-actions"></div>
+      </header>
+      <main class="main-content">
+        <div class="page-header">
+          <div>
+            <h1 id="training-title">Training Register</h1>
+            <p id="training-intro">
+              Track staff learning, certificates, and renewal dates.
+            </p>
+          </div>
+          <div id="training-page-action"></div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Course</th>
+                <th>Provider</th>
+                <th>Completed</th>
+                <th>Certificate expiry</th>
+                <th>Cost</th>
+                <th>Status</th>
+                <th id="training-action-head"></th>
+              </tr>
+            </thead>
+            <tbody id="training-body"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+    <div id="training-modal" class="modal-overlay" style="display: none">
+      <div class="modal modal-lg training-modal">
+        <div class="modal-header">
+          <h3 id="training-modal-title">Add Training Record</h3>
+          <button class="modal-close" onclick="closeTraining()">x</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="training-id" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Employee</label
+              ><select
+                id="tr-employee"
+                class="form-control form-select"
+              ></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Course title</label
+              ><input id="tr-course" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Provider</label
+              ><input id="tr-provider" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Training type</label
+              ><input
+                id="tr-type"
+                class="form-control"
+                placeholder="e.g. Compliance"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Start date</label
+              ><input id="tr-start" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Completion date</label
+              ><input id="tr-completion" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Certificate number</label
+              ><input id="tr-certificate" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Certificate expiry</label
+              ><input id="tr-expiry" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cost (GHS)</label
+              ><input
+                id="tr-cost"
+                type="number"
+                min="0"
+                step="0.01"
+                class="form-control"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label
+              ><select id="tr-status" class="form-control form-select">
+                <option value="scheduled">Scheduled</option>
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
+            <div class="form-group span-2">
+              <label class="form-label">Notes</label
+              ><textarea id="tr-notes" class="form-control" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeTraining()">
+            Cancel</button
+          ><button class="btn btn-primary" onclick="saveTraining()">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+    <script src="../js/api.js"></script>
+    <script>
+      const user = requireAuth();
+      if (!user) throw Error("redirect");
+      const canManage = ["admin", "manager"].includes(user.role);
+      let rows = [],
+        employees = [];
+      buildSidebar("training");
+      loadNotifCount();
+      const esc = (v) =>
+        String(v ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      function closeTraining() {
+        document.getElementById("training-modal").style.display = "none";
+        window.dispatchEvent(new Event("hrconnect:request-page-height"));
+      }
+      async function load() {
+        if (canManage) {
+          [rows, employees] = await Promise.all([
+            api.get("/training"),
+            api.get("/employees?limit=1000"),
+          ]);
+          employees = employees.employees;
+        } else {
+          rows = await api.get("/training/mine");
+          document.getElementById("training-title").textContent = "My Training";
+          document.getElementById("training-intro").textContent =
+            "Your recorded learning and certificate history.";
+        }
+        render();
+      }
+      function render() {
+        document.getElementById("training-action-head").textContent = canManage
+          ? "Action"
+          : "";
+        document.getElementById("training-body").innerHTML = rows.length
+          ? rows
+              .map(
+                (r) =>
+                  `<tr><td>${canManage ? `${esc(r.employee_name)}<br><small>${esc(r.employee_code || "")}</small>` : "You"}</td><td><strong>${esc(r.course_title)}</strong><br><small>${esc(r.training_type || "")}</small></td><td>${esc(r.provider || "—")}</td><td>${r.completion_date ? fmt.date(r.completion_date) : "—"}</td><td>${r.certificate_expiry ? fmt.date(r.certificate_expiry) : "—"}</td><td>${fmt.currency(r.cost || 0)}</td><td>${fmt.statusBadge(r.status)}</td><td>${canManage ? `<button class="btn btn-outline btn-sm" onclick="openTraining(${r.id})">Edit</button>` : ""}</td></tr>`,
+              )
+              .join("")
+          : `<tr><td colspan="8"><div class="empty-state"><p>No training records yet.</p></div></td></tr>`;
+      }
+      function openTraining(id) {
+        const r = id ? rows.find((item) => item.id === id) : null;
+        document.getElementById("training-modal-title").textContent = r
+          ? "Edit Training Record"
+          : "Add Training Record";
+        document.getElementById("training-id").value = r?.id || "";
+        document.getElementById("tr-employee").innerHTML = employees
+          .map(
+            (e) =>
+              `<option value="${e.id}" ${r?.employee_id === e.id ? "selected" : ""}>${esc(e.first_name + " " + e.last_name)}</option>`,
+          )
+          .join("");
+        [
+          "course",
+          "provider",
+          "type",
+          "start",
+          "completion",
+          "certificate",
+          "expiry",
+          "cost",
+          "notes",
+        ].forEach(
+          (k) =>
+            (document.getElementById("tr-" + k).value =
+              r?.[
+                {
+                  course: "course_title",
+                  type: "training_type",
+                  start: "start_date",
+                  completion: "completion_date",
+                  certificate: "certificate_number",
+                  expiry: "certificate_expiry",
+                  cost: "cost",
+                  notes: "notes",
+                }[k] || k
+              ] || ""),
+        );
+        document.getElementById("tr-status").value = r?.status || "scheduled";
+        document.getElementById("training-modal").style.display = "flex";
+        window.dispatchEvent(new Event("hrconnect:request-page-height"));
+      }
+      async function saveTraining() {
+        try {
+          const body = {
+              employee_id: Number(document.getElementById("tr-employee").value),
+              course_title: document.getElementById("tr-course").value,
+              provider: document.getElementById("tr-provider").value,
+              training_type: document.getElementById("tr-type").value,
+              start_date: document.getElementById("tr-start").value,
+              completion_date: document.getElementById("tr-completion").value,
+              certificate_number:
+                document.getElementById("tr-certificate").value,
+              certificate_expiry: document.getElementById("tr-expiry").value,
+              cost: document.getElementById("tr-cost").value,
+              status: document.getElementById("tr-status").value,
+              notes: document.getElementById("tr-notes").value,
+            },
+            id = document.getElementById("training-id").value;
+          if (id) await api.put(`/training/${id}`, body);
+          else await api.post("/training", body);
+          closeTraining();
+          toast("Training record saved", "success");
+          load();
+        } catch (e) {
+          toast(e.message, "error");
+        }
+      }
+      if (canManage) {
+        const button =
+          '<button class="btn btn-primary" onclick="openTraining()">Add Training</button>';
+        document.getElementById("training-actions").innerHTML = button;
+        document.getElementById("training-page-action").innerHTML = button;
+      }
+      load().catch((e) => toast(e.message, "error"));
+    </script>
+  </body>
+</html>

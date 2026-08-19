@@ -44,16 +44,24 @@ exports.getDepartments = async (req, res) => {
       `SELECT d.id, d.name,
               CONCAT(m.first_name,' ',m.last_name) AS manager_name,
               m.photo_url AS manager_photo, m.job_title AS manager_title,
-              COUNT(e.id) AS employee_count,
-              json_agg(json_build_object(
-                'id', e.id, 'name', CONCAT(e.first_name,' ',e.last_name),
-                'job_title', e.job_title, 'photo_url', e.photo_url
-              ) ORDER BY e.first_name) FILTER (WHERE e.id IS NOT NULL) AS members
+              COALESCE(member_data.employee_count, 0)::int AS employee_count,
+              COALESCE(member_data.members, '[]'::json) AS members
        FROM departments d
        LEFT JOIN employees m ON m.id = d.manager_id
-       LEFT JOIN employees e ON e.department_id = d.id AND e.is_active=true AND e.id != d.manager_id
+                            AND m.company_id = d.company_id
+                            AND m.is_active = true
+       LEFT JOIN LATERAL (
+         SELECT COUNT(*)::int AS employee_count,
+                json_agg(json_build_object(
+                  'id', e.id, 'name', CONCAT(e.first_name,' ',e.last_name),
+                  'job_title', e.job_title, 'photo_url', e.photo_url
+                ) ORDER BY e.first_name, e.last_name)
+                  FILTER (WHERE e.id IS DISTINCT FROM d.manager_id) AS members
+         FROM employees e
+         WHERE e.department_id = d.id
+           AND e.is_active = true
+       ) member_data ON true
        WHERE d.company_id = $1
-       GROUP BY d.id, m.first_name, m.last_name, m.photo_url, m.job_title
        ORDER BY d.name`,
       [req.user.company_id]
     );

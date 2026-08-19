@@ -59,6 +59,7 @@
     .ann-card { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:16px; align-items:start; padding:16px; border:1px solid var(--border); border-radius:10px; background:#fff; transition:border-color var(--duration), box-shadow var(--duration); }
     .ann-card:hover { border-color:var(--navy-200); box-shadow:var(--shadow-sm); }
     .ann-card.is-pinned { border-left:4px solid var(--navy-700); padding-left:13px; }
+    .announcement-modal{max-height:none;overflow:visible}.announcement-modal .modal-body{overflow:visible}@media(max-width:640px){.announcement-modal{max-height:90vh;overflow:hidden}.announcement-modal .modal-body{overflow:auto}}
     .ann-card-title { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
     .ann-card strong { color:var(--text-primary); font-size:.96rem; }
     .ann-card p { margin-top:5px; color:var(--text-secondary); font-size:.86rem; line-height:1.55; max-width:760px; white-space:pre-wrap; }
@@ -157,7 +158,7 @@
 </div>
 
 <div id="announcement-modal" class="modal-overlay" style="display:none">
-  <div class="modal">
+  <div class="modal announcement-modal">
     <div class="modal-header">
       <h3 id="announcement-modal-title">New Announcement</h3>
       <button class="modal-close" type="button" onclick="closeAnnouncementModal()">x</button>
@@ -265,11 +266,13 @@ function openAnnouncementModal(item = null) {
   document.getElementById('announcement-body').value = item?.body || '';
   document.getElementById('announcement-pinned').checked = !!item?.is_pinned;
   document.getElementById('announcement-modal').style.display = 'flex';
+  window.dispatchEvent(new Event('hrconnect:request-page-height'));
 }
 
 function closeAnnouncementModal() {
   editingAnnouncementId = null;
   document.getElementById('announcement-modal').style.display = 'none';
+  window.dispatchEvent(new Event('hrconnect:request-page-height'));
 }
 
 function editAnnouncement(id) {

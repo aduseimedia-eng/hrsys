@@ -1,320 +1,973 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Performance — KenadHR</title>
-  <link rel="stylesheet" href="../css/main.css">
-  <link rel="stylesheet" href="../css/workspace.css">
-  <style>
-    .review-card {
-      background: var(--bg-surface);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      transition: all var(--duration);
-    }
-    .review-card:hover { box-shadow: var(--shadow-md); }
-    .review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-    .review-period { font-size: .78rem; font-weight: 600; color: var(--navy-600); letter-spacing: .04em; text-transform: uppercase; }
-    .review-date   { font-size: .78rem; color: var(--text-muted); }
-    .review-comment { font-size: .875rem; color: var(--text-secondary); line-height: 1.6; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .review-by { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--text-muted); margin-top: 10px; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Performance — KenadHR</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/workspace.css" />
+    <style>
+      .review-card {
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        transition: all var(--duration);
+      }
+      .review-card:hover {
+        box-shadow: var(--shadow-md);
+      }
+      .review-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .review-period {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--navy-600);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .review-date {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+      .review-comment {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+      }
+      .review-by {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 10px;
+      }
 
-    .stars-input { display: flex; gap: 6px; cursor: pointer; }
-    .star-btn { font-size: 1.6rem; color: var(--border-dark); transition: color .1s; line-height: 1; background: none; border: none; cursor: pointer; }
-    .star-btn.on { color: var(--amber-500); }
+      .stars-input {
+        display: flex;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .star-btn {
+        font-size: 1.6rem;
+        color: var(--border-dark);
+        transition: color 0.1s;
+        line-height: 1;
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      .star-btn.on {
+        color: var(--amber-500);
+      }
+      .review-modal {
+        width: min(620px, 100%);
+        max-width: 620px;
+        max-height: none;
+        overflow: visible;
+      }
+      .review-modal .modal-header::after {
+        display: none;
+      }
+      .review-modal .modal-body {
+        overflow: visible;
+      }
+      .disciplinary-modal { max-height:none; overflow:visible; }
+      .disciplinary-modal .modal-body { overflow:visible; }
+      @media (max-width:640px) { .disciplinary-modal { max-height:90vh; overflow:hidden; } .disciplinary-modal .modal-body { overflow:auto; } }
+      @media (max-width: 640px) {
+        .review-modal {
+          max-height: 90vh;
+          overflow: hidden;
+        }
+        .review-modal .modal-body {
+          overflow: auto;
+        }
+      }
 
-    .team-card {
-      background: var(--bg-surface);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      transition: all var(--duration);
-      cursor: pointer;
-    }
-    .team-card:hover { box-shadow: var(--shadow-md); border-color: var(--navy-200); transform: translateY(-1px); }
-    .avg-rating-badge {
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1rem;
-      padding: 6px 12px;
-      border-radius: var(--radius-md);
-      background: var(--amber-100);
-      color: var(--amber-600);
-      flex-shrink: 0;
-    }
-  </style>
-</head>
-<body>
-<div class="app-shell">
-  <aside class="sidebar" id="sidebar"></aside>
-  <header class="topbar">
-    <div class="topbar-title">Performance Reviews</div>
-    <div class="topbar-actions">
-      <button class="icon-btn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-        <span class="dot hidden" id="notif-badge"></span>
-      </button>
-    </div>
-  </header>
-  <main class="main-content">
-    <div class="page-header">
-      <div><h1>Performance</h1><p>Reviews, ratings, and team performance</p></div>
-      <div id="review-action"></div>
-    </div>
-
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="mine" onclick="switchTab('mine')">My Reviews</button>
-      <button class="tab-btn" data-tab="team" id="team-tab" style="display:none" onclick="switchTab('team')">Team Summary</button>
-      <button class="tab-btn" data-tab="queries" onclick="switchTab('queries')">Employee Queries</button>
-      <button class="tab-btn" data-tab="disciplinary" id="disciplinary-tab" style="display:none" onclick="switchTab('disciplinary')">Disciplinary Register</button>
-    </div>
-
-    <!-- My reviews -->
-    <div id="tab-mine">
-      <div id="my-reviews" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">
-        <div class="loading-state"><div class="spinner"></div></div>
-      </div>
-    </div>
-
-    <!-- Team summary (manager/admin) -->
-    <div id="tab-team" style="display:none">
-      <section class="card" style="margin-bottom:16px"><div class="card-header"><h3>Team rating distribution</h3></div><div class="card-body"><div id="performance-chart" style="height:250px"></div></div></section>
-      <div id="team-grid" style="display:flex;flex-direction:column;gap:12px">
-        <div class="loading-state"><div class="spinner"></div></div>
-      </div>
-    </div>
-    <div id="tab-queries" style="display:none"><section class="card" id="query-submit-panel"><div class="card-header"><h3 id="query-submit-title">Submit an HR query</h3></div><div class="card-body"><div class="form-grid"><div class="form-group" id="query-recipient-group" style="display:none"><label class="form-label required">Employee</label><select id="query-recipient" class="form-control form-select"></select></div><div class="form-group"><label class="form-label">Category</label><select id="query-category" class="form-control form-select"><option value="general">General HR</option><option value="payroll">Payroll</option><option value="leave">Leave</option><option value="benefits">Benefits</option><option value="employment">Employment</option></select></div><div class="form-group"><label class="form-label required">Subject</label><input id="query-subject" maxlength="180" class="form-control"></div><div class="form-group span-2"><label class="form-label required">Your query</label><textarea id="query-description" rows="4" class="form-control"></textarea></div></div><div style="margin-top:14px"><button class="btn btn-primary" id="query-submit-button" onclick="submitQuery()">Send to HR</button></div></div></section><section class="card" style="margin-top:18px"><div class="card-header"><h3 id="query-list-title">My Queries</h3></div><div class="card-body"><div class="filters-bar" id="query-filter" style="display:none"><select id="query-status" class="form-control form-select" onchange="loadQueries()"><option value="">All statuses</option><option value="open">Open</option><option value="in_progress">In progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></div><div class="table-container"><table><thead id="query-head"></thead><tbody id="query-body"></tbody></table></div></div></section></div>
-    <div id="tab-disciplinary" style="display:none">
-      <section class="card">
-        <div class="card-header"><h3>Disciplinary Register</h3><button class="btn btn-primary btn-sm" type="button" onclick="openDisciplinaryCase()">Add case</button></div>
-        <div class="table-container"><table><thead><tr><th>Employee</th><th>Case date</th><th>Category</th><th>Action taken</th><th>Follow-up</th><th>Status</th><th></th></tr></thead><tbody id="disciplinary-body"></tbody></table></div>
-      </section>
-    </div>
-  </main>
-</div>
-
-<div id="query-response-modal" class="modal-overlay" style="display:none"><div class="modal"><div class="modal-header"><h3>Respond to query</h3><button class="modal-close" onclick="closeQueryResponse()">x</button></div><div class="modal-body"><input type="hidden" id="query-response-id"><div class="form-group"><label class="form-label">Status</label><select id="query-response-status" class="form-control form-select"><option value="open">Open</option><option value="in_progress">In progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></div><div class="form-group"><label class="form-label">Response</label><textarea id="query-response-text" rows="5" class="form-control"></textarea></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="closeQueryResponse()">Cancel</button><button class="btn btn-primary" onclick="saveQueryResponse()">Save response</button></div></div></div>
-
-<div id="disciplinary-modal" class="modal-overlay" style="display:none"><div class="modal modal-lg"><div class="modal-header"><h3 id="disciplinary-modal-title">Add Disciplinary Case</h3><button class="modal-close" onclick="closeDisciplinaryCase()">x</button></div><div class="modal-body"><input type="hidden" id="dc-id"><div class="form-grid"><div class="form-group"><label class="form-label required">Employee</label><select id="dc-employee" class="form-control form-select"></select></div><div class="form-group"><label class="form-label required">Case date</label><input id="dc-date" type="date" class="form-control"></div><div class="form-group"><label class="form-label required">Category</label><select id="dc-category" class="form-control form-select"><option value="Misconduct">Misconduct</option><option value="Attendance">Attendance</option><option value="Performance">Performance</option><option value="Conduct">Conduct</option><option value="Policy breach">Policy breach</option><option value="Other">Other</option></select></div><div class="form-group"><label class="form-label required">Action taken</label><input id="dc-action" class="form-control" placeholder="e.g. Written warning"></div><div class="form-group"><label class="form-label">Status</label><select id="dc-status" class="form-control form-select"><option value="open">Open</option><option value="under_review">Under review</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></div><div class="form-group"><label class="form-label">Follow-up date</label><input id="dc-followup" type="date" class="form-control"></div><div class="form-group span-2"><label class="form-label required">Incident summary</label><textarea id="dc-summary" rows="4" class="form-control" placeholder="Record the facts of the incident."></textarea></div><div class="form-group span-2"><label class="form-label">Outcome / follow-up notes</label><textarea id="dc-notes" rows="3" class="form-control"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="closeDisciplinaryCase()">Cancel</button><button class="btn btn-primary" onclick="saveDisciplinaryCase()">Save case</button></div></div></div>
-
-<!-- Write Review Modal -->
-<div id="review-modal" class="modal-overlay" style="display:none">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Write Performance Review</h3>
-      <button class="modal-close" onclick="document.getElementById('review-modal').style.display='none'">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label required">Employee</label>
-        <select id="rev-employee" class="form-control form-select"><option value="">— Select employee —</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Review Period</label>
-        <input type="text" id="rev-period" class="form-control" placeholder="e.g. Q2 2025">
-      </div>
-      <div class="form-group">
-        <label class="form-label required">Rating</label>
-        <div class="stars-input" id="stars-input">
-          <button class="star-btn" data-val="1" onclick="setRating(1)">★</button>
-          <button class="star-btn" data-val="2" onclick="setRating(2)">★</button>
-          <button class="star-btn" data-val="3" onclick="setRating(3)">★</button>
-          <button class="star-btn" data-val="4" onclick="setRating(4)">★</button>
-          <button class="star-btn" data-val="5" onclick="setRating(5)">★</button>
+      .team-card {
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: all var(--duration);
+        cursor: pointer;
+      }
+      .team-card:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--navy-200);
+        transform: translateY(-1px);
+      }
+      .avg-rating-badge {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1rem;
+        padding: 6px 12px;
+        border-radius: var(--radius-md);
+        background: var(--amber-100);
+        color: var(--amber-600);
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar"></aside>
+      <header class="topbar">
+        <div class="topbar-title">Performance Reviews</div>
+        <div class="topbar-actions">
+          <button class="icon-btn">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path
+                d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"
+              />
+            </svg>
+            <span class="dot hidden" id="notif-badge"></span>
+          </button>
         </div>
-        <div id="rating-label" style="font-size:.8rem;color:var(--text-muted);margin-top:6px">Click to rate</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Comments</label>
-        <textarea id="rev-comments" class="form-control" rows="4" placeholder="Describe the employee's performance, achievements, and areas for improvement…"></textarea>
+      </header>
+      <main class="main-content">
+        <div class="page-header">
+          <div>
+            <h1>Performance</h1>
+            <p>Reviews, ratings, and team performance</p>
+          </div>
+          <div id="review-action"></div>
+        </div>
+
+        <div class="tabs">
+          <button
+            class="tab-btn active"
+            data-tab="mine"
+            onclick="switchTab('mine')"
+          >
+            My Reviews
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="team"
+            id="team-tab"
+            style="display: none"
+            onclick="switchTab('team')"
+          >
+            Team Summary
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="queries"
+            onclick="switchTab('queries')"
+          >
+            Employee Queries
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="disciplinary"
+            id="disciplinary-tab"
+            style="display: none"
+            onclick="switchTab('disciplinary')"
+          >
+            Disciplinary Register
+          </button>
+        </div>
+
+        <!-- My reviews -->
+        <div id="tab-mine">
+          <div
+            id="my-reviews"
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+              gap: 16px;
+            "
+          >
+            <div class="loading-state"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Team summary (manager/admin) -->
+        <div id="tab-team" style="display: none">
+          <section class="card" style="margin-bottom: 16px">
+            <div class="card-header"><h3>Team rating distribution</h3></div>
+            <div class="card-body">
+              <div id="performance-chart" style="height: 250px"></div>
+            </div>
+          </section>
+          <div
+            id="team-grid"
+            style="display: flex; flex-direction: column; gap: 12px"
+          >
+            <div class="loading-state"><div class="spinner"></div></div>
+          </div>
+        </div>
+        <div id="tab-queries" style="display: none">
+          <section class="card" id="query-submit-panel">
+            <div class="card-header">
+              <h3 id="query-submit-title">Submit an HR query</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div
+                  class="form-group"
+                  id="query-recipient-group"
+                  style="display: none"
+                >
+                  <label class="form-label required">Employee</label
+                  ><select
+                    id="query-recipient"
+                    class="form-control form-select"
+                  ></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Category</label
+                  ><select id="query-category" class="form-control form-select">
+                    <option value="general">General HR</option>
+                    <option value="payroll">Payroll</option>
+                    <option value="leave">Leave</option>
+                    <option value="benefits">Benefits</option>
+                    <option value="employment">Employment</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label required">Subject</label
+                  ><input
+                    id="query-subject"
+                    maxlength="180"
+                    class="form-control"
+                  />
+                </div>
+                <div class="form-group span-2">
+                  <label class="form-label required">Your query</label
+                  ><textarea
+                    id="query-description"
+                    rows="4"
+                    class="form-control"
+                  ></textarea>
+                </div>
+              </div>
+              <div style="margin-top: 14px">
+                <button
+                  class="btn btn-primary"
+                  id="query-submit-button"
+                  onclick="submitQuery()"
+                >
+                  Send to HR
+                </button>
+              </div>
+            </div>
+          </section>
+          <section class="card" style="margin-top: 18px">
+            <div class="card-header">
+              <h3 id="query-list-title">My Queries</h3>
+            </div>
+            <div class="card-body">
+              <div class="filters-bar" id="query-filter" style="display: none">
+                <select
+                  id="query-status"
+                  class="form-control form-select"
+                  onchange="loadQueries()"
+                >
+                  <option value="">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead id="query-head"></thead>
+                  <tbody id="query-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+        <div id="tab-disciplinary" style="display: none">
+          <section class="card">
+            <div class="card-header">
+              <h3>Disciplinary Register</h3>
+              <button
+                class="btn btn-primary btn-sm"
+                type="button"
+                onclick="openDisciplinaryCase()"
+              >
+                Add case
+              </button>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Case date</th>
+                    <th>Category</th>
+                    <th>Action taken</th>
+                    <th>Follow-up</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="disciplinary-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div id="query-response-modal" class="modal-overlay" style="display: none">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Respond to query</h3>
+          <button class="modal-close" onclick="closeQueryResponse()">x</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="query-response-id" />
+          <div class="form-group">
+            <label class="form-label">Status</label
+            ><select
+              id="query-response-status"
+              class="form-control form-select"
+            >
+              <option value="open">Open</option>
+              <option value="in_progress">In progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Response</label
+            ><textarea
+              id="query-response-text"
+              rows="5"
+              class="form-control"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeQueryResponse()">
+            Cancel</button
+          ><button class="btn btn-primary" onclick="saveQueryResponse()">
+            Save response
+          </button>
+        </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="document.getElementById('review-modal').style.display='none'">Cancel</button>
-      <button class="btn btn-primary" onclick="submitReview()">Submit Review</button>
+
+    <div id="disciplinary-modal" class="modal-overlay" style="display: none">
+      <div class="modal modal-lg disciplinary-modal">
+        <div class="modal-header">
+          <h3 id="disciplinary-modal-title">Add Disciplinary Case</h3>
+          <button class="modal-close" onclick="closeDisciplinaryCase()">
+            x
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="dc-id" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required">Employee</label
+              ><select
+                id="dc-employee"
+                class="form-control form-select"
+              ></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Case date</label
+              ><input id="dc-date" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Category</label
+              ><select id="dc-category" class="form-control form-select">
+                <option value="Misconduct">Misconduct</option>
+                <option value="Attendance">Attendance</option>
+                <option value="Performance">Performance</option>
+                <option value="Conduct">Conduct</option>
+                <option value="Policy breach">Policy breach</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Action taken</label
+              ><input
+                id="dc-action"
+                class="form-control"
+                placeholder="e.g. Written warning"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label
+              ><select id="dc-status" class="form-control form-select">
+                <option value="open">Open</option>
+                <option value="under_review">Under review</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Follow-up date</label
+              ><input id="dc-followup" type="date" class="form-control" />
+            </div>
+            <div class="form-group span-2">
+              <label class="form-label required">Incident summary</label
+              ><textarea
+                id="dc-summary"
+                rows="4"
+                class="form-control"
+                placeholder="Record the facts of the incident."
+              ></textarea>
+            </div>
+            <div class="form-group span-2">
+              <label class="form-label">Outcome / follow-up notes</label
+              ><textarea id="dc-notes" rows="3" class="form-control"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeDisciplinaryCase()">
+            Cancel</button
+          ><button class="btn btn-primary" onclick="saveDisciplinaryCase()">
+            Save case
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<script src="../js/api.js"></script>
-<script src="../js/charts.js"></script>
-<script>
-const user = requireAuth();
-if (!user) throw new Error('redirect');
-buildSidebar('performance');
-loadNotifCount();
+    <!-- Write Review Modal -->
+    <div id="review-modal" class="modal-overlay" style="display: none">
+      <div class="modal review-modal">
+        <div class="modal-header">
+          <h3>Write Performance Review</h3>
+          <button
+            class="modal-close"
+            aria-label="Close"
+            onclick="closeReviewModal()"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label required">Employee</label>
+            <select id="rev-employee" class="form-control form-select">
+              <option value="">— Select employee —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Review Period</label>
+            <input
+              type="text"
+              id="rev-period"
+              class="form-control"
+              placeholder="e.g. Q2 2025"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label required">Rating</label>
+            <div class="stars-input" id="stars-input">
+              <button class="star-btn" data-val="1" onclick="setRating(1)">
+                ★
+              </button>
+              <button class="star-btn" data-val="2" onclick="setRating(2)">
+                ★
+              </button>
+              <button class="star-btn" data-val="3" onclick="setRating(3)">
+                ★
+              </button>
+              <button class="star-btn" data-val="4" onclick="setRating(4)">
+                ★
+              </button>
+              <button class="star-btn" data-val="5" onclick="setRating(5)">
+                ★
+              </button>
+            </div>
+            <div
+              id="rating-label"
+              style="
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-top: 6px;
+              "
+            >
+              Click to rate
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Comments</label>
+            <textarea
+              id="rev-comments"
+              class="form-control"
+              rows="4"
+              placeholder="Describe the employee's performance, achievements, and areas for improvement…"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeReviewModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="submitReview()">
+            Submit Review
+          </button>
+        </div>
+      </div>
+    </div>
 
-let selectedRating = 0;
-let canManageQueries=false, employeeQueries=[];
-let disciplinaryCases=[], disciplinaryEmployees=[];
-const ratingLabels = ['', 'Poor', 'Needs Improvement', 'Meets Expectations', 'Exceeds Expectations', 'Outstanding'];
+    <script src="../js/api.js"></script>
+    <script src="../js/charts.js"></script>
+    <script>
+      const user = requireAuth();
+      if (!user) throw new Error("redirect");
+      buildSidebar("performance");
+      loadNotifCount();
 
-if (['admin','manager'].includes(user.role)) {
-  document.getElementById('team-tab').style.display = '';
-  document.getElementById('disciplinary-tab').style.display = '';
-  document.getElementById('review-action').innerHTML =
-    `<button class="btn btn-primary" onclick="showReviewModal()">
+      let selectedRating = 0;
+      let canManageQueries = false,
+        employeeQueries = [];
+      let disciplinaryCases = [],
+        disciplinaryEmployees = [];
+      const ratingLabels = [
+        "",
+        "Poor",
+        "Needs Improvement",
+        "Meets Expectations",
+        "Exceeds Expectations",
+        "Outstanding",
+      ];
+
+      if (["admin", "manager"].includes(user.role)) {
+        document.getElementById("team-tab").style.display = "";
+        document.getElementById("disciplinary-tab").style.display = "";
+        document.getElementById("review-action").innerHTML =
+          `<button class="btn btn-primary" onclick="showReviewModal()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Write Review
     </button>`;
-}
+      }
 
-function switchTab(tab) {
-  ['mine','team','queries','disciplinary'].forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'':'none');
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
-  if (tab === 'team') loadTeam();
-  if (tab === 'queries') loadQueries();
-  if (tab === 'disciplinary') loadDisciplinary();
-}
+      function switchTab(tab) {
+        ["mine", "team", "queries", "disciplinary"].forEach(
+          (t) =>
+            (document.getElementById(`tab-${t}`).style.display =
+              t === tab ? "" : "none"),
+        );
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+        if (tab === "team") loadTeam();
+        if (tab === "queries") loadQueries();
+        if (tab === "disciplinary") loadDisciplinary();
+      }
 
-function renderStars(rating, size='sm') {
-  return `<div class="stars">${[1,2,3,4,5].map(i =>
-    `<svg class="star ${i<=rating?'filled':''}" viewBox="0 0 24 24" fill="${i<=rating?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5">
+      function renderStars(rating, size = "sm") {
+        return `<div class="stars">${[1, 2, 3, 4, 5]
+          .map(
+            (i) =>
+              `<svg class="star ${i <= rating ? "filled" : ""}" viewBox="0 0 24 24" fill="${i <= rating ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.5">
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>`).join('')}</div>`;
-}
+    </svg>`,
+          )
+          .join("")}</div>`;
+      }
 
-async function loadMyReviews() {
-  const reviews = await api.get('/performance/mine');
-  const grid = document.getElementById('my-reviews');
-  if (!reviews.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      async function loadMyReviews() {
+        const reviews = await api.get("/performance/mine");
+        const grid = document.getElementById("my-reviews");
+        if (!reviews.length) {
+          grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px;opacity:.25"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       <h4>No reviews yet</h4>
       <p>Your performance reviews will appear here</p>
     </div>`;
-    return;
-  }
-  grid.innerHTML = reviews.map(r => `
+          return;
+        }
+        grid.innerHTML = reviews
+          .map(
+            (r) => `
     <div class="review-card">
       <div class="review-header">
         <div>
-          ${r.period ? `<div class="review-period">${r.period}</div>` : ''}
+          ${r.period ? `<div class="review-period">${r.period}</div>` : ""}
           ${renderStars(r.rating)}
           <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px">${ratingLabels[r.rating]}</div>
         </div>
         <div class="review-date">${fmt.date(r.review_date)}</div>
       </div>
-      ${r.comments ? `<div class="review-comment">${r.comments}</div>` : ''}
+      ${r.comments ? `<div class="review-comment">${r.comments}</div>` : ""}
       <div class="review-by">
-        ${r.reviewer_photo
-          ? `<img src="${assetUrl(r.reviewer_photo)}" class="avatar avatar-sm" alt="">`
-          : initialsAvatar(r.reviewer_name?.split(' ')[0]||'?', r.reviewer_name?.split(' ')[1]||'', 'sm')}
+        ${
+          r.reviewer_photo
+            ? `<img src="${assetUrl(r.reviewer_photo)}" class="avatar avatar-sm" alt="">`
+            : initialsAvatar(
+                r.reviewer_name?.split(" ")[0] || "?",
+                r.reviewer_name?.split(" ")[1] || "",
+                "sm",
+              )
+        }
         Reviewed by <strong>${r.reviewer_name}</strong>
       </div>
-    </div>`).join('');
-}
+    </div>`,
+          )
+          .join("");
+      }
 
-async function loadTeam() {
-  const team = await api.get('/performance/team-summary');
-  const grid = document.getElementById('team-grid');
-  if (!team.length) { grid.innerHTML = `<div class="empty-state"><p>No data available</p></div>`; return; }
-  const ratingCounts = [1,2,3,4,5].map(rating => team.filter(row => Math.round(Number(row.avg_rating || 0)) === rating).length);
-  KenadCharts.doughnut('#performance-chart', ['1 star','2 stars','3 stars','4 stars','5 stars'], ratingCounts);
-  grid.innerHTML = team.map(e => `
+      async function loadTeam() {
+        const team = await api.get("/performance/team-summary");
+        const grid = document.getElementById("team-grid");
+        if (!team.length) {
+          grid.innerHTML = `<div class="empty-state"><p>No data available</p></div>`;
+          return;
+        }
+        const ratingCounts = [1, 2, 3, 4, 5].map(
+          (rating) =>
+            team.filter(
+              (row) => Math.round(Number(row.avg_rating || 0)) === rating,
+            ).length,
+        );
+        KenadCharts.doughnut(
+          "#performance-chart",
+          ["1 star", "2 stars", "3 stars", "4 stars", "5 stars"],
+          ratingCounts,
+        );
+        grid.innerHTML = team
+          .map(
+            (e) => `
     <div class="team-card" onclick="viewEmployeeReviews(${e.id}, '${e.name}')">
-      ${initialsAvatar(e.name?.split(' ')[0]||'?', e.name?.split(' ')[1]||'', 'md')}
+      ${initialsAvatar(e.name?.split(" ")[0] || "?", e.name?.split(" ")[1] || "", "md")}
       <div style="flex:1">
         <div style="font-weight:600;font-size:.9rem">${e.name}</div>
-        <div style="font-size:.8rem;color:var(--text-muted)">${e.job_title || '—'} · ${e.department_name || '—'}</div>
+        <div style="font-size:.8rem;color:var(--text-muted)">${e.job_title || "—"} · ${e.department_name || "—"}</div>
         <div style="margin-top:4px">${e.avg_rating ? renderStars(Math.round(e.avg_rating)) : '<span style="color:var(--text-muted);font-size:.8rem">No reviews yet</span>'}</div>
       </div>
       <div style="text-align:right">
-        ${e.avg_rating ? `<div class="avg-rating-badge">${e.avg_rating}</div>` : ''}
-        <div style="font-size:.75rem;color:var(--text-muted);margin-top:6px">${e.review_count} review${e.review_count!==1?'s':''}</div>
+        ${e.avg_rating ? `<div class="avg-rating-badge">${e.avg_rating}</div>` : ""}
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:6px">${e.review_count} review${e.review_count !== 1 ? "s" : ""}</div>
       </div>
-    </div>`).join('');
-}
+    </div>`,
+          )
+          .join("");
+      }
 
-async function viewEmployeeReviews(id, name) {
-  const reviews = await api.get(`/performance/employee/${id}`);
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
+      async function viewEmployeeReviews(id, name) {
+        const reviews = await api.get(`/performance/employee/${id}`);
+        const overlay = document.createElement("div");
+        overlay.className = "modal-overlay";
+        overlay.innerHTML = `
     <div class="modal modal-lg">
       <div class="modal-header">
         <h3>Reviews for ${name}</h3>
         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       </div>
       <div class="modal-body">
-        ${reviews.length
-          ? `<div style="display:flex;flex-direction:column;gap:14px">${reviews.map(r => `
+        ${
+          reviews.length
+            ? `<div style="display:flex;flex-direction:column;gap:14px">${reviews
+                .map(
+                  (r) => `
               <div class="review-card">
                 <div class="review-header">
                   <div>
-                    ${r.period ? `<div class="review-period">${r.period}</div>` : ''}
+                    ${r.period ? `<div class="review-period">${r.period}</div>` : ""}
                     ${renderStars(r.rating)}
                     <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px">${ratingLabels[r.rating]}</div>
                   </div>
                   <div class="review-date">${fmt.date(r.review_date)}</div>
                 </div>
-                ${r.comments ? `<div class="review-comment">${r.comments}</div>` : ''}
+                ${r.comments ? `<div class="review-comment">${r.comments}</div>` : ""}
                 <div class="review-by">By <strong>${r.reviewer_name}</strong></div>
-              </div>`).join('')}</div>`
-          : `<div class="empty-state"><p>No reviews yet for this employee</p></div>`}
+              </div>`,
+                )
+                .join("")}</div>`
+            : `<div class="empty-state"><p>No reviews yet for this employee</p></div>`
+        }
       </div>
     </div>`;
-  document.body.appendChild(overlay);
-}
+        document.body.appendChild(overlay);
+      }
 
-async function showReviewModal() {
-  const data = await api.get('/employees?limit=200');
-  const sel = document.getElementById('rev-employee');
-  sel.innerHTML = '<option value="">— Select employee —</option>';
-  data.employees.forEach(e => {
-    if (e.id !== user.id) sel.innerHTML += `<option value="${e.id}">${e.first_name} ${e.last_name}</option>`;
-  });
-  selectedRating = 0;
-  updateStars(0);
-  document.getElementById('review-modal').style.display = 'flex';
-}
+      async function showReviewModal() {
+        const data = await api.get("/employees?limit=200");
+        const sel = document.getElementById("rev-employee");
+        sel.innerHTML = '<option value="">— Select employee —</option>';
+        data.employees.forEach((e) => {
+          if (e.id !== user.id)
+            sel.innerHTML += `<option value="${e.id}">${e.first_name} ${e.last_name}</option>`;
+        });
+        selectedRating = 0;
+        updateStars(0);
+        document.getElementById("review-modal").style.display = "flex";
+        window.dispatchEvent(new Event("hrconnect:request-page-height"));
+      }
 
-function setRating(val) {
-  selectedRating = val;
-  updateStars(val);
-  document.getElementById('rating-label').textContent = ratingLabels[val];
-}
+      function closeReviewModal() {
+        document.getElementById("review-modal").style.display = "none";
+        window.dispatchEvent(new Event("hrconnect:request-page-height"));
+      }
 
-function updateStars(val) {
-  document.querySelectorAll('.star-btn').forEach(btn => {
-    btn.classList.toggle('on', parseInt(btn.dataset.val) <= val);
-  });
-}
+      function setRating(val) {
+        selectedRating = val;
+        updateStars(val);
+        document.getElementById("rating-label").textContent = ratingLabels[val];
+      }
 
-async function submitReview() {
-  if (!selectedRating) { toast('Please select a rating', 'warning'); return; }
-  try {
-    await api.post('/performance', {
-      employee_id: parseInt(document.getElementById('rev-employee').value),
-      rating:      selectedRating,
-      comments:    document.getElementById('rev-comments').value,
-      period:      document.getElementById('rev-period').value,
-    });
-    document.getElementById('review-modal').style.display = 'none';
-    toast('Review submitted!', 'success');
-    loadTeam();
-  } catch(e) { toast(e.message, 'error'); }
-}
+      function updateStars(val) {
+        document.querySelectorAll(".star-btn").forEach((btn) => {
+          btn.classList.toggle("on", parseInt(btn.dataset.val) <= val);
+        });
+      }
 
-const querySafe = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const queryLabel = value => String(value || 'general').replace(/_/g,' ').replace(/\b\w/g, char => char.toUpperCase());
-async function initQueries() { const access=await api.get('/queries/access');canManageQueries=access.can_manage;if(canManageQueries){const employees=await api.get('/queries/recipients');document.getElementById('query-submit-title').textContent='Query an employee';document.getElementById('query-submit-button').textContent='Send to employee';document.getElementById('query-recipient-group').style.display='';document.getElementById('query-recipient').innerHTML='<option value="">Select employee</option>'+employees.map(employee=>`<option value="${employee.id}">${querySafe(`${employee.first_name} ${employee.last_name}`)}</option>`).join('');document.getElementById('query-list-title').textContent='Employee query queue';document.getElementById('query-filter').style.display='flex';}if(location.hash==='#queries')switchTab('queries'); }
-async function loadQueries(){employeeQueries=canManageQueries?await api.get(`/queries/queue${document.getElementById('query-status').value?`?status=${document.getElementById('query-status').value}`:''}`):await api.get('/queries/mine');renderQueries();}
-function renderQueries(){document.getElementById('query-head').innerHTML=canManageQueries?'<tr><th>From / To</th><th>Query</th><th>Status</th><th>Submitted</th><th></th></tr>':'<tr><th>Query</th><th>Status</th><th>Submitted</th><th>Response</th></tr>';document.getElementById('query-body').innerHTML=employeeQueries.length?employeeQueries.map(q=>canManageQueries?`<tr><td>${q.recipient_employee_id?`<small>To</small><br>${querySafe(q.recipient_name)}`:`<small>From</small><br>${querySafe(q.employee_name)}`}<br><small>${querySafe(q.job_title||'')}</small></td><td><strong>${querySafe(q.subject)}</strong><br><small>${querySafe(queryLabel(q.category))}</small><p>${querySafe(q.description)}</p>${q.response?`<p><strong>Response:</strong> ${querySafe(q.response)}</p>`:''}</td><td>${fmt.statusBadge(q.status)}</td><td>${fmt.datetime(q.created_at)}</td><td><button class="btn btn-outline btn-sm" onclick="openQueryResponse(${q.id})">${q.recipient_employee_id?'Update':'Respond'}</button></td></tr>`:`<tr><td><strong>${querySafe(q.subject)}</strong><br><small>${querySafe(queryLabel(q.category))}</small><p>${querySafe(q.description)}</p></td><td>${fmt.statusBadge(q.status)}</td><td>${fmt.datetime(q.created_at)}</td><td>${q.response?querySafe(q.response):q.recipient_employee_id===user.id?'<button class="btn btn-outline btn-sm" onclick="openQueryResponse('+q.id+')">Respond</button>':'<span style="color:var(--text-muted)">Awaiting HR response</span>'}</td></tr>`).join(''):`<tr><td colspan="${canManageQueries?5:4}"><div class="empty-state"><p>No employee queries found.</p></div></td></tr>`;}
-async function submitQuery(){try{const recipient=canManageQueries?document.getElementById('query-recipient').value:'';if(canManageQueries&&!recipient)throw Error('Select an employee');await api.post('/queries',{recipient_employee_id:recipient||null,category:document.getElementById('query-category').value,subject:document.getElementById('query-subject').value,description:document.getElementById('query-description').value});document.getElementById('query-subject').value='';document.getElementById('query-description').value='';toast(canManageQueries?'Query sent to employee':'Your query has been sent to HR','success');loadQueries()}catch(e){toast(e.message,'error')}}
-function openQueryResponse(id){const query=employeeQueries.find(item=>item.id===id);document.getElementById('query-response-id').value=id;document.getElementById('query-response-status').value=query.status;document.getElementById('query-response-text').value=query.response||'';document.getElementById('query-response-modal').style.display='flex'}function closeQueryResponse(){document.getElementById('query-response-modal').style.display='none'}async function saveQueryResponse(){try{await api.patch(`/queries/${document.getElementById('query-response-id').value}`,{status:document.getElementById('query-response-status').value,response:document.getElementById('query-response-text').value});closeQueryResponse();toast('Query updated','success');loadQueries()}catch(e){toast(e.message,'error')}}
-const disciplinarySafe = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-async function loadDisciplinary(){try{const [cases,employeeData]=await Promise.all([api.get('/disciplinary'),api.get('/employees?limit=1000')]);disciplinaryCases=cases;disciplinaryEmployees=employeeData.employees;renderDisciplinary()}catch(e){toast(e.message||'Could not load disciplinary cases','error')}}
-function renderDisciplinary(){const body=document.getElementById('disciplinary-body');body.innerHTML=disciplinaryCases.length?disciplinaryCases.map(item=>`<tr><td><strong>${disciplinarySafe(item.employee_name)}</strong><br><small>${disciplinarySafe(item.employee_code||'')} · ${disciplinarySafe(item.job_title||'')}</small></td><td>${fmt.date(item.case_date)}</td><td>${disciplinarySafe(item.category)}</td><td>${disciplinarySafe(item.action_taken)}</td><td>${item.follow_up_date?fmt.date(item.follow_up_date):'—'}</td><td>${fmt.statusBadge(item.status)}</td><td><button class="btn btn-outline btn-sm" onclick="openDisciplinaryCase(${item.id})">View / Edit</button></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty-state"><p>No disciplinary cases recorded.</p></div></td></tr>';}
-function openDisciplinaryCase(id){const item=id?disciplinaryCases.find(row=>Number(row.id)===Number(id)):null;document.getElementById('disciplinary-modal-title').textContent=item?'Edit Disciplinary Case':'Add Disciplinary Case';document.getElementById('dc-id').value=item?.id||'';document.getElementById('dc-employee').innerHTML=disciplinaryEmployees.map(employee=>`<option value="${employee.id}" ${Number(item?.employee_id)===Number(employee.id)?'selected':''}>${disciplinarySafe(employee.first_name+' '+employee.last_name)}</option>`).join('');document.getElementById('dc-date').value=item?.case_date||new Date().toISOString().slice(0,10);document.getElementById('dc-category').value=item?.category||'Misconduct';document.getElementById('dc-action').value=item?.action_taken||'';document.getElementById('dc-status').value=item?.status||'open';document.getElementById('dc-followup').value=item?.follow_up_date||'';document.getElementById('dc-summary').value=item?.incident_summary||'';document.getElementById('dc-notes').value=item?.outcome_notes||'';document.getElementById('disciplinary-modal').style.display='flex';}
-function closeDisciplinaryCase(){document.getElementById('disciplinary-modal').style.display='none'}
-async function saveDisciplinaryCase(){try{const id=document.getElementById('dc-id').value,body={employee_id:Number(document.getElementById('dc-employee').value),case_date:document.getElementById('dc-date').value,category:document.getElementById('dc-category').value,incident_summary:document.getElementById('dc-summary').value,action_taken:document.getElementById('dc-action').value,status:document.getElementById('dc-status').value,follow_up_date:document.getElementById('dc-followup').value,outcome_notes:document.getElementById('dc-notes').value};if(id)await api.put(`/disciplinary/${id}`,body);else await api.post('/disciplinary',body);closeDisciplinaryCase();toast('Disciplinary case saved','success');loadDisciplinary()}catch(e){toast(e.message||'Could not save disciplinary case','error')}}
-loadMyReviews();initQueries().catch(e=>toast(e.message,'error'));if(location.hash==='#disciplinary'&&['admin','manager'].includes(user.role))switchTab('disciplinary');
-</script>
-</body>
+      async function submitReview() {
+        if (!selectedRating) {
+          toast("Please select a rating", "warning");
+          return;
+        }
+        try {
+          await api.post("/performance", {
+            employee_id: parseInt(
+              document.getElementById("rev-employee").value,
+            ),
+            rating: selectedRating,
+            comments: document.getElementById("rev-comments").value,
+            period: document.getElementById("rev-period").value,
+          });
+          closeReviewModal();
+          toast("Review submitted!", "success");
+          loadTeam();
+        } catch (e) {
+          toast(e.message, "error");
+        }
+      }
+
+      const querySafe = (value) =>
+        String(value ?? "").replace(
+          /[&<>"']/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[char],
+        );
+      const queryLabel = (value) =>
+        String(value || "general")
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+      async function initQueries() {
+        const access = await api.get("/queries/access");
+        canManageQueries = access.can_manage;
+        if (canManageQueries) {
+          const employees = await api.get("/queries/recipients");
+          document.getElementById("query-submit-title").textContent =
+            "Query an employee";
+          document.getElementById("query-submit-button").textContent =
+            "Send to employee";
+          document.getElementById("query-recipient-group").style.display = "";
+          document.getElementById("query-recipient").innerHTML =
+            '<option value="">Select employee</option>' +
+            employees
+              .map(
+                (employee) =>
+                  `<option value="${employee.id}">${querySafe(`${employee.first_name} ${employee.last_name}`)}</option>`,
+              )
+              .join("");
+          document.getElementById("query-list-title").textContent =
+            "Employee query queue";
+          document.getElementById("query-filter").style.display = "flex";
+        }
+        if (location.hash === "#queries") switchTab("queries");
+      }
+      async function loadQueries() {
+        employeeQueries = canManageQueries
+          ? await api.get(
+              `/queries/queue${document.getElementById("query-status").value ? `?status=${document.getElementById("query-status").value}` : ""}`,
+            )
+          : await api.get("/queries/mine");
+        renderQueries();
+      }
+      function renderQueries() {
+        document.getElementById("query-head").innerHTML = canManageQueries
+          ? "<tr><th>From / To</th><th>Query</th><th>Status</th><th>Submitted</th><th></th></tr>"
+          : "<tr><th>Query</th><th>Status</th><th>Submitted</th><th>Response</th></tr>";
+        document.getElementById("query-body").innerHTML = employeeQueries.length
+          ? employeeQueries
+              .map((q) =>
+                canManageQueries
+                  ? `<tr><td>${q.recipient_employee_id ? `<small>To</small><br>${querySafe(q.recipient_name)}` : `<small>From</small><br>${querySafe(q.employee_name)}`}<br><small>${querySafe(q.job_title || "")}</small></td><td><strong>${querySafe(q.subject)}</strong><br><small>${querySafe(queryLabel(q.category))}</small><p>${querySafe(q.description)}</p>${q.response ? `<p><strong>Response:</strong> ${querySafe(q.response)}</p>` : ""}</td><td>${fmt.statusBadge(q.status)}</td><td>${fmt.datetime(q.created_at)}</td><td><button class="btn btn-outline btn-sm" onclick="openQueryResponse(${q.id})">${q.recipient_employee_id ? "Update" : "Respond"}</button></td></tr>`
+                  : `<tr><td><strong>${querySafe(q.subject)}</strong><br><small>${querySafe(queryLabel(q.category))}</small><p>${querySafe(q.description)}</p></td><td>${fmt.statusBadge(q.status)}</td><td>${fmt.datetime(q.created_at)}</td><td>${q.response ? querySafe(q.response) : q.recipient_employee_id === user.id ? '<button class="btn btn-outline btn-sm" onclick="openQueryResponse(' + q.id + ')">Respond</button>' : '<span style="color:var(--text-muted)">Awaiting HR response</span>'}</td></tr>`,
+              )
+              .join("")
+          : `<tr><td colspan="${canManageQueries ? 5 : 4}"><div class="empty-state"><p>No employee queries found.</p></div></td></tr>`;
+      }
+      async function submitQuery() {
+        try {
+          const recipient = canManageQueries
+            ? document.getElementById("query-recipient").value
+            : "";
+          if (canManageQueries && !recipient) throw Error("Select an employee");
+          await api.post("/queries", {
+            recipient_employee_id: recipient || null,
+            category: document.getElementById("query-category").value,
+            subject: document.getElementById("query-subject").value,
+            description: document.getElementById("query-description").value,
+          });
+          document.getElementById("query-subject").value = "";
+          document.getElementById("query-description").value = "";
+          toast(
+            canManageQueries
+              ? "Query sent to employee"
+              : "Your query has been sent to HR",
+            "success",
+          );
+          loadQueries();
+        } catch (e) {
+          toast(e.message, "error");
+        }
+      }
+      function openQueryResponse(id) {
+        const query = employeeQueries.find((item) => item.id === id);
+        document.getElementById("query-response-id").value = id;
+        document.getElementById("query-response-status").value = query.status;
+        document.getElementById("query-response-text").value =
+          query.response || "";
+        document.getElementById("query-response-modal").style.display = "flex";
+      }
+      function closeQueryResponse() {
+        document.getElementById("query-response-modal").style.display = "none";
+      }
+      async function saveQueryResponse() {
+        try {
+          await api.patch(
+            `/queries/${document.getElementById("query-response-id").value}`,
+            {
+              status: document.getElementById("query-response-status").value,
+              response: document.getElementById("query-response-text").value,
+            },
+          );
+          closeQueryResponse();
+          toast("Query updated", "success");
+          loadQueries();
+        } catch (e) {
+          toast(e.message, "error");
+        }
+      }
+      const disciplinarySafe = (value) =>
+        String(value ?? "").replace(
+          /[&<>"']/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[char],
+        );
+      async function loadDisciplinary() {
+        try {
+          const [cases, employeeData] = await Promise.all([
+            api.get("/disciplinary"),
+            api.get("/employees?limit=1000"),
+          ]);
+          disciplinaryCases = cases;
+          disciplinaryEmployees = employeeData.employees;
+          renderDisciplinary();
+        } catch (e) {
+          toast(e.message || "Could not load disciplinary cases", "error");
+        }
+      }
+      function renderDisciplinary() {
+        const body = document.getElementById("disciplinary-body");
+        body.innerHTML = disciplinaryCases.length
+          ? disciplinaryCases
+              .map(
+                (item) =>
+                  `<tr><td><strong>${disciplinarySafe(item.employee_name)}</strong><br><small>${disciplinarySafe(item.employee_code || "")} · ${disciplinarySafe(item.job_title || "")}</small></td><td>${fmt.date(item.case_date)}</td><td>${disciplinarySafe(item.category)}</td><td>${disciplinarySafe(item.action_taken)}</td><td>${item.follow_up_date ? fmt.date(item.follow_up_date) : "—"}</td><td>${fmt.statusBadge(item.status)}</td><td><button class="btn btn-outline btn-sm" onclick="openDisciplinaryCase(${item.id})">View / Edit</button></td></tr>`,
+              )
+              .join("")
+          : '<tr><td colspan="7"><div class="empty-state"><p>No disciplinary cases recorded.</p></div></td></tr>';
+      }
+      function openDisciplinaryCase(id) {
+        const item = id
+          ? disciplinaryCases.find((row) => Number(row.id) === Number(id))
+          : null;
+        document.getElementById("disciplinary-modal-title").textContent = item
+          ? "Edit Disciplinary Case"
+          : "Add Disciplinary Case";
+        document.getElementById("dc-id").value = item?.id || "";
+        document.getElementById("dc-employee").innerHTML = disciplinaryEmployees
+          .map(
+            (employee) =>
+              `<option value="${employee.id}" ${Number(item?.employee_id) === Number(employee.id) ? "selected" : ""}>${disciplinarySafe(employee.first_name + " " + employee.last_name)}</option>`,
+          )
+          .join("");
+        document.getElementById("dc-date").value =
+          item?.case_date || new Date().toISOString().slice(0, 10);
+        document.getElementById("dc-category").value =
+          item?.category || "Misconduct";
+        document.getElementById("dc-action").value = item?.action_taken || "";
+        document.getElementById("dc-status").value = item?.status || "open";
+        document.getElementById("dc-followup").value =
+          item?.follow_up_date || "";
+        document.getElementById("dc-summary").value =
+          item?.incident_summary || "";
+        document.getElementById("dc-notes").value = item?.outcome_notes || "";
+        document.getElementById("disciplinary-modal").style.display = "flex";
+        window.dispatchEvent(new Event("hrconnect:request-page-height"));
+      }
+      function closeDisciplinaryCase() {
+        document.getElementById("disciplinary-modal").style.display = "none";
+        window.dispatchEvent(new Event("hrconnect:request-page-height"));
+      }
+      async function saveDisciplinaryCase() {
+        try {
+          const id = document.getElementById("dc-id").value,
+            body = {
+              employee_id: Number(document.getElementById("dc-employee").value),
+              case_date: document.getElementById("dc-date").value,
+              category: document.getElementById("dc-category").value,
+              incident_summary: document.getElementById("dc-summary").value,
+              action_taken: document.getElementById("dc-action").value,
+              status: document.getElementById("dc-status").value,
+              follow_up_date: document.getElementById("dc-followup").value,
+              outcome_notes: document.getElementById("dc-notes").value,
+            };
+          if (id) await api.put(`/disciplinary/${id}`, body);
+          else await api.post("/disciplinary", body);
+          closeDisciplinaryCase();
+          toast("Disciplinary case saved", "success");
+          loadDisciplinary();
+        } catch (e) {
+          toast(e.message || "Could not save disciplinary case", "error");
+        }
+      }
+      loadMyReviews();
+      initQueries().catch((e) => toast(e.message, "error"));
+      if (
+        location.hash === "#disciplinary" &&
+        ["admin", "manager"].includes(user.role)
+      )
+        switchTab("disciplinary");
+    </script>
+  </body>
 </html>
