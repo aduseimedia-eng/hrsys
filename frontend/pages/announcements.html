@@ -59,7 +59,27 @@
     .ann-card { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:16px; align-items:start; padding:16px; border:1px solid var(--border); border-radius:10px; background:#fff; transition:border-color var(--duration), box-shadow var(--duration); }
     .ann-card:hover { border-color:var(--navy-200); box-shadow:var(--shadow-sm); }
     .ann-card.is-pinned { border-left:4px solid var(--navy-700); padding-left:13px; }
-    .announcement-modal{max-height:none;overflow:visible}.announcement-modal .modal-body{overflow:visible}@media(max-width:640px){.announcement-modal{max-height:90vh;overflow:hidden}.announcement-modal .modal-body{overflow:auto}}
+    /* Keep the composer light: it should not be presented as a boxed card. */
+    .announcement-modal {
+      max-height: none;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .announcement-modal .modal-header,
+    .announcement-modal .modal-body,
+    .announcement-modal .modal-footer {
+      background: transparent;
+      border: 0;
+    }
+    .announcement-modal .modal-header::after { display: none; }
+    .announcement-modal .modal-body { overflow: visible; }
+    @media (max-width:640px) {
+      .announcement-modal { max-height:90vh; overflow:hidden; }
+      .announcement-modal .modal-body { overflow:auto; }
+    }
     .ann-card-title { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
     .ann-card strong { color:var(--text-primary); font-size:.96rem; }
     .ann-card p { margin-top:5px; color:var(--text-secondary); font-size:.86rem; line-height:1.55; max-width:760px; white-space:pre-wrap; }
