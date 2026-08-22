@@ -806,6 +806,34 @@ exports.createDepartment = async (req, res) => {
   }
 };
 
+exports.updateDepartment = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const name = String(req.body.name || "").trim();
+    if (!Number.isInteger(id))
+      return res.status(400).json({ error: "Invalid department id" });
+    if (!name)
+      return res.status(400).json({ error: "Department name is required" });
+
+    const existing = await db.query(
+      "SELECT id FROM departments WHERE company_id=$1 AND LOWER(name)=LOWER($2) AND id<>$3",
+      [req.user.company_id, name, id],
+    );
+    if (existing.rows.length)
+      return res.status(409).json({ error: "Department already exists" });
+
+    const { rows } = await db.query(
+      "UPDATE departments SET name=$1 WHERE id=$2 AND company_id=$3 RETURNING *",
+      [name, id, req.user.company_id],
+    );
+    if (!rows.length)
+      return res.status(404).json({ error: "Department not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Could not update department" });
+  }
+};
+
 exports.deleteDepartment = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);

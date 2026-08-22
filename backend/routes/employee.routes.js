@@ -10,6 +10,7 @@ router.get  ('/photo/:id',          ctrl.getPhoto);
 router.get  ('/dashboard',          auth, rbac('admin','manager'), ctrl.getDashboard);
 router.get  ('/departments',        auth, ctrl.getDepartments);
 router.post ('/departments',        auth, rbac('admin'), ctrl.createDepartment);
+router.put  ('/departments/:id',    auth, rbac('admin'), ctrl.updateDepartment);
 router.delete('/departments/:id',    auth, rbac('admin'), ctrl.deleteDepartment);
 router.get  ('/directory',          auth, ctrl.getDirectory);
 router.get  ('/',                   auth, rbac('admin','manager'), ctrl.getAll);
