@@ -481,10 +481,12 @@
         </section>
 
         <section class="settings-hub-section settings-panel" id="attendance-settings">
-          <h2>Attendance &amp; overtime</h2><p>Set the hourly rate used for approved overtime across this company.</p>
+          <h2>Attendance &amp; overtime</h2><p>Set when staff are marked late, when overtime begins, and the rate used for approved overtime.</p>
           <form class="settings-editor-form" id="settings-overtime-form">
+            <div class="form-group"><label class="form-label required" for="settings-late-clock-in">Mark late after</label><input id="settings-late-clock-in" type="time" class="form-control" required><p class="form-hint">Clock-ins after this time are recorded as late.</p></div>
+            <div class="form-group"><label class="form-label required" for="settings-overtime-cutoff">Overtime starts after</label><input id="settings-overtime-cutoff" type="time" class="form-control" required><p class="form-hint">Clock-outs after this time can be submitted as overtime.</p></div>
             <div class="form-group"><label class="form-label required" for="settings-overtime-rate">Hourly overtime rate</label><input id="settings-overtime-rate" type="number" min="0" step="0.01" class="form-control" required placeholder="0.00"></div>
-            <div class="settings-editor-actions"><button class="btn btn-primary" type="submit">Save Overtime Rate</button></div>
+            <div class="settings-editor-actions"><button class="btn btn-primary" type="submit">Save Attendance Rules</button></div>
           </form>
         </section>
 
@@ -728,14 +730,18 @@
         try {
           const settings = await api.get('/attendance/overtime/settings');
           document.getElementById('settings-overtime-rate').value = Number(settings.hourly_rate || 0);
+          document.getElementById('settings-late-clock-in').value = String(settings.late_clock_in_after || '09:00').slice(0, 5);
+          document.getElementById('settings-overtime-cutoff').value = String(settings.late_clock_out_after || '17:30').slice(0, 5);
         } catch (error) { toast(error.message || 'Could not load overtime settings', 'error'); }
       }
 
       async function saveSettingsOvertime(event) {
         event.preventDefault();
         const hourlyRate = Number(document.getElementById('settings-overtime-rate').value);
-        try { await api.put('/attendance/overtime/settings', { hourly_rate: hourlyRate }); toast('Overtime rate saved', 'success'); }
-        catch (error) { toast(error.message || 'Could not save overtime rate', 'error'); }
+        const lateClockInAfter = document.getElementById('settings-late-clock-in').value;
+        const lateClockOutAfter = document.getElementById('settings-overtime-cutoff').value;
+        try { await api.put('/attendance/overtime/settings', { hourly_rate: hourlyRate, late_clock_in_after: lateClockInAfter, late_clock_out_after: lateClockOutAfter }); toast('Attendance rules saved', 'success'); }
+        catch (error) { toast(error.message || 'Could not save attendance rules', 'error'); }
       }
 
       async function loadSettingsAnnouncements() {

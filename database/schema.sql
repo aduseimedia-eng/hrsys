@@ -248,6 +248,7 @@ CREATE TABLE leave_requests (
 CREATE TABLE company_overtime_settings (
   company_id INT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
   hourly_rate NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (hourly_rate >= 0),
+  late_clock_in_after TIME NOT NULL DEFAULT TIME '09:00',
   late_clock_out_after TIME NOT NULL DEFAULT TIME '17:30',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

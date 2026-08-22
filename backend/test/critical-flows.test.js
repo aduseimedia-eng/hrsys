@@ -350,6 +350,7 @@ test('leave approval rejects self-approval before modifying data', async () => {
 test('clock-in creates a present attendance record', async () => {
   const calls = mockQueries([
     { rows: [] },
+    { rows: [{ is_late: false }] },
     { rows: [{ id: 9, employee_id: 7, status: 'present' }] }
   ]);
   const res = response();
@@ -359,8 +360,22 @@ test('clock-in creates a present attendance record', async () => {
   }, res);
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.id, 9);
-  assert.match(calls[1].text, /INSERT INTO attendance/);
-  assert.deepEqual(calls[1].params.slice(-3), [5.603717, -0.186964, 12]);
+  assert.match(calls[2].text, /INSERT INTO attendance/);
+  assert.deepEqual(calls[2].params.slice(-3), [5.603717, -0.186964, 12]);
+});
+
+test('attendance settings save late and overtime cutoffs with the overtime rate', async () => {
+  const calls = mockQueries([{ rows: [{ company_id: 1, hourly_rate: '25.00', late_clock_in_after: '09:15:00', late_clock_out_after: '18:00:00' }] }]);
+  const res = response();
+
+  await attendanceController.updateOvertimeSettings({
+    body: { hourly_rate: 25, late_clock_in_after: '09:15', late_clock_out_after: '18:00' },
+    user: { company_id: 1 }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.match(calls[0].text, /late_clock_in_after/i);
+  assert.deepEqual(calls[0].params, [1, 25, '09:15', '18:00']);
 });
 
 test('today attendance prioritizes an open overnight shift', async () => {

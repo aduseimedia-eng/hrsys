@@ -3,6 +3,7 @@ const db = require('../config/db');
 
 const ATTENDANCE_TIME_ZONE = process.env.ATTENDANCE_TIME_ZONE || 'Africa/Accra';
 const DEFAULT_OVERTIME_CUTOFF = '17:30:00';
+const DEFAULT_LATE_CLOCK_IN_CUTOFF = '09:00:00';
 
 function localWorkDate(value = new Date()) {
   const fields = new Intl.DateTimeFormat('en-GB', {
@@ -41,6 +42,24 @@ function attendanceLocation(body) {
   return { latitude, longitude, accuracy };
 }
 
+function timeSetting(value, label) {
+  if (value === undefined || value === null) return { value: null };
+  const time = String(value).trim();
+  const match = time.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match || Number(match[1]) > 23 || Number(match[2]) > 59 || Number(match[3] || 0) > 59) {
+    return { error: `Enter a valid ${label} time` };
+  }
+  return { value: time };
+}
+
+async function isLateClockIn(companyId, clockInTime, workDate) {
+  const { rows } = await db.query(
+    `SELECT $1::timestamptz > (($2::date + COALESCE((SELECT late_clock_in_after FROM company_overtime_settings WHERE company_id=$3), TIME '${DEFAULT_LATE_CLOCK_IN_CUTOFF}')) AT TIME ZONE $4) AS is_late`,
+    [clockInTime, workDate, companyId, ATTENDANCE_TIME_ZONE],
+  );
+  return !!rows[0]?.is_late;
+}
+
 // ─── Clock In ─────────────────────────────────────────────────
 exports.clockIn = async (req, res) => {
   try {
@@ -63,11 +82,13 @@ exports.clockIn = async (req, res) => {
       return res.status(400).json({ error: message });
     }
 
+    const status = await isLateClockIn(req.user.company_id, clockInTime, today) ? 'late' : 'present';
+
     if (existing.rows.length) {
       const { rows } = await db.query(
         `UPDATE attendance SET clock_in=$1, status=$2, clock_in_latitude=$3, clock_in_longitude=$4, clock_in_accuracy_meters=$5
          WHERE company_id=$6 AND employee_id=$7 AND work_date=$8 RETURNING *`,
-        [clockInTime, 'present', location.latitude, location.longitude, location.accuracy, req.user.company_id, req.user.id, today]
+        [clockInTime, status, location.latitude, location.longitude, location.accuracy, req.user.company_id, req.user.id, today]
       );
       return res.json(rows[0]);
     }
@@ -75,7 +96,7 @@ exports.clockIn = async (req, res) => {
     const { rows } = await db.query(
       `INSERT INTO attendance (company_id, employee_id, work_date, clock_in, status, clock_in_latitude, clock_in_longitude, clock_in_accuracy_meters)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [req.user.company_id, req.user.id, today, clockInTime, 'present', location.latitude, location.longitude, location.accuracy]
+      [req.user.company_id, req.user.id, today, clockInTime, status, location.latitude, location.longitude, location.accuracy]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -201,6 +222,7 @@ exports.getOvertimeSettings = async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT COALESCE((SELECT hourly_rate FROM company_overtime_settings WHERE company_id=$1), 0) AS hourly_rate,
+              COALESCE((SELECT late_clock_in_after FROM company_overtime_settings WHERE company_id=$1), TIME '${DEFAULT_LATE_CLOCK_IN_CUTOFF}') AS late_clock_in_after,
               COALESCE((SELECT late_clock_out_after FROM company_overtime_settings WHERE company_id=$1), TIME '${DEFAULT_OVERTIME_CUTOFF}') AS late_clock_out_after`,
       [req.user.company_id]
     );
@@ -212,11 +234,16 @@ exports.updateOvertimeSettings = async (req, res) => {
   try {
     const hourlyRate = Number(req.body.hourly_rate);
     if (!Number.isFinite(hourlyRate) || hourlyRate < 0) return res.status(400).json({ error: 'Enter a valid non-negative hourly overtime rate' });
+    const lateClockIn = timeSetting(req.body.late_clock_in_after, 'late clock-in cutoff');
+    const lateClockOut = timeSetting(req.body.late_clock_out_after, 'overtime cutoff');
+    if (lateClockIn.error || lateClockOut.error) return res.status(400).json({ error: lateClockIn.error || lateClockOut.error });
     const { rows } = await db.query(
-      `INSERT INTO company_overtime_settings (company_id, hourly_rate, updated_at)
-       VALUES ($1,$2,NOW())
-       ON CONFLICT (company_id) DO UPDATE SET hourly_rate=EXCLUDED.hourly_rate, updated_at=NOW()
-       RETURNING *`, [req.user.company_id, hourlyRate]
+      `INSERT INTO company_overtime_settings (company_id, hourly_rate, late_clock_in_after, late_clock_out_after, updated_at)
+       VALUES ($1,$2,COALESCE($3::time, TIME '${DEFAULT_LATE_CLOCK_IN_CUTOFF}'),COALESCE($4::time, TIME '${DEFAULT_OVERTIME_CUTOFF}'),NOW())
+       ON CONFLICT (company_id) DO UPDATE SET hourly_rate=EXCLUDED.hourly_rate,
+         late_clock_in_after=COALESCE($3::time, company_overtime_settings.late_clock_in_after),
+         late_clock_out_after=COALESCE($4::time, company_overtime_settings.late_clock_out_after), updated_at=NOW()
+       RETURNING *`, [req.user.company_id, hourlyRate, lateClockIn.value, lateClockOut.value]
     );
     res.json(rows[0]);
   } catch (err) { res.status(500).json({ error: 'Could not save overtime settings' }); }
