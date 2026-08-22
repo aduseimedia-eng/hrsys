@@ -7,6 +7,7 @@ const authController = require('../controllers/auth.controller');
 const recruitmentController = require('../controllers/recruitment.controller');
 const recruitmentPlatformController = require('../controllers/recruitment-platform.controller');
 const employeeController = require('../controllers/employee.controller');
+const companyController = require('../controllers/company.controller');
 const documentsController = require('../controllers/documents.controller');
 const leaveController = require('../controllers/leave.controller');
 const attendanceController = require('../controllers/attendance.controller');
@@ -285,6 +286,20 @@ test('department manager updates are scoped to an active employee in the same co
   assert.equal(res.body.manager_id, 12);
   assert.match(calls[0].text, /FROM employees WHERE id=\$1 AND company_id=\$2 AND is_active=true/i);
   assert.deepEqual(calls[2].params, ['Operations', 12, 4, 3]);
+});
+
+test('system preferences persist company defaults and formatting choices', async () => {
+  const calls = mockQueries([{ rows: [{ announcement_expiry_days: 30, default_records_per_page: 25, employee_code_prefix: 'PEP', currency_symbol: '₵', currency_symbol_position: 'prefix' }] }]);
+  const res = response();
+
+  await companyController.updateSystemPreferences({
+    body: { announcement_expiry_days: 30, default_records_per_page: 25, employee_code_prefix: 'PEP', currency_symbol: '₵', currency_symbol_position: 'prefix' },
+    user: { company_id: 3 }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.match(calls[0].text, /announcement_expiry_days/i);
+  assert.deepEqual(calls[0].params, [30, 25, 'PEP', '₵', 'prefix', 3]);
 });
 
 test('document upload saves the supplied document title', async () => {

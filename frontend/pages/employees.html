@@ -186,7 +186,7 @@
         <div class="form-group"><label class="form-label required">First Name</label><input type="text" id="f-first" class="form-control"></div>
         <div class="form-group"><label class="form-label required">Last Name</label><input type="text" id="f-last" class="form-control"></div>
         <div class="form-group"><label class="form-label required">Email</label><input type="email" id="f-email" class="form-control"></div>
-        <div class="form-group"><label class="form-label required">Employee ID</label><input type="text" id="f-employee-code" class="form-control" maxlength="50" placeholder="e.g. EMP-001"></div>
+        <div class="form-group"><label class="form-label">Employee ID</label><input type="text" id="f-employee-code" class="form-control" maxlength="50" placeholder="Leave blank to generate automatically"><p class="form-hint">Leave blank to use the company employee-ID prefix.</p></div>
         <div class="form-group"><label class="form-label required">Password</label><input type="password" id="f-pass" class="form-control" placeholder="Temporary password"></div>
         <div class="form-group"><label class="form-label">Role</label>
           <select id="f-role" class="form-control form-select">
@@ -225,7 +225,9 @@ loadNotifCount();
 let departments = [];
 let directory = [];
 let currentPage = 1;
-const limit = 20;
+const employeePreferences = (() => { try { return JSON.parse(localStorage.getItem(`hrconnect.company-preferences.${user.company_id}`) || '{}'); } catch (_) { return {}; } })();
+const limit = Math.min(200, Math.max(5, Number(employeePreferences.default_records_per_page) || 25));
+document.getElementById('f-employee-code').placeholder = `e.g. ${(employeePreferences.employee_code_prefix || 'EMP-')}0001 (or leave blank)`;
 const JOB_TITLES = [
   'HR Director',
   'HR Officer',

@@ -220,7 +220,7 @@ const api = {
     return data;
   },
 
-  get(path)          { return this.request('GET', path); },
+  get(path)          { return this.request('GET', withDefaultPageSize(path)); },
   post(path, body)   { return this.request('POST', path, body); },
   put(path, body)    { return this.request('PUT', path, body); },
   patch(path, body)  { return this.request('PATCH', path, body); },
@@ -446,6 +446,12 @@ function companyPreferences() {
   } catch (_) { return {}; }
 }
 
+function withDefaultPageSize(path) {
+  if (!/^\/(employees|attendance\/report|payroll)(?:\?|$)/.test(path) || /(?:[?&])limit=/.test(path)) return path;
+  const records = Math.min(200, Math.max(5, Number(companyPreferences().default_records_per_page) || 25));
+  return `${path}${path.includes('?') ? '&' : '?'}limit=${records}`;
+}
+
 const fmt = {
   date(d) {
     if (!d) return '—';
@@ -462,6 +468,12 @@ const fmt = {
   currency(n, currency) {
     if (n == null) return '—';
     const preferences = companyPreferences();
+    if (!currency && preferences.currency_symbol) {
+      const amount = new Intl.NumberFormat(preferences.locale || 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+      return preferences.currency_symbol_position === 'suffix'
+        ? `${amount} ${preferences.currency_symbol}`
+        : `${preferences.currency_symbol}${amount}`;
+    }
     return new Intl.NumberFormat(preferences.locale || 'en-GB', { style:'currency', currency: currency || preferences.currency || 'USD' }).format(n);
   },
   duration(clockIn, clockOut) {

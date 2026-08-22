@@ -73,7 +73,9 @@ exports.announce = async (req, res) => {
     if (!title || !body) return res.status(400).json({ error: 'Title and body required' });
 
     const { rows } = await db.query(
-      'INSERT INTO announcements (company_id,created_by,title,body,is_pinned) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      `INSERT INTO announcements (company_id,created_by,title,body,is_pinned,expires_at)
+       VALUES ($1,$2,$3,$4,$5,NOW() + make_interval(days => COALESCE((SELECT announcement_expiry_days FROM companies WHERE id=$1), 30)))
+       RETURNING *`,
       [req.user.company_id, req.user.id, title, body, is_pinned || false]
     );
 
@@ -96,7 +98,7 @@ exports.getAnnouncements = async (req, res) => {
       `SELECT a.*, CONCAT(e.first_name,' ',e.last_name) AS author_name, e.photo_url
        FROM announcements a
        JOIN employees e ON e.id = a.created_by
-       WHERE a.company_id=$1
+       WHERE a.company_id=$1 AND (a.expires_at IS NULL OR a.expires_at > NOW())
        ORDER BY a.is_pinned DESC, a.created_at DESC
        LIMIT 20`,
       [req.user.company_id]

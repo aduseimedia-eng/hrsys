@@ -6,5 +6,6 @@ const router = require("express").Router(),
 router.get("/branding", auth, ctrl.getBranding);
 router.get('/settings', auth, rbac('admin'), ctrl.getSettings);
 router.put('/settings', auth, rbac('admin'), ctrl.updateSettings);
+router.put('/preferences', auth, rbac('admin'), ctrl.updateSystemPreferences);
 router.put("/branding", auth, rbac("admin"), uploadPhoto.single("logo"), ctrl.updateBranding);
 module.exports = router;

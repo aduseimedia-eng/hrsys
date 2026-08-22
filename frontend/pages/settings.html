@@ -183,6 +183,12 @@
       .settings-audit-table { width:100%; border-collapse:collapse; font-size:.8rem; }
       .settings-audit-table th, .settings-audit-table td { padding:10px 8px; border-bottom:1px solid #e7eaf0; text-align:left; vertical-align:top; }
       .settings-audit-table th { color:var(--text-muted); font-size:.7rem; letter-spacing:.03em; text-transform:uppercase; }
+      .system-preference-group { margin:0 0 18px; border:1px solid #e4e8ef; border-radius:8px; overflow:hidden; }
+      .system-preference-group > h4 { margin:0; padding:12px 16px; border-bottom:1px solid #e4e8ef; background:#f5f7fa; color:var(--text-primary); font-size:.9rem; }
+      .system-preference-group > div { padding:16px; }
+      .system-preference-group .form-hint { min-height:32px; margin-bottom:8px; }
+      .system-preference-actions { display:flex; justify-content:flex-end; margin-top:14px; }
+      .settings-subheading { margin:24px 0 12px; color:var(--text-primary); font-size:.96rem; }
       @media (max-width: 700px) {
         .billing-plans {
           grid-template-columns: 1fr;
@@ -259,9 +265,31 @@
             </div>
 
         <article class="card billing-card settings-panel is-active" id="company-profile">
-          <div class="card-header"><h3>Company Profile</h3></div>
+          <div class="card-header"><h3>System Preferences</h3></div>
           <div class="card-body">
-            <p style="margin:0 0 16px;color:var(--text-muted)">Set the organisation details and workplace defaults used across your HR workspace.</p>
+            <p style="margin:0 0 16px;color:var(--text-muted)">Configure company defaults, display formatting, and workplace information used across your HR workspace.</p>
+            <section class="system-preference-group">
+              <h4>General Defaults</h4>
+              <div>
+                <div class="form-grid">
+                  <div class="form-group"><label class="form-label" for="company-announcement-expiry">Default Expire Days</label><p class="form-hint">New announcements automatically expire after this many days.</p><input id="company-announcement-expiry" type="number" min="1" max="3650" class="form-control" required></div>
+                  <div class="form-group"><label class="form-label" for="company-records-per-page">Default Records Per Page</label><p class="form-hint">The default number of records shown on supported list pages.</p><input id="company-records-per-page" type="number" min="5" max="200" class="form-control" required></div>
+                </div>
+                <div class="system-preference-actions"><button class="btn btn-primary btn-sm" type="button" onclick="saveSystemPreferences()">Save Defaults</button></div>
+              </div>
+            </section>
+            <section class="system-preference-group">
+              <h4>Formatting &amp; Localization</h4>
+              <div>
+                <div class="form-grid">
+                  <div class="form-group span-2"><label class="form-label" for="company-employee-prefix">Employee ID Prefix</label><p class="form-hint">Added to every automatically generated employee ID (for example, PEP0001).</p><input id="company-employee-prefix" class="form-control" maxlength="20" placeholder="EMP-"></div>
+                  <div class="form-group"><label class="form-label" for="company-currency-symbol">Currency Symbol</label><p class="form-hint">Symbol shown for monetary values.</p><input id="company-currency-symbol" class="form-control" maxlength="8" placeholder="$"></div>
+                  <div class="form-group"><label class="form-label" for="company-currency-position">Symbol Position</label><p class="form-hint">Choose whether the currency symbol appears before or after amounts.</p><select id="company-currency-position" class="form-control form-select"><option value="prefix">Prefix</option><option value="suffix">Suffix</option></select></div>
+                </div>
+                <div class="system-preference-actions"><button class="btn btn-primary btn-sm" type="button" onclick="saveSystemPreferences()">Save Formatting</button></div>
+              </div>
+            </section>
+            <h4 class="settings-subheading">Company Profile</h4>
             <div class="form-grid">
               <div class="form-group"><label class="form-label" for="company-legal-name">Legal company name</label><input id="company-legal-name" class="form-control" maxlength="160" placeholder="Registered company name"></div>
               <div class="form-group"><label class="form-label" for="company-email">Company email</label><input id="company-email" type="email" class="form-control" placeholder="hr@company.com"></div>
@@ -809,6 +837,7 @@
       async function loadCompanyProfile() {
         try {
           const company = await api.get('/company/settings');
+          localStorage.setItem(`hrconnect.company-preferences.${user.company_id}`, JSON.stringify(company));
           document.getElementById('company-legal-name').value = company.legal_name || '';
           document.getElementById('company-email').value = company.email || '';
           document.getElementById('company-phone').value = company.phone || '';
@@ -821,6 +850,11 @@
           setCompanySelect('company-locale', company.locale || 'en-GB');
           setCompanySelect('company-date-format', company.date_format || 'DD/MM/YYYY');
           setCompanySelect('company-week-start', company.week_start || 'Monday');
+          document.getElementById('company-announcement-expiry').value = Number(company.announcement_expiry_days || 30);
+          document.getElementById('company-records-per-page').value = Number(company.default_records_per_page || 25);
+          document.getElementById('company-employee-prefix').value = company.employee_code_prefix || 'EMP-';
+          document.getElementById('company-currency-symbol').value = company.currency_symbol || '';
+          document.getElementById('company-currency-position').value = company.currency_symbol_position || 'prefix';
         } catch (error) {
           toast(error.message || 'Could not load company profile', 'error');
         }
@@ -858,11 +892,28 @@
           week_start: document.getElementById('company-week-start').value
         };
         try {
-          await api.put('/company/settings', payload);
-          localStorage.setItem(`hrconnect.company-preferences.${user.company_id}`, JSON.stringify(payload));
+          const saved = await api.put('/company/settings', payload);
+          localStorage.setItem(`hrconnect.company-preferences.${user.company_id}`, JSON.stringify(saved));
           toast('Company profile saved', 'success');
         } catch (error) {
           toast(error.message || 'Could not save company profile', 'error');
+        }
+      }
+
+      async function saveSystemPreferences() {
+        const payload = {
+          announcement_expiry_days: Number(document.getElementById('company-announcement-expiry').value),
+          default_records_per_page: Number(document.getElementById('company-records-per-page').value),
+          employee_code_prefix: document.getElementById('company-employee-prefix').value.trim(),
+          currency_symbol: document.getElementById('company-currency-symbol').value.trim(),
+          currency_symbol_position: document.getElementById('company-currency-position').value
+        };
+        try {
+          const saved = await api.put('/company/preferences', payload);
+          localStorage.setItem(`hrconnect.company-preferences.${user.company_id}`, JSON.stringify(saved));
+          toast('System preferences saved', 'success');
+        } catch (error) {
+          toast(error.message || 'Could not save system preferences', 'error');
         }
       }
 

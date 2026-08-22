@@ -21,6 +21,11 @@ CREATE TABLE companies (
   locale      VARCHAR(35) NOT NULL DEFAULT 'en-GB',
   date_format VARCHAR(24) NOT NULL DEFAULT 'DD/MM/YYYY',
   week_start  VARCHAR(12) NOT NULL DEFAULT 'Monday',
+  announcement_expiry_days INT NOT NULL DEFAULT 30 CHECK (announcement_expiry_days BETWEEN 1 AND 3650),
+  default_records_per_page INT NOT NULL DEFAULT 25 CHECK (default_records_per_page BETWEEN 5 AND 200),
+  employee_code_prefix VARCHAR(20) NOT NULL DEFAULT 'EMP-',
+  currency_symbol VARCHAR(8),
+  currency_symbol_position VARCHAR(8) NOT NULL DEFAULT 'prefix' CHECK (currency_symbol_position IN ('prefix','suffix')),
   phone       VARCHAR(40),
   address     TEXT,
   logo_url    VARCHAR(300),
@@ -439,6 +444,7 @@ CREATE TABLE announcements (
   title       VARCHAR(200) NOT NULL,
   body        TEXT NOT NULL,
   is_pinned   BOOLEAN DEFAULT FALSE,
+  expires_at  TIMESTAMPTZ,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 

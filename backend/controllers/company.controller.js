@@ -2,7 +2,7 @@ const db = require("../config/db");
 
 const brandColumns = "logo_url, primary_color, accent_color, CASE WHEN logo_data IS NULL THEN NULL ELSE 'data:' || COALESCE(logo_mime_type,'image/png') || ';base64,' || encode(logo_data,'base64') END AS uploaded_logo";
 
-const profileColumns = 'name, legal_name, email, phone, address, city, country, timezone, currency, work_week, locale, date_format, week_start';
+const profileColumns = 'name, legal_name, email, phone, address, city, country, timezone, currency, work_week, locale, date_format, week_start, announcement_expiry_days, default_records_per_page, employee_code_prefix, currency_symbol, currency_symbol_position';
 
 exports.getSettings = async (req, res) => {
   try {
@@ -29,6 +29,43 @@ exports.updateSettings = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Could not save company settings' });
+  }
+};
+
+exports.updateSystemPreferences = async (req, res) => {
+  try {
+    const expiryDays = Number(req.body.announcement_expiry_days);
+    const recordsPerPage = Number(req.body.default_records_per_page);
+    const employeeCodePrefix = String(req.body.employee_code_prefix || '').trim().toUpperCase();
+    const currencySymbol = String(req.body.currency_symbol || '').trim();
+    const currencySymbolPosition = String(req.body.currency_symbol_position || 'prefix').trim();
+
+    if (!Number.isInteger(expiryDays) || expiryDays < 1 || expiryDays > 3650) {
+      return res.status(400).json({ error: 'Announcement expiry must be between 1 and 3650 days' });
+    }
+    if (!Number.isInteger(recordsPerPage) || recordsPerPage < 5 || recordsPerPage > 200) {
+      return res.status(400).json({ error: 'Records per page must be between 5 and 200' });
+    }
+    if (employeeCodePrefix.length > 20 || !/^[A-Z0-9-]*$/.test(employeeCodePrefix)) {
+      return res.status(400).json({ error: 'Employee ID prefix may contain only letters, numbers, and hyphens' });
+    }
+    if (currencySymbol.length > 8) {
+      return res.status(400).json({ error: 'Currency symbol must be 8 characters or fewer' });
+    }
+    if (!['prefix', 'suffix'].includes(currencySymbolPosition)) {
+      return res.status(400).json({ error: 'Currency symbol position must be prefix or suffix' });
+    }
+
+    const { rows } = await db.query(
+      `UPDATE companies SET announcement_expiry_days=$1, default_records_per_page=$2, employee_code_prefix=$3,
+       currency_symbol=$4, currency_symbol_position=$5, updated_at=NOW()
+       WHERE id=$6 RETURNING ${profileColumns}`,
+      [expiryDays, recordsPerPage, employeeCodePrefix, currencySymbol || null, currencySymbolPosition, req.user.company_id],
+    );
+    res.json(rows[0] || {});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Could not save system preferences' });
   }
 };
 

@@ -261,14 +261,27 @@ exports.create = async (req, res) => {
     if (employment_type && !EMPLOYMENT_TYPES.includes(employment_type)) {
       return res.status(400).json({ error: "Invalid employment type" });
     }
-    const employeeCode = String(employee_code || "")
+    let employeeCode = String(employee_code || "")
       .trim()
       .toUpperCase();
-    if (!employeeCode || employeeCode.length > 50)
+    if (!employeeCode) {
+      const prefixResult = await db.query(
+        "SELECT employee_code_prefix FROM companies WHERE id=$1",
+        [req.user.company_id],
+      );
+      const prefix = String(prefixResult.rows[0]?.employee_code_prefix || 'EMP-').toUpperCase();
+      const sequence = await db.query(
+        `SELECT COALESCE(MAX((regexp_match(employee_code, $2 || '(\\d+)$'))[1]::int), 0) + 1 AS next_code
+         FROM employees WHERE company_id=$1 AND employee_code ~ ($2 || '\\d+$')`,
+        [req.user.company_id, prefix],
+      );
+      employeeCode = `${prefix}${String(sequence.rows[0].next_code).padStart(4, '0')}`;
+    }
+    if (employeeCode.length > 50)
       return res
         .status(400)
         .json({
-          error: "Employee ID is required and must be 50 characters or fewer",
+          error: "Employee ID must be 50 characters or fewer",
         });
 
     const existing = await db.query(
