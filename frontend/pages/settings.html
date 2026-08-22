@@ -171,6 +171,18 @@
       .settings-hub-section { max-width:none; padding:20px 22px 24px; }
       .settings-hub-section > p { padding-bottom:15px; border-bottom:1px solid #e8ebf0; }
       .settings-link-card { padding:16px 0; }
+      .settings-editor-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:16px; border:1px solid #e7eaf0; border-radius:8px; background:#fafbfc; }
+      .settings-editor-form .span-2 { grid-column:span 2; }
+      .settings-editor-form .form-group { margin:0; }
+      .settings-editor-actions { display:flex; align-items:end; justify-content:flex-end; gap:8px; }
+      .settings-editor-list { margin-top:16px; border-top:1px solid #e7eaf0; }
+      .settings-editor-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 0; border-bottom:1px solid #e7eaf0; }
+      .settings-editor-row strong { display:block; color:var(--text-primary); font-size:.86rem; }
+      .settings-editor-row span { display:block; margin-top:3px; color:var(--text-muted); font-size:.76rem; }
+      .settings-editor-row-actions { display:flex; flex:0 0 auto; gap:8px; }
+      .settings-audit-table { width:100%; border-collapse:collapse; font-size:.8rem; }
+      .settings-audit-table th, .settings-audit-table td { padding:10px 8px; border-bottom:1px solid #e7eaf0; text-align:left; vertical-align:top; }
+      .settings-audit-table th { color:var(--text-muted); font-size:.7rem; letter-spacing:.03em; text-transform:uppercase; }
       @media (max-width: 700px) {
         .billing-plans {
           grid-template-columns: 1fr;
@@ -187,6 +199,9 @@
       }
       @media (max-width: 560px) {
         .settings-section-nav, .settings-link-grid { grid-template-columns:1fr; }
+        .settings-editor-form { grid-template-columns:1fr; }
+        .settings-editor-form .span-2 { grid-column:auto; }
+        .settings-editor-row { align-items:flex-start; flex-direction:column; }
       }
     </style>
   </head>
@@ -231,9 +246,9 @@
           <nav class="settings-section-nav" aria-label="Settings sections">
             <h3>Settings</h3>
             <div class="settings-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="settings-nav-search" class="form-control" type="search" placeholder="Search settings" autocomplete="off" aria-label="Search settings"></div>
-            <div class="settings-nav-group is-open"><button class="settings-nav-trigger" type="button" aria-expanded="true">General<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a class="active" href="#company-profile" data-panel="company-profile">System preferences</a><a href="#account-security" data-panel="account-security">My account</a><a href="#access-security" data-panel="access-security">Access &amp; security</a></div></div>
-            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Organisation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#people-organisation" data-panel="people-organisation">People &amp; organisation</a><a href="#company-calendar" data-panel="company-calendar">Calendar &amp; events</a><a href="#company-branding" data-panel="company-branding">Company branding</a></div></div>
-            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workforce<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#hr-policies" data-panel="hr-policies">HR policies</a><a href="#communication" data-panel="communication">Communication</a></div></div>
+            <div class="settings-nav-group is-open"><button class="settings-nav-trigger" type="button" aria-expanded="true">General<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a class="active" href="#company-profile" data-panel="company-profile">System preferences</a><a href="#account-security" data-panel="account-security">My account</a><a href="#access-security" data-panel="access-security">Access &amp; security</a><a href="#audit-settings" data-panel="audit-settings">Audit &amp; history</a></div></div>
+            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Organisation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#people-organisation" data-panel="people-organisation">People &amp; organisation</a><a href="#department-settings" data-panel="department-settings">Departments</a><a href="#company-calendar" data-panel="company-calendar">Calendar &amp; events</a><a href="#calendar-settings" data-panel="calendar-settings">Company calendar</a><a href="#company-branding" data-panel="company-branding">Company branding</a></div></div>
+            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workforce<svg viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#hr-policies" data-panel="hr-policies">HR policies</a><a href="#attendance-settings" data-panel="attendance-settings">Attendance &amp; overtime</a><a href="#communication" data-panel="communication">Communication</a><a href="#announcement-settings" data-panel="announcement-settings">Announcements</a></div></div>
             <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workspace<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#app-preferences" data-panel="app-preferences">App preferences</a><a href="#billing" data-panel="billing">Billing &amp; plans</a></div></div>
           </nav>
           <div class="settings-content">
@@ -268,28 +283,26 @@
         <section class="settings-hub-section settings-panel" id="people-organisation">
           <h2>People &amp; organisation</h2><p>Set up the structure used by employee records and HR workflows.</p>
           <div class="settings-link-grid">
-            <article class="settings-link-card"><div><h4>Departments &amp; organisation chart</h4><p>Create departments, set reporting lines, and keep the organisation structure current.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('departments')">Manage</button></article>
-            <article class="settings-link-card"><div><h4>Employee records &amp; employment types</h4><p>Manage job titles, employee IDs, employment types, and employee data.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('employees')">Open people</button></article>
+            <article class="settings-link-card"><div><h4>Departments &amp; organisation chart</h4><p>Create departments, assign department managers, and keep the organisation structure current.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('department-settings')">Configure</button></article>
+            <article class="settings-link-card"><div><h4>Company calendar</h4><p>Maintain internal events, meetings, paydays, shutdowns, and company holidays.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('calendar-settings')">Configure</button></article>
           </div>
         </section>
 
         <section class="settings-hub-section settings-panel" id="hr-policies">
           <h2>HR policies</h2><p>Use these areas to define the rules your people work by.</p>
           <div class="settings-link-grid">
-            <article class="settings-link-card"><div><h4>Leave, allowances &amp; approval flow</h4><p>Review leave types, public holidays, balances, and the approval queue.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('leave')">Configure</button></article>
-            <article class="settings-link-card"><div><h4>Attendance, schedules &amp; overtime</h4><p>Set work schedules and manage attendance and overtime requests.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('attendance')">Configure</button></article>
-            <article class="settings-link-card"><div><h4>Probation &amp; document reminders</h4><p>Track probation milestones and employee documents that need attention.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('probation')">Open</button></article>
-            <article class="settings-link-card"><div><h4>Payroll rules &amp; statutory deductions</h4><p>Manage payroll inputs, deductions, pay components, and approvals.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('payroll')">Open payroll</button></article>
+            <article class="settings-link-card"><div><h4>Company holidays &amp; events</h4><p>Add holidays, meetings, paydays, and shutdowns to the shared company calendar.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('calendar-settings')">Configure</button></article>
+            <article class="settings-link-card"><div><h4>Attendance &amp; overtime</h4><p>Set the hourly overtime rate used when approved overtime is calculated.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('attendance-settings')">Configure</button></article>
           </div>
         </section>
 
         <section class="settings-hub-section settings-panel" id="access-security">
           <h2>Access &amp; security</h2><p>Keep the people who can manage the workspace and their activity visible.</p>
           <div class="settings-link-grid">
-            <article class="settings-link-card"><div><h4>Administrator accounts &amp; roles</h4><p>Manage HR administrators, managers, and employee access through employee records.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('employees')">Manage</button></article>
-            <article class="settings-link-card"><div><h4>Audit history</h4><p>Review important workspace activity and changes made by authorised users.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('audit')">View history</button></article>
+            <article class="settings-link-card"><div><h4>Administrator accounts &amp; roles</h4><p>Use employee roles and department managers to control who administers this workspace.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('department-settings')">Review managers</button></article>
+            <article class="settings-link-card"><div><h4>Audit history</h4><p>Review important workspace activity and changes made by authorised users.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('audit-settings')">View history</button></article>
             <article class="settings-link-card"><div><h4>Login &amp; OTP protection</h4><p>HR sign-in can use the registered international phone number as an added verification step.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('account-security')">Account</button></article>
-            <article class="settings-link-card"><div><h4>Data export &amp; reporting</h4><p>Use reports to export workforce, attendance, payroll, and HR records.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('reports')">Open reports</button></article>
+            <article class="settings-link-card"><div><h4>Workspace data controls</h4><p>Company defaults, dates, currency, and working-week rules are managed in System preferences.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('company-profile')">Open preferences</button></article>
           </div>
         </section>
 
@@ -424,25 +437,72 @@
         <section class="settings-hub-section settings-panel" id="company-calendar">
           <h2>Company calendar</h2><p>Keep public holidays, company events, and key HR dates visible to the whole team.</p>
           <div class="settings-link-grid">
-            <article class="settings-link-card"><div><h4>Public holidays &amp; company events</h4><p>Review the Ghana holiday calendar and add internal events, meetings, paydays, or shutdowns.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('calendar')">Open calendar</button></article>
-            <article class="settings-link-card"><div><h4>Birthdays &amp; work anniversaries</h4><p>Use employee dates to celebrate important moments on your dashboard and calendar.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('employees')">Review people</button></article>
+            <article class="settings-link-card"><div><h4>Public holidays &amp; company events</h4><p>Create and maintain internal events, meetings, paydays, shutdowns, and holidays.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('calendar-settings')">Configure</button></article>
           </div>
         </section>
 
         <section class="settings-hub-section settings-panel" id="communication">
           <h2>Communication</h2><p>Manage the company updates and support channels staff see every day.</p>
           <div class="settings-link-grid">
-            <article class="settings-link-card"><div><h4>Announcements</h4><p>Publish company-wide updates and manage announcement visibility.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('announcements')">Manage</button></article>
-            <article class="settings-link-card"><div><h4>Messages &amp; notifications</h4><p>Review internal conversations, notification delivery, and team reminders.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('messages')">Open messages</button></article>
+            <article class="settings-link-card"><div><h4>Announcements</h4><p>Publish, edit, pin, or remove company-wide updates without leaving Settings.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('announcement-settings')">Configure</button></article>
           </div>
         </section>
 
         <section class="settings-hub-section settings-panel" id="app-preferences">
           <h2>App preferences</h2><p>Control the workspace experience, data tools, and connected operational areas.</p>
           <div class="settings-link-grid">
-            <article class="settings-link-card"><div><h4>Dashboard &amp; reporting</h4><p>Review the live workforce dashboard and use reports for a detailed export.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('dashboard')">Dashboard</button></article>
-            <article class="settings-link-card"><div><h4>Data import &amp; records</h4><p>Use employee management to maintain your workforce information accurately.</p></div><button class="btn btn-outline btn-sm" onclick="openSettingsPage('employees')">Employee data</button></article>
+            <article class="settings-link-card"><div><h4>Display, language &amp; regional defaults</h4><p>Control dates, currency, time zone, language, and the work week from one place.</p></div><button class="btn btn-outline btn-sm" onclick="showSettingsPanel('company-profile')">Configure</button></article>
           </div>
+        </section>
+
+        <section class="settings-hub-section settings-panel" id="department-settings">
+          <h2>Departments</h2><p>Create departments and assign the active employee responsible for each one.</p>
+          <form class="settings-editor-form" id="department-settings-form">
+            <input type="hidden" id="settings-department-id">
+            <div class="form-group"><label class="form-label required" for="settings-department-name">Department name</label><input id="settings-department-name" class="form-control" maxlength="120" required placeholder="e.g. Operations"></div>
+            <div class="form-group"><label class="form-label" for="settings-department-manager">Department manager</label><select id="settings-department-manager" class="form-control"><option value="">No manager assigned</option></select></div>
+            <div class="settings-editor-actions span-2"><button class="btn btn-outline hidden" type="button" id="settings-department-cancel">Cancel</button><button class="btn btn-primary" type="submit" id="settings-department-submit">Add Department</button></div>
+          </form>
+          <div class="settings-editor-list" id="settings-department-list"><div class="loading-state"><div class="spinner"></div><span>Loading departments...</span></div></div>
+        </section>
+
+        <section class="settings-hub-section settings-panel" id="calendar-settings">
+          <h2>Company calendar</h2><p>Add and maintain the events and dates that should be visible to the whole company.</p>
+          <form class="settings-editor-form" id="calendar-settings-form">
+            <input type="hidden" id="settings-calendar-id">
+            <div class="form-group"><label class="form-label required" for="settings-calendar-title">Event title</label><input id="settings-calendar-title" class="form-control" maxlength="160" required placeholder="e.g. Founders' Day"></div>
+            <div class="form-group"><label class="form-label" for="settings-calendar-category">Category</label><select id="settings-calendar-category" class="form-control"><option value="event">Event</option><option value="meeting">Meeting</option><option value="payday">Payday</option><option value="shutdown">Shutdown</option><option value="holiday">Holiday</option></select></div>
+            <div class="form-group"><label class="form-label required" for="settings-calendar-start">Start date</label><input id="settings-calendar-start" type="date" class="form-control" required></div>
+            <div class="form-group"><label class="form-label required" for="settings-calendar-end">End date</label><input id="settings-calendar-end" type="date" class="form-control" required></div>
+            <div class="form-group span-2"><label class="form-label" for="settings-calendar-description">Description</label><textarea id="settings-calendar-description" class="form-control" rows="2" maxlength="1000" placeholder="Optional details for staff"></textarea></div>
+            <div class="settings-editor-actions span-2"><button class="btn btn-outline hidden" type="button" id="settings-calendar-cancel">Cancel</button><button class="btn btn-primary" type="submit" id="settings-calendar-submit">Add Event</button></div>
+          </form>
+          <div class="settings-editor-list" id="settings-calendar-list"><div class="loading-state"><div class="spinner"></div><span>Loading calendar...</span></div></div>
+        </section>
+
+        <section class="settings-hub-section settings-panel" id="attendance-settings">
+          <h2>Attendance &amp; overtime</h2><p>Set the hourly rate used for approved overtime across this company.</p>
+          <form class="settings-editor-form" id="settings-overtime-form">
+            <div class="form-group"><label class="form-label required" for="settings-overtime-rate">Hourly overtime rate</label><input id="settings-overtime-rate" type="number" min="0" step="0.01" class="form-control" required placeholder="0.00"></div>
+            <div class="settings-editor-actions"><button class="btn btn-primary" type="submit">Save Overtime Rate</button></div>
+          </form>
+        </section>
+
+        <section class="settings-hub-section settings-panel" id="announcement-settings">
+          <h2>Announcements</h2><p>Publish company-wide updates and control whether important notices stay pinned.</p>
+          <form class="settings-editor-form" id="settings-announcement-form">
+            <input type="hidden" id="settings-announcement-id">
+            <div class="form-group span-2"><label class="form-label required" for="settings-announcement-title">Title</label><input id="settings-announcement-title" class="form-control" maxlength="160" required placeholder="Announcement title"></div>
+            <div class="form-group span-2"><label class="form-label required" for="settings-announcement-body">Message</label><textarea id="settings-announcement-body" class="form-control" rows="4" required placeholder="What should staff know?"></textarea></div>
+            <label class="span-2" style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:.82rem;font-weight:700"><input id="settings-announcement-pinned" type="checkbox"> Pin this announcement</label>
+            <div class="settings-editor-actions span-2"><button class="btn btn-outline hidden" type="button" id="settings-announcement-cancel">Cancel</button><button class="btn btn-primary" type="submit" id="settings-announcement-submit">Publish Announcement</button></div>
+          </form>
+          <div class="settings-editor-list" id="settings-announcement-list"><div class="loading-state"><div class="spinner"></div><span>Loading announcements...</span></div></div>
+        </section>
+
+        <section class="settings-hub-section settings-panel" id="audit-settings">
+          <h2>Audit &amp; history</h2><p>Review the latest changes made to this company workspace without leaving Settings.</p>
+          <div id="settings-audit-list"><div class="loading-state"><div class="spinner"></div><span>Loading audit history...</span></div></div>
         </section>
 
         <article class="card billing-card settings-panel" id="billing">
@@ -466,16 +526,16 @@
       buildSidebar("settings");
       loadNotifCount();
       let profile = user;
+      let settingsDepartments = [];
+      let settingsDirectory = [];
+      let settingsCalendarEvents = [];
+      let settingsAnnouncements = [];
       expandCompanyOptions('company-timezone', ['UTC', 'Africa/Accra', 'Africa/Lagos', 'Africa/Nairobi', 'America/New_York', 'America/Los_Angeles', 'America/Toronto', 'Europe/London', 'Europe/Paris', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Australia/Sydney']);
       expandCompanyOptions('company-currency', ['USD', 'EUR', 'GBP', 'GHS', 'CAD', 'AUD', 'NGN', 'KES', 'ZAR', 'AED', 'INR', 'SGD']);
       loadSettings();
       loadBranding();
       loadCompanyProfile();
-      function openSettingsPage(page) {
-        const destination = adminWorkspaceUrl(page);
-        if (window.top !== window.self) window.top.location.assign(destination);
-        else window.location.assign(destination);
-      }
+      bindSettingsEditors();
       function showSettingsPanel(panelId, updateHash = true) {
         const panel = document.getElementById(panelId);
         if (!panel) return;
@@ -484,6 +544,7 @@
         const activeLink = document.querySelector(`.settings-section-nav a[data-panel="${panelId}"]`);
         if (activeLink) openSettingsNavGroup(activeLink.closest('.settings-nav-group'));
         panel.classList.add('is-active');
+        loadEmbeddedSettingsPanel(panelId);
         if (updateHash && window.location.hash !== `#${panelId}`) window.history.replaceState(null, '', `#${panelId}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -526,6 +587,212 @@
         );
         if (checkoutPlan) await startCheckout(checkoutPlan);
       })();
+
+      function bindSettingsEditors() {
+        document.getElementById('department-settings-form').addEventListener('submit', saveSettingsDepartment);
+        document.getElementById('settings-department-cancel').addEventListener('click', resetSettingsDepartmentForm);
+        document.getElementById('calendar-settings-form').addEventListener('submit', saveSettingsCalendarEvent);
+        document.getElementById('settings-calendar-cancel').addEventListener('click', resetSettingsCalendarForm);
+        document.getElementById('settings-overtime-form').addEventListener('submit', saveSettingsOvertime);
+        document.getElementById('settings-announcement-form').addEventListener('submit', saveSettingsAnnouncement);
+        document.getElementById('settings-announcement-cancel').addEventListener('click', resetSettingsAnnouncementForm);
+      }
+
+      function loadEmbeddedSettingsPanel(panelId) {
+        if (panelId === 'department-settings') loadSettingsDepartments();
+        if (panelId === 'calendar-settings') loadSettingsCalendar();
+        if (panelId === 'attendance-settings') loadSettingsOvertime();
+        if (panelId === 'announcement-settings') loadSettingsAnnouncements();
+        if (panelId === 'audit-settings') loadSettingsAudit();
+      }
+
+      function settingsEscape(value) { return escapeUi(String(value ?? '')); }
+      function settingsDate(value) { return value ? fmt.date(value) : 'No date'; }
+
+      async function loadSettingsDepartments() {
+        const list = document.getElementById('settings-department-list');
+        try {
+          const [departments, directory] = await Promise.all([api.get('/employees/departments'), api.get('/employees/directory')]);
+          settingsDepartments = departments;
+          settingsDirectory = directory;
+          populateSettingsDepartmentManagers();
+          renderSettingsDepartments();
+        } catch (error) {
+          list.innerHTML = `<div class="suite-empty">${settingsEscape(error.message || 'Could not load departments')}</div>`;
+        }
+      }
+
+      function populateSettingsDepartmentManagers(selected = '') {
+        const select = document.getElementById('settings-department-manager');
+        select.innerHTML = `<option value="">No manager assigned</option>${settingsDirectory.map((employee) => `<option value="${employee.id}" ${String(employee.id) === String(selected) ? 'selected' : ''}>${settingsEscape(`${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email)}</option>`).join('')}`;
+      }
+
+      function renderSettingsDepartments() {
+        const list = document.getElementById('settings-department-list');
+        if (!settingsDepartments.length) { list.innerHTML = '<div class="suite-empty">No departments have been created yet.</div>'; return; }
+        list.innerHTML = settingsDepartments.map((department) => `<div class="settings-editor-row"><div><strong>${settingsEscape(department.name)}</strong><span>${settingsEscape(department.manager_name || 'No manager assigned')} · ${Number(department.employee_count || 0)} staff member${Number(department.employee_count || 0) === 1 ? '' : 's'}</span></div><div class="settings-editor-row-actions"><button class="btn btn-outline btn-sm" type="button" onclick="editSettingsDepartment(${Number(department.id)})">Edit</button><button class="btn btn-danger btn-sm" type="button" onclick="removeSettingsDepartment(${Number(department.id)})">Delete</button></div></div>`).join('');
+      }
+
+      function resetSettingsDepartmentForm() {
+        document.getElementById('department-settings-form').reset();
+        document.getElementById('settings-department-id').value = '';
+        populateSettingsDepartmentManagers();
+        document.getElementById('settings-department-submit').textContent = 'Add Department';
+        document.getElementById('settings-department-cancel').classList.add('hidden');
+      }
+
+      function editSettingsDepartment(id) {
+        const department = settingsDepartments.find((item) => Number(item.id) === Number(id));
+        if (!department) return;
+        document.getElementById('settings-department-id').value = department.id;
+        document.getElementById('settings-department-name').value = department.name || '';
+        populateSettingsDepartmentManagers(department.manager_id || '');
+        document.getElementById('settings-department-submit').textContent = 'Save Department';
+        document.getElementById('settings-department-cancel').classList.remove('hidden');
+        document.getElementById('settings-department-name').focus();
+      }
+
+      async function saveSettingsDepartment(event) {
+        event.preventDefault();
+        const id = document.getElementById('settings-department-id').value;
+        const payload = { name: document.getElementById('settings-department-name').value.trim(), manager_id: document.getElementById('settings-department-manager').value || null };
+        try {
+          if (id) await api.put(`/employees/departments/${id}`, payload);
+          else await api.post('/employees/departments', payload);
+          toast(id ? 'Department updated' : 'Department added', 'success');
+          resetSettingsDepartmentForm();
+          await loadSettingsDepartments();
+        } catch (error) { toast(error.message || 'Could not save department', 'error'); }
+      }
+
+      async function removeSettingsDepartment(id) {
+        const department = settingsDepartments.find((item) => Number(item.id) === Number(id));
+        if (!department || !window.confirm(`Delete ${department.name}? Staff assigned to it will become unassigned.`)) return;
+        try { await api.delete(`/employees/departments/${id}`); toast('Department deleted', 'success'); await loadSettingsDepartments(); }
+        catch (error) { toast(error.message || 'Could not delete department', 'error'); }
+      }
+
+      async function loadSettingsCalendar() {
+        const list = document.getElementById('settings-calendar-list');
+        const year = new Date().getFullYear();
+        try {
+          settingsCalendarEvents = await api.get(`/company-calendar?from=${year}-01-01&to=${year + 1}-12-31`);
+          renderSettingsCalendar();
+        } catch (error) { list.innerHTML = `<div class="suite-empty">${settingsEscape(error.message || 'Could not load calendar')}</div>`; }
+      }
+
+      function renderSettingsCalendar() {
+        const list = document.getElementById('settings-calendar-list');
+        if (!settingsCalendarEvents.length) { list.innerHTML = '<div class="suite-empty">No company events have been created yet.</div>'; return; }
+        list.innerHTML = settingsCalendarEvents.map((item) => `<div class="settings-editor-row"><div><strong>${settingsEscape(item.title)}</strong><span>${settingsEscape(item.category)} · ${settingsDate(item.start_date)}${String(item.end_date || '') !== String(item.start_date || '') ? ` to ${settingsDate(item.end_date)}` : ''}</span></div><div class="settings-editor-row-actions"><button class="btn btn-outline btn-sm" type="button" onclick="editSettingsCalendarEvent(${Number(item.id)})">Edit</button><button class="btn btn-danger btn-sm" type="button" onclick="removeSettingsCalendarEvent(${Number(item.id)})">Delete</button></div></div>`).join('');
+      }
+
+      function resetSettingsCalendarForm() {
+        document.getElementById('calendar-settings-form').reset();
+        document.getElementById('settings-calendar-id').value = '';
+        document.getElementById('settings-calendar-submit').textContent = 'Add Event';
+        document.getElementById('settings-calendar-cancel').classList.add('hidden');
+      }
+
+      function editSettingsCalendarEvent(id) {
+        const item = settingsCalendarEvents.find((event) => Number(event.id) === Number(id));
+        if (!item) return;
+        document.getElementById('settings-calendar-id').value = item.id;
+        document.getElementById('settings-calendar-title').value = item.title || '';
+        document.getElementById('settings-calendar-category').value = item.category || 'event';
+        document.getElementById('settings-calendar-start').value = String(item.start_date || '').slice(0, 10);
+        document.getElementById('settings-calendar-end').value = String(item.end_date || item.start_date || '').slice(0, 10);
+        document.getElementById('settings-calendar-description').value = item.description || '';
+        document.getElementById('settings-calendar-submit').textContent = 'Save Event';
+        document.getElementById('settings-calendar-cancel').classList.remove('hidden');
+      }
+
+      async function saveSettingsCalendarEvent(event) {
+        event.preventDefault();
+        const id = document.getElementById('settings-calendar-id').value;
+        const payload = { title: document.getElementById('settings-calendar-title').value.trim(), category: document.getElementById('settings-calendar-category').value, start_date: document.getElementById('settings-calendar-start').value, end_date: document.getElementById('settings-calendar-end').value, description: document.getElementById('settings-calendar-description').value.trim() };
+        try {
+          if (id) await api.patch(`/company-calendar/${id}`, payload);
+          else await api.post('/company-calendar', payload);
+          toast(id ? 'Calendar event updated' : 'Calendar event added', 'success'); resetSettingsCalendarForm(); await loadSettingsCalendar();
+        } catch (error) { toast(error.message || 'Could not save calendar event', 'error'); }
+      }
+
+      async function removeSettingsCalendarEvent(id) {
+        if (!window.confirm('Delete this company calendar event?')) return;
+        try { await api.delete(`/company-calendar/${id}`); toast('Calendar event deleted', 'success'); await loadSettingsCalendar(); }
+        catch (error) { toast(error.message || 'Could not delete calendar event', 'error'); }
+      }
+
+      async function loadSettingsOvertime() {
+        try {
+          const settings = await api.get('/attendance/overtime/settings');
+          document.getElementById('settings-overtime-rate').value = Number(settings.hourly_rate || 0);
+        } catch (error) { toast(error.message || 'Could not load overtime settings', 'error'); }
+      }
+
+      async function saveSettingsOvertime(event) {
+        event.preventDefault();
+        const hourlyRate = Number(document.getElementById('settings-overtime-rate').value);
+        try { await api.put('/attendance/overtime/settings', { hourly_rate: hourlyRate }); toast('Overtime rate saved', 'success'); }
+        catch (error) { toast(error.message || 'Could not save overtime rate', 'error'); }
+      }
+
+      async function loadSettingsAnnouncements() {
+        const list = document.getElementById('settings-announcement-list');
+        try { settingsAnnouncements = await api.get('/notifications/announcements'); renderSettingsAnnouncements(); }
+        catch (error) { list.innerHTML = `<div class="suite-empty">${settingsEscape(error.message || 'Could not load announcements')}</div>`; }
+      }
+
+      function renderSettingsAnnouncements() {
+        const list = document.getElementById('settings-announcement-list');
+        if (!settingsAnnouncements.length) { list.innerHTML = '<div class="suite-empty">No announcements have been published yet.</div>'; return; }
+        list.innerHTML = settingsAnnouncements.map((item) => `<div class="settings-editor-row"><div><strong>${settingsEscape(item.title)}${item.is_pinned ? ' · Pinned' : ''}</strong><span>${settingsEscape(item.author_name || 'HR')} · ${settingsDate(item.created_at)}</span></div><div class="settings-editor-row-actions"><button class="btn btn-outline btn-sm" type="button" onclick="editSettingsAnnouncement(${Number(item.id)})">Edit</button><button class="btn btn-danger btn-sm" type="button" onclick="removeSettingsAnnouncement(${Number(item.id)})">Delete</button></div></div>`).join('');
+      }
+
+      function resetSettingsAnnouncementForm() {
+        document.getElementById('settings-announcement-form').reset();
+        document.getElementById('settings-announcement-id').value = '';
+        document.getElementById('settings-announcement-submit').textContent = 'Publish Announcement';
+        document.getElementById('settings-announcement-cancel').classList.add('hidden');
+      }
+
+      function editSettingsAnnouncement(id) {
+        const item = settingsAnnouncements.find((announcement) => Number(announcement.id) === Number(id));
+        if (!item) return;
+        document.getElementById('settings-announcement-id').value = item.id;
+        document.getElementById('settings-announcement-title').value = item.title || '';
+        document.getElementById('settings-announcement-body').value = item.body || '';
+        document.getElementById('settings-announcement-pinned').checked = !!item.is_pinned;
+        document.getElementById('settings-announcement-submit').textContent = 'Save Announcement';
+        document.getElementById('settings-announcement-cancel').classList.remove('hidden');
+      }
+
+      async function saveSettingsAnnouncement(event) {
+        event.preventDefault();
+        const id = document.getElementById('settings-announcement-id').value;
+        const payload = { title: document.getElementById('settings-announcement-title').value.trim(), body: document.getElementById('settings-announcement-body').value.trim(), is_pinned: document.getElementById('settings-announcement-pinned').checked };
+        try {
+          if (id) await api.put(`/notifications/announcements/${id}`, payload);
+          else await api.post('/notifications/announce', payload);
+          toast(id ? 'Announcement updated' : 'Announcement published', 'success'); resetSettingsAnnouncementForm(); await loadSettingsAnnouncements();
+        } catch (error) { toast(error.message || 'Could not save announcement', 'error'); }
+      }
+
+      async function removeSettingsAnnouncement(id) {
+        if (!window.confirm('Delete this announcement?')) return;
+        try { await api.delete(`/notifications/announcements/${id}`); toast('Announcement deleted', 'success'); await loadSettingsAnnouncements(); }
+        catch (error) { toast(error.message || 'Could not delete announcement', 'error'); }
+      }
+
+      async function loadSettingsAudit() {
+        const target = document.getElementById('settings-audit-list');
+        try {
+          const rows = await api.get('/audit');
+          if (!rows.length) { target.innerHTML = '<div class="suite-empty">No audit history is available yet.</div>'; return; }
+          target.innerHTML = `<table class="settings-audit-table"><thead><tr><th>When</th><th>Action</th><th>By</th></tr></thead><tbody>${rows.slice(0, 50).map((row) => `<tr><td>${settingsEscape(settingsDate(row.created_at))}</td><td>${settingsEscape(row.action || row.entity_type || 'Workspace update')}</td><td>${settingsEscape(row.actor_name || 'System')}</td></tr>`).join('')}</tbody></table>`;
+        } catch (error) { target.innerHTML = `<div class="suite-empty">${settingsEscape(error.message || 'Could not load audit history')}</div>`; }
+      }
 
       async function loadSettings() {
         profile = await api.get("/auth/me");
