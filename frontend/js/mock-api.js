@@ -727,27 +727,6 @@
       return departments(db).find((d) => d.id === row.id);
     }
 
-    const departmentUpdateMatch = route.match(/^\/employees\/departments\/(\d+)$/);
-    if (departmentUpdateMatch && method === 'PUT') {
-      requireRole(user, ['admin']);
-      const id = Number(departmentUpdateMatch[1]);
-      const name = String(body?.name || '').trim();
-      const managerId = body?.manager_id ? Number(body.manager_id) : null;
-      if (!name) throw new Error('Department name is required');
-      if (db.departments.some((d) => d.id !== id && d.name.toLowerCase() === name.toLowerCase())) {
-        throw new Error('Department already exists');
-      }
-      if (managerId && !db.employees.some((e) => e.id === managerId && e.is_active)) {
-        throw new Error('Choose an active employee in your company');
-      }
-      const department = db.departments.find((d) => d.id === id);
-      if (!department) throw new Error('Department not found');
-      department.name = name;
-      department.manager_id = managerId;
-      saveDb(db);
-      return departments(db).find((d) => d.id === id);
-    }
-
     const departmentDeleteMatch = route.match(/^\/employees\/departments\/(\d+)$/);
     if (departmentDeleteMatch && method === 'DELETE') {
       requireRole(user, ['admin']);
