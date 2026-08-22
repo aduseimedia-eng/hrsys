@@ -267,6 +267,26 @@ test('avatar upload stores image bytes in the database', async () => {
   assert.equal(calls[0].params[2], 'image/png');
 });
 
+test('department manager updates are scoped to an active employee in the same company', async () => {
+  const calls = mockQueries([
+    { rows: [{ id: 12 }] },
+    { rows: [] },
+    { rows: [{ id: 4, name: 'Operations', manager_id: 12 }] }
+  ]);
+  const res = response();
+
+  await employeeController.updateDepartment({
+    params: { id: '4' },
+    body: { name: 'Operations', manager_id: '12' },
+    user: { company_id: 3 }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.manager_id, 12);
+  assert.match(calls[0].text, /FROM employees WHERE id=\$1 AND company_id=\$2 AND is_active=true/i);
+  assert.deepEqual(calls[2].params, ['Operations', 12, 4, 3]);
+});
+
 test('document upload saves the supplied document title', async () => {
   const calls = mockQueries([{ rows: [{ id: 3, title: 'Signed employment contract' }] }]);
   const res = response();
