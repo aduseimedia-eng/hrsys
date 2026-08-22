@@ -36,10 +36,10 @@
       display: inline-flex;
       gap: 6px;
       padding: 5px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-surface);
-      box-shadow: var(--shadow-sm);
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
     }
     .ann-filter {
       min-height: 34px;
@@ -55,9 +55,12 @@
       background: var(--navy-800);
       color: #fff;
     }
+    .announcement-history-panel { border:0; border-radius:0; background:transparent; box-shadow:none; }
+    .announcement-history-panel .suite-panel-header,
+    .announcement-history-panel .suite-panel-body { padding-left:0; padding-right:0; }
     .ann-feed { display:grid; gap:10px; }
-    .ann-card { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:16px; align-items:start; padding:16px; border:1px solid var(--border); border-radius:10px; background:#fff; transition:border-color var(--duration), box-shadow var(--duration); }
-    .ann-card:hover { border-color:var(--navy-200); box-shadow:var(--shadow-sm); }
+    .ann-card { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:16px; align-items:start; padding:16px 0; border:0; border-bottom:1px solid var(--border); border-radius:0; background:transparent; transition:none; }
+    .ann-card:hover { border-color:var(--border); box-shadow:none; }
     .ann-card.is-pinned { border-left:4px solid var(--navy-700); padding-left:13px; }
     /* Keep the composer light: it should not be presented as a boxed card. */
     .announcement-modal {
@@ -153,7 +156,7 @@
 
     <section class="suite-kpis" id="announcement-kpis"></section>
 
-    <article class="suite-panel">
+    <article class="suite-panel announcement-history-panel">
       <div class="suite-panel-header">
         <div>
           <h3>Announcement History</h3>
