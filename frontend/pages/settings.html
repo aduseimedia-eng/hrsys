@@ -140,16 +140,46 @@
       .settings-link-card p { max-width:500px; }
       .settings-grid { max-width:none; }
       .billing-card { margin-top:0; }
+      /* Settings navigator inspired by the reference application's compact,
+         searchable category browser, using the KenadHR design system. */
+      .settings-page-row { display:grid; grid-template-columns:220px minmax(0,820px); gap:28px; max-width:1100px; margin-bottom:16px; align-items:center; }
+      .settings-page-row .page-header { margin:0; }
+      .settings-company-context { display:flex; align-items:flex-start; gap:10px; padding:11px 14px; border:1px solid color-mix(in srgb, var(--navy-700) 35%, white); border-radius:8px; background:var(--navy-50); color:var(--navy-800); font-size:.8rem; line-height:1.45; }
+      .settings-company-context strong { display:block; font-size:.82rem; }
+      .settings-company-context svg { flex:0 0 auto; margin-top:2px; }
+      .settings-hub { grid-template-columns:220px minmax(0,1fr); gap:28px; min-height:0; overflow:visible; border:0; border-radius:0; background:transparent; }
+      .settings-section-nav { padding:12px; border:1px solid #e7eaf0; border-radius:9px; background:#fff; box-shadow:0 3px 12px rgba(20,31,52,.05); }
+      .settings-section-nav h3 { margin:2px 3px 12px; font-size:1rem; }
+      .settings-search-wrap { position:relative; margin:0 0 12px; }
+      .settings-search-wrap svg { position:absolute; top:50%; left:10px; width:14px; height:14px; color:var(--text-muted); transform:translateY(-50%); pointer-events:none; }
+      .settings-search-wrap input { min-height:34px; padding:0 10px 0 31px; border-color:#e3e7ee; border-radius:6px; background:#fafbfc; font-size:.78rem; }
+      .settings-nav-group { padding:0; border:1px solid color-mix(in srgb, var(--navy-700) 28%, white); border-radius:7px; overflow:hidden; }
+      .settings-nav-group + .settings-nav-group { margin-top:8px; }
+      .settings-nav-group > span { display:none; }
+      .settings-nav-trigger { width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 9px; border:0; background:var(--navy-50); color:var(--navy-800); font-size:.8rem; font-weight:750; text-align:left; cursor:pointer; }
+      .settings-nav-trigger svg { width:15px; height:15px; transition:transform var(--duration); }
+      .settings-nav-group.is-open .settings-nav-trigger svg { transform:rotate(180deg); }
+      .settings-nav-items { display:none; padding:5px 6px 7px; background:#fff; }
+      .settings-nav-group.is-open .settings-nav-items { display:block; }
+      .settings-section-nav a { min-height:31px; padding:0 7px; border-radius:5px; color:#555f70; font-size:.76rem; font-weight:550; }
+      .settings-section-nav a:hover { background:var(--navy-50); color:var(--navy-800); }
+      .settings-section-nav a.active { color:var(--navy-800); background:color-mix(in srgb, var(--navy-700) 13%, white); font-weight:750; }
+      .settings-nav-group.is-filtered { display:none; }
+      .settings-content { padding:0; border:1px solid #e7eaf0; border-radius:9px; background:#fff; box-shadow:0 3px 12px rgba(20,31,52,.05); overflow:hidden; }
+      .settings-content .card-header { padding:19px 22px 14px; background:#fff; }
+      .settings-content .card-body { padding:20px 22px 24px; }
+      .settings-hub-section { max-width:none; padding:20px 22px 24px; }
+      .settings-hub-section > p { padding-bottom:15px; border-bottom:1px solid #e8ebf0; }
+      .settings-link-card { padding:16px 0; }
       @media (max-width: 700px) {
         .billing-plans {
           grid-template-columns: 1fr;
         }
       }
       @media (max-width: 900px) {
+        .settings-page-row { grid-template-columns:1fr; gap:8px; }
         .settings-hub { grid-template-columns:1fr; gap:0; }
-        .settings-section-nav { position:static; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-right:0; border-bottom:1px solid #e5e7eb; }
-        .settings-section-nav h3 { grid-column:1/-1; }
-        .settings-nav-group { border-top:0; }
+        .settings-section-nav { position:static; display:block; margin-bottom:16px; }
         .settings-content { padding:24px; }
         .settings-grid {
           grid-template-columns: 1fr;
@@ -184,19 +214,27 @@
         </div>
       </header>
       <main class="main-content">
-        <div class="page-header">
-          <div>
-            <h1>Settings</h1>
-            <p>Manage your company, people operations, access, and app preferences.</p>
+        <div class="settings-page-row">
+          <div class="page-header">
+            <div>
+              <h1>Settings</h1>
+              <p>Manage your company, people operations, access, and app preferences.</p>
+            </div>
+          </div>
+          <div class="settings-company-context">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 10v6m0-9h.01"/></svg>
+            <div><strong>Company settings</strong><span>Changes apply across this company workspace.</span></div>
           </div>
         </div>
 
         <div class="settings-hub">
           <nav class="settings-section-nav" aria-label="Settings sections">
             <h3>Settings</h3>
-            <div class="settings-nav-group"><span>Workspace</span><a class="active" href="#company-profile" data-panel="company-profile">Company profile</a><a href="#company-branding" data-panel="company-branding">Branding</a><a href="#company-calendar" data-panel="company-calendar">Calendar</a></div>
-            <div class="settings-nav-group"><span>People</span><a href="#people-organisation" data-panel="people-organisation">People &amp; organisation</a><a href="#hr-policies" data-panel="hr-policies">HR policies</a></div>
-            <div class="settings-nav-group"><span>Security &amp; billing</span><a href="#access-security" data-panel="access-security">Access &amp; security</a><a href="#account-security" data-panel="account-security">My account</a><a href="#communication" data-panel="communication">Communication</a><a href="#app-preferences" data-panel="app-preferences">App preferences</a><a href="#billing" data-panel="billing">Billing</a></div>
+            <div class="settings-search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="settings-nav-search" class="form-control" type="search" placeholder="Search settings" autocomplete="off" aria-label="Search settings"></div>
+            <div class="settings-nav-group is-open"><button class="settings-nav-trigger" type="button" aria-expanded="true">General<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a class="active" href="#company-profile" data-panel="company-profile">System preferences</a><a href="#account-security" data-panel="account-security">My account</a><a href="#access-security" data-panel="access-security">Access &amp; security</a></div></div>
+            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Organisation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#people-organisation" data-panel="people-organisation">People &amp; organisation</a><a href="#company-calendar" data-panel="company-calendar">Calendar &amp; events</a><a href="#company-branding" data-panel="company-branding">Company branding</a></div></div>
+            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workforce<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#hr-policies" data-panel="hr-policies">HR policies</a><a href="#communication" data-panel="communication">Communication</a></div></div>
+            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workspace<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#app-preferences" data-panel="app-preferences">App preferences</a><a href="#billing" data-panel="billing">Billing &amp; plans</a></div></div>
           </nav>
           <div class="settings-content">
             <div class="settings-overview" aria-label="Settings overview">
@@ -443,10 +481,36 @@
         if (!panel) return;
         document.querySelectorAll('.settings-panel').forEach((item) => item.classList.remove('is-active'));
         document.querySelectorAll('.settings-section-nav a').forEach((item) => item.classList.toggle('active', item.dataset.panel === panelId));
+        const activeLink = document.querySelector(`.settings-section-nav a[data-panel="${panelId}"]`);
+        if (activeLink) openSettingsNavGroup(activeLink.closest('.settings-nav-group'));
         panel.classList.add('is-active');
         if (updateHash && window.location.hash !== `#${panelId}`) window.history.replaceState(null, '', `#${panelId}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      function setSettingsNavGroup(group, open) {
+        if (!group) return;
+        group.classList.toggle('is-open', open);
+        const trigger = group.querySelector('.settings-nav-trigger');
+        if (trigger) trigger.setAttribute('aria-expanded', String(open));
+      }
+      function openSettingsNavGroup(group) {
+        document.querySelectorAll('.settings-nav-group').forEach((item) => setSettingsNavGroup(item, item === group));
+      }
+      document.querySelectorAll('.settings-nav-trigger').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+          const group = trigger.closest('.settings-nav-group');
+          const shouldOpen = !group.classList.contains('is-open');
+          document.querySelectorAll('.settings-nav-group').forEach((item) => setSettingsNavGroup(item, item === group && shouldOpen));
+        });
+      });
+      document.getElementById('settings-nav-search').addEventListener('input', (event) => {
+        const term = event.target.value.trim().toLowerCase();
+        document.querySelectorAll('.settings-nav-group').forEach((group) => {
+          const matches = [...group.querySelectorAll('a[data-panel]')].some((link) => link.textContent.toLowerCase().includes(term));
+          group.classList.toggle('is-filtered', !!term && !matches);
+          if (term && matches) setSettingsNavGroup(group, true);
+        });
+      });
       document.querySelectorAll('.settings-section-nav a[data-panel]').forEach((link) => {
         link.addEventListener('click', (event) => {
           event.preventDefault();
