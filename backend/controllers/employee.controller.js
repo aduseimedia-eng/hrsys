@@ -810,10 +810,22 @@ exports.updateDepartment = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const name = String(req.body.name || "").trim();
+    const managerId = req.body.manager_id ? parseInt(req.body.manager_id, 10) : null;
     if (!Number.isInteger(id))
       return res.status(400).json({ error: "Invalid department id" });
     if (!name)
       return res.status(400).json({ error: "Department name is required" });
+    if (req.body.manager_id && !Number.isInteger(managerId))
+      return res.status(400).json({ error: "Invalid department manager" });
+
+    if (managerId) {
+      const manager = await db.query(
+        "SELECT id FROM employees WHERE id=$1 AND company_id=$2 AND is_active=true",
+        [managerId, req.user.company_id],
+      );
+      if (!manager.rows.length)
+        return res.status(400).json({ error: "Choose an active employee in your company" });
+    }
 
     const existing = await db.query(
       "SELECT id FROM departments WHERE company_id=$1 AND LOWER(name)=LOWER($2) AND id<>$3",
@@ -823,8 +835,8 @@ exports.updateDepartment = async (req, res) => {
       return res.status(409).json({ error: "Department already exists" });
 
     const { rows } = await db.query(
-      "UPDATE departments SET name=$1 WHERE id=$2 AND company_id=$3 RETURNING *",
-      [name, id, req.user.company_id],
+      "UPDATE departments SET name=$1, manager_id=$2 WHERE id=$3 AND company_id=$4 RETURNING *",
+      [name, managerId, id, req.user.company_id],
     );
     if (!rows.length)
       return res.status(404).json({ error: "Department not found" });
