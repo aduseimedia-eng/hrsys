@@ -328,6 +328,11 @@
         font-size: .66rem;
         font-weight: 750;
       }
+      .expense-header-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
       .finance-panel-body { padding: 18px; }
       .expense-layout {
         min-height: 264px;
@@ -908,7 +913,10 @@
                   <h2>Expense mix</h2>
                   <p>Where paid business spending went</p>
                 </div>
-                <span class="panel-chip" id="expensePeriod">Selected period</span>
+                <div class="expense-header-tools">
+                  <button class="btn btn-outline btn-sm" id="expenseMixExport" type="button" onclick="exportExpenseMix()" disabled>Export CSV</button>
+                  <span class="panel-chip" id="expensePeriod">Selected period</span>
+                </div>
               </header>
               <div class="finance-panel-body expense-layout">
                 <div class="expense-chart-shell is-empty" id="expenseChartShell">
@@ -1413,6 +1421,7 @@
       let recentActivityPage = 0;
       let activeLoad = 0;
       let activeCashflowLoad = 0;
+      let expenseMixExport = null;
       let transactionMode = "transaction";
       let transactionReturnFocus = null;
       let loanReturnFocus = null;
@@ -1563,6 +1572,11 @@
         document.getElementById("expenseRingCaption").textContent = entries.length
           ? `${entries.length} ${entries.length === 1 ? "category" : "categories"}`
           : "Total spent";
+        const exportButton = document.getElementById("expenseMixExport");
+        expenseMixExport = entries.length && total
+          ? { entries, total, periodText }
+          : null;
+        exportButton.disabled = !expenseMixExport;
         if (!entries.length || !total) {
           destroyFinanceChart(host);
           shell.classList.add("is-empty");
@@ -1662,6 +1676,32 @@
           return;
         }
         host.setAttribute("aria-label", ariaLabel);
+      }
+      function exportExpenseMix() {
+        if (!expenseMixExport) {
+          toast("No expense mix data to export", "warning");
+          return;
+        }
+        const { entries, total, periodText } = expenseMixExport;
+        const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+        const lines = [
+          ["Period", "Category", "Amount", "Percentage", "Color"].map(csvCell).join(","),
+          ...entries.map((entry) => [
+            periodText,
+            categoryLabel(entry.category),
+            entry.amount.toFixed(2),
+            ((entry.amount / total) * 100).toFixed(2) + "%",
+            entry.color,
+          ].map(csvCell).join(",")),
+        ];
+        const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `expense-mix-${periodText.toLowerCase().replace(/\s+/g, "-")}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast("Expense mix CSV downloaded", "success");
       }
       function cashflowSelection() {
         const match = /^(\d{4})-(\d{2})$/.exec(cashflowPeriod.value || "");
