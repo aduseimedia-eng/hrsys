@@ -1132,15 +1132,15 @@
               </div>
             </div>
             <div class="form-grid transaction-form-grid">
-              <div class="form-group">
+              <div class="form-group" id="transactionTypeGroup">
                 <label class="form-label required" for="type">Type</label
                 ><select id="type" class="form-control form-select" required>
                   <option value="expense">Expense</option>
                   <option value="income">Income</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label class="form-label required" for="category">Category</label
+              <div class="form-group" id="transactionCategoryGroup">
+                <label class="form-label required" id="categoryFieldLabel" for="category">Category</label
                 ><select id="category" class="form-control form-select" required></select>
               </div>
               <div class="form-group">
@@ -1181,7 +1181,7 @@
             </div>
             <div class="form-grid transaction-form-grid">
               <div class="form-group">
-                <label class="form-label" for="party">Payee / income source</label
+                <label class="form-label" id="partyLabel" for="party">Payee / income source</label
                 ><input id="party" class="form-control" placeholder="Name or organization" />
               </div>
               <div class="form-group">
@@ -1194,7 +1194,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label" for="reference">Receipt, invoice or voucher no.</label
+                <label class="form-label" id="referenceLabel" for="reference">Receipt, invoice or voucher no.</label
                 ><input id="reference" class="form-control" placeholder="Optional reference" />
               </div>
               <div class="form-group">
@@ -1448,6 +1448,20 @@
       document.getElementById("category").innerHTML = Object.entries(labels)
         .map(([v, x]) => `<option value="${v}">${x}</option>`)
         .join("");
+      const allCategoryOptions = document.getElementById("category").innerHTML;
+      function setIncomeFormMode(isIncomeOnly) {
+        document.getElementById("transactionTypeGroup").hidden = isIncomeOnly;
+        document.getElementById("transactionCategoryGroup").hidden = isIncomeOnly;
+        document.getElementById("partyLabel").textContent = isIncomeOnly
+          ? "Income source"
+          : "Payee / income source";
+        document.getElementById("referenceLabel").textContent = isIncomeOnly
+          ? "Receipt or reference no."
+          : "Receipt, invoice or voucher no.";
+        document.getElementById("category").innerHTML = isIncomeOnly
+          ? '<option value="cash_income">Cash income</option>'
+          : allCategoryOptions;
+      }
       function categoryLabel(value) {
         return (
           labels[value] ||
@@ -2136,6 +2150,7 @@
       function openTransaction(id) {
         transactionReturnFocus = document.activeElement;
         transactionMode = "transaction";
+        setIncomeFormMode(false);
         const r = id ? rows.find((x) => x.id === id) : null;
         const editableLegacyCategory = {
           quarterly_rent: "rent",
@@ -2208,7 +2223,8 @@
       function openCashIncome() {
         openTransaction();
         transactionMode = "cash_income";
-        document.getElementById("modalTitle").textContent = "Add cash income";
+        setIncomeFormMode(true);
+        document.getElementById("modalTitle").textContent = "Record income";
         document.getElementById("transactionModalSubtitle").textContent =
           "Record money received directly into the company cash ledger.";
         document.getElementById("type").value = "income";
