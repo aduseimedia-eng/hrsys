@@ -359,8 +359,8 @@
         font-weight: 650;
       }
       .category-legend {
-        max-height: 250px;
-        overflow: auto;
+        max-height: none;
+        overflow: visible;
         padding-right: 2px;
       }
       .category-row {
@@ -716,7 +716,7 @@
                   </div>
                   <div class="expense-ring-center">
                     <strong id="expenseRingTotal">—</strong>
-                    <span>Total spent</span>
+                    <span id="expenseRingCaption">Total spent</span>
                   </div>
                 </div>
                 <div class="category-legend" id="categoryLegend">
@@ -1089,18 +1089,21 @@
         ghana_water_bill: "Water bill",
       };
       const expenseColors = [
-        "#194a59",
-        "#3f927d",
-        "#73bca7",
-        "#d49a3a",
-        "#77a8b4",
-        "#a7d9ca",
-        "#5e7b84",
-        "#c18c42",
-        "#6f8f68",
-        "#8b7399",
-        "#b87557",
-        "#557f91",
+        "#174a5b",
+        "#2f8f72",
+        "#d59a32",
+        "#5a78b5",
+        "#a6658f",
+        "#cf6d55",
+        "#4aa1a8",
+        "#7b8d43",
+        "#8c6bb1",
+        "#d17c28",
+        "#59727a",
+        "#c45773",
+        "#3a6f8f",
+        "#6cab5b",
+        "#b88955",
       ];
       const m = [
           "January",
@@ -1270,6 +1273,9 @@
         const periodText = `${m[periodMonth - 1]} ${periodYear}`;
         document.getElementById("expensePeriod").textContent = periodText;
         document.getElementById("expenseRingTotal").textContent = fmt.currency(total);
+        document.getElementById("expenseRingCaption").textContent = entries.length
+          ? `${entries.length} ${entries.length === 1 ? "category" : "categories"}`
+          : "Total spent";
         if (!entries.length || !total) {
           destroyFinanceChart(host);
           shell.classList.add("is-empty");
@@ -1283,7 +1289,10 @@
         legend.innerHTML = entries
           .map((entry, index) => {
             const percentage = (entry.amount / total) * 100;
-            return `<div class="category-row"><span class="category-dot" style="background:${expenseColors[index % expenseColors.length]}"></span><div class="category-copy"><strong>${esc(categoryLabel(entry.category))}</strong><span>${percentage.toFixed(percentage >= 10 ? 0 : 1)}% of expenses</span></div><span class="category-value">${fmt.currency(entry.amount)}</span></div>`;
+            const percentageLabel = percentage > 0 && percentage < 0.1
+              ? "&lt;0.1%"
+              : `${percentage.toFixed(percentage >= 10 ? 0 : 1)}%`;
+            return `<div class="category-row"><span class="category-dot" style="background:${expenseColors[index % expenseColors.length]}"></span><div class="category-copy"><strong>${esc(categoryLabel(entry.category))}</strong><span>${percentageLabel} of expenses</span></div><span class="category-value">${fmt.currency(entry.amount)}</span></div>`;
           })
           .join("");
         if (!window.Chart) {
@@ -1311,6 +1320,7 @@
             easing: "easeOutQuart",
           },
           interaction: { intersect: false, mode: "nearest" },
+          layout: { padding: 3 },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -1325,7 +1335,10 @@
                     0,
                   );
                   const percentage = sum ? (value / sum) * 100 : 0;
-                  return `${context.label}: ${fmt.currency(value)} (${percentage.toFixed(percentage >= 10 ? 0 : 1)}%)`;
+                  const percentageLabel = percentage > 0 && percentage < 0.1
+                    ? "<0.1%"
+                    : `${percentage.toFixed(percentage >= 10 ? 0 : 1)}%`;
+                  return `${context.label}: ${fmt.currency(value)} (${percentageLabel})`;
                 },
               },
             },
@@ -1341,9 +1354,11 @@
               backgroundColor: entries.map(
                 (_, index) => expenseColors[index % expenseColors.length],
               ),
-              borderColor: "#fff",
-              borderWidth: 4,
-              hoverOffset: 10,
+              borderAlign: "inner",
+              borderColor: "#f9fbfb",
+              borderWidth: 1.5,
+              hoverBorderWidth: 1.5,
+              hoverOffset: 8,
             },
           ],
           options,

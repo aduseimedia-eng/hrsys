@@ -405,6 +405,38 @@ test('financial dashboard responses omit stored receipt bytes', async () => {
   transactionQueries.forEach(call => assert.doesNotMatch(call.text, /\breceipt_data\b/i));
 });
 
+test('financial summary keeps every paid expense category in the expense mix', async () => {
+  const calls = mockQueries([
+    { rows: [{ total: '0', paid_count: '0', record_count: '0' }] },
+    { rows: [
+      { transaction_type: 'income', category: 'cash_income', total: '4000.00' },
+      { transaction_type: 'expense', category: 'rent', total: '1200.00' },
+      { transaction_type: 'expense', category: 'utilities', total: '325.50' },
+      { transaction_type: 'expense', category: 'vehicle_fuel', total: '89.25' },
+      { transaction_type: 'expense', category: 'other', total: '10.00' }
+    ] },
+    { rows: [] },
+    { rows: [] },
+    { rows: [] }
+  ]);
+  const res = response();
+
+  await financialsController.getSummary({
+    query: { month: '8', year: '2026' },
+    user: { company_id: 3 }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.transactions.expense, 1624.75);
+  assert.deepEqual(res.body.transactions.by_category, {
+    rent: 1200,
+    utilities: 325.5,
+    vehicle_fuel: 89.25,
+    other: 10
+  });
+  assert.match(calls[1].text, /GROUP BY transaction_type, category/i);
+});
+
 test('monthly cash flow returns paid weekly totals for the selected period', async () => {
   const calls = mockQueries([{ rows: [
     { week_number: '1', transaction_type: 'income', total: '1500.25' },
