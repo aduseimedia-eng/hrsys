@@ -1593,6 +1593,10 @@
         shell.classList.remove("is-empty");
         const chartLabels = entries.map((entry) => categoryLabel(entry.category));
         const chartValues = entries.map((entry) => entry.amount);
+        // Keep the doughnut segments in sync with the category indicators.
+        // Chart.js applies these colors by data index, so each expense category
+        // retains its color even when the categories are sorted by amount.
+        const chartColors = entries.map((entry) => entry.color);
         const ariaLabel = `${fmt.currency(total)} in paid expenses across ${entries.length} categories for ${periodText}. ${entries
           .map((entry) => `${categoryLabel(entry.category)} ${fmt.currency(entry.amount)}`)
           .join("; ")}`;
@@ -1638,12 +1642,12 @@
           [
             {
               data: chartValues,
-              backgroundColor: entries.map((entry) => entry.color),
-              hoverBackgroundColor: entries.map((entry) => entry.color),
-              borderAlign: "inner",
-              borderColor: financeTheme.surface,
-              borderWidth: 1.5,
-              hoverBorderWidth: 1.5,
+              backgroundColor: chartColors,
+              hoverBackgroundColor: chartColors,
+              // Borders can fully cover tiny, but valid, expense slices.
+              // Keep them borderless so every category color remains visible.
+              borderWidth: 0,
+              hoverBorderWidth: 0,
               hoverOffset: 8,
             },
           ],
