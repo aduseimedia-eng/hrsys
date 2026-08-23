@@ -12,6 +12,7 @@ const documentsController = require('../controllers/documents.controller');
 const leaveController = require('../controllers/leave.controller');
 const attendanceController = require('../controllers/attendance.controller');
 const payrollController = require('../controllers/payroll.controller');
+const financialsController = require('../controllers/financials.controller');
 const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
 const messagesController = require('../controllers/messages.controller');
 const rbac = require('../middleware/rbac');
@@ -300,6 +301,52 @@ test('system preferences persist company defaults and formatting choices', async
   assert.equal(res.statusCode, 200);
   assert.match(calls[0].text, /announcement_expiry_days/i);
   assert.deepEqual(calls[0].params, [30, 25, 'PEP', '₵', 'prefix', 3]);
+});
+
+test('financial dashboard responses omit stored receipt bytes', async () => {
+  const calls = mockQueries([
+    { rows: [{ total: '0', paid_count: '0', record_count: '0' }] },
+    { rows: [] },
+    { rows: [] },
+    { rows: [] },
+    { rows: [] },
+    { rows: [] }
+  ]);
+
+  await financialsController.getSummary({
+    query: { month: '8', year: '2026' },
+    user: { company_id: 3 }
+  }, response());
+  await financialsController.listTransactions({
+    query: { month: '8', year: '2026' },
+    user: { company_id: 3 }
+  }, response());
+
+  const transactionQueries = calls.filter(call => /FROM financial_transactions/i.test(call.text));
+  assert.ok(transactionQueries.some(call => /receipt_name/i.test(call.text)));
+  transactionQueries.forEach(call => assert.doesNotMatch(call.text, /\breceipt_data\b/i));
+});
+
+test('financial transactions reject a blank amount', async () => {
+  const calls = mockQueries([]);
+  const res = response();
+
+  await financialsController.createTransaction({
+    body: {
+      transaction_type: 'expense',
+      category: 'utilities',
+      transaction_date: '2026-08-23',
+      title: 'Electricity bill',
+      amount: '',
+      payment_method: 'bank',
+      status: 'pending'
+    },
+    user: { id: 7, company_id: 3 }
+  }, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.match(res.body.error, /valid non-negative amount/i);
+  assert.equal(calls.length, 0);
 });
 
 test('document upload saves the supplied document title', async () => {
