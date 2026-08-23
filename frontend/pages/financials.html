@@ -319,32 +319,31 @@
         align-items: center;
         gap: 18px;
       }
-      .expense-ring {
-        --expense-gradient: conic-gradient(#e4edef 0 100%);
+      .expense-chart-shell {
         position: relative;
-        width: min(180px, 100%);
+        width: min(210px, 100%);
         aspect-ratio: 1;
         margin: auto;
-        display: grid;
-        place-items: center;
-        border-radius: 50%;
-        background: var(--expense-gradient);
-        box-shadow: inset 0 0 0 1px rgba(12, 43, 54, .04);
       }
-      .expense-ring::after {
-        content: '';
-        width: 61%;
-        aspect-ratio: 1;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow: 0 0 0 1px #edf2f3, 0 5px 15px rgba(12, 43, 54, .04);
+      .expense-live-chart {
+        position: absolute;
+        inset: 0;
+      }
+      .expense-live-chart canvas,
+      .cashflow-chart canvas {
+        width: 100% !important;
+        height: 100% !important;
       }
       .expense-ring-center {
         position: absolute;
+        inset: 50% auto auto 50%;
+        transform: translate(-50%, -50%);
         z-index: 1;
         max-width: 78%;
+        pointer-events: none;
         text-align: center;
       }
+      .expense-chart-shell.is-empty .expense-ring-center { display: none; }
       .expense-ring-center strong {
         display: block;
         font-size: clamp(.72rem, 1.1vw, 1rem);
@@ -420,59 +419,9 @@
       }
       .cashflow-legend span:last-child i { background: var(--amber-500); }
       .cashflow-chart {
+        position: relative;
+        height: 264px;
         min-height: 264px;
-        display: grid;
-        align-items: stretch;
-      }
-      .cashflow-groups {
-        min-height: 246px;
-        padding: 12px 8px 0;
-        display: grid;
-        grid-template-columns: repeat(var(--group-count, 5), minmax(46px, 1fr));
-        align-items: end;
-        gap: clamp(8px, 2vw, 24px);
-        background-image: repeating-linear-gradient(to top, #e7eef0 0, #e7eef0 1px, transparent 1px, transparent 25%);
-      }
-      .cashflow-group {
-        height: 246px;
-        min-width: 0;
-        display: grid;
-        grid-template-rows: minmax(0, 1fr) 28px;
-        align-items: end;
-      }
-      .cashflow-group:focus-visible {
-        outline: 3px solid rgba(63, 146, 125, .25);
-        outline-offset: 3px;
-        border-radius: 8px;
-      }
-      .cashflow-bar-pair {
-        height: 100%;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        gap: 6px;
-      }
-      .cashflow-bar {
-        width: min(24px, 38%);
-        height: var(--bar-height, 0%);
-        min-height: var(--bar-min-height, 0);
-        border-radius: 7px 7px 2px 2px;
-        background: linear-gradient(180deg, var(--mint-500), var(--navy-700));
-        box-shadow: 0 5px 11px rgba(25, 74, 89, .12);
-        transition: height .45s var(--ease), filter .18s var(--ease);
-      }
-      .cashflow-bar.expense {
-        background: linear-gradient(180deg, var(--amber-400), var(--amber-600));
-        box-shadow: 0 5px 11px rgba(168, 106, 31, .12);
-      }
-      .cashflow-bar:hover { filter: brightness(.93); }
-      .cashflow-label {
-        padding-top: 8px;
-        color: var(--text-muted);
-        font-size: .65rem;
-        font-weight: 700;
-        text-align: center;
-        white-space: nowrap;
       }
       .chart-empty,
       .category-empty {
@@ -619,15 +568,8 @@
         }
         .finance-tabs .tab-btn { white-space: normal; }
         .expense-layout { grid-template-columns: 1fr; }
-        .expense-ring { width: 160px; }
+        .expense-chart-shell { width: 180px; }
         .category-legend { width: 100%; }
-        .cashflow-groups {
-          grid-template-columns: repeat(var(--group-count, 5), minmax(0, 1fr));
-          gap: 5px;
-          padding-inline: 2px;
-        }
-        .cashflow-bar-pair { gap: 3px; }
-        .cashflow-bar { width: min(18px, 42%); }
         .activity-toolbar > .form-control { flex: 1 1 110px; width: auto; }
       }
     </style>
@@ -744,7 +686,10 @@
                 <span class="panel-chip" id="expensePeriod">Selected period</span>
               </header>
               <div class="finance-panel-body expense-layout">
-                <div class="expense-ring" id="expenseRing" role="img" aria-label="No expense data for this period">
+                <div class="expense-chart-shell is-empty" id="expenseChartShell">
+                  <div class="expense-live-chart" id="expenseChart" aria-label="Loading expense mix">
+                    <div class="chart-empty">Loading expense mix…</div>
+                  </div>
                   <div class="expense-ring-center">
                     <strong id="expenseRingTotal">—</strong>
                     <span>Total spent</span>
@@ -767,7 +712,9 @@
                 </div>
               </header>
               <div class="finance-panel-body">
-                <div class="cashflow-chart" id="cashflowChart" role="group" aria-label="Loading monthly cash flow"></div>
+                <div class="cashflow-chart" id="cashflowChart" aria-label="Loading monthly cash flow">
+                  <div class="chart-empty">Loading monthly cash flow…</div>
+                </div>
               </div>
             </article>
           </div>
@@ -1079,6 +1026,7 @@
       </div>
     </div>
     <script src="../js/api.js"></script>
+    <script src="/vendor/chartjs/chart.umd.min.js"></script>
     <script>
       const user = requireAuth();
       if (!user) throw Error("redirect");
@@ -1189,6 +1137,12 @@
             x.setAttribute("aria-selected", String(active));
             x.tabIndex = active ? 0 : -1;
           });
+        if (name === "overview") {
+          requestAnimationFrame(() => {
+            document.getElementById("expenseChart")._kenadLiveChart?.resize();
+            document.getElementById("cashflowChart")._kenadLiveChart?.resize();
+          });
+        }
       }
       document.querySelector(".finance-tabs").addEventListener("keydown", (event) => {
         const tabs = Array.from(
@@ -1219,8 +1173,47 @@
         const isIncome = r.transaction_type === "income";
         return `<tr><td>${fmt.date(r.transaction_date)}</td><td class="transaction-title"><strong>${esc(r.title)}</strong>${r.reference_no ? `<small>${esc(r.reference_no)}</small>` : ""}</td>${edit ? `<td>${esc(r.payee_or_source || "—")}</td>` : ""}<td><span class="transaction-kind ${isIncome ? "income" : "expense"}">${isIncome ? "Income" : "Expense"}</span></td><td>${esc(categoryLabel(r.category))}</td><td class="money-cell ${isIncome ? "money-income" : "money-expense"}">${isIncome ? "+" : "−"}${fmt.currency(r.amount)}</td><td>${receiptLink(r)}</td><td>${fmt.statusBadge(r.status)}</td>${edit ? `<td><button class="btn btn-outline btn-sm" type="button" onclick="openTransaction(${r.id})">Edit</button></td>` : ""}</tr>`;
       }
-      function renderExpenseMix(byCategory, reportedTotal) {
-        const ring = document.getElementById("expenseRing");
+      function destroyFinanceChart(host) {
+        if (host?._kenadLiveChart) {
+          host._kenadLiveChart.destroy();
+          delete host._kenadLiveChart;
+        }
+      }
+      function upsertFinanceChart(host, type, labels, datasets, options, ariaLabel) {
+        if (!window.Chart) return null;
+        try {
+          let chart = host._kenadLiveChart;
+          if (chart && chart.config.type === type) {
+            chart.data.labels = labels;
+            chart.data.datasets = datasets;
+            chart.options = options;
+            chart.canvas.setAttribute("aria-label", ariaLabel);
+            chart.update();
+            return chart;
+          }
+          destroyFinanceChart(host);
+          host.replaceChildren();
+          const canvas = document.createElement("canvas");
+          canvas.setAttribute("role", "img");
+          canvas.setAttribute("tabindex", "0");
+          canvas.setAttribute("aria-label", ariaLabel);
+          host.appendChild(canvas);
+          chart = new Chart(canvas, {
+            type,
+            data: { labels, datasets },
+            options,
+          });
+          host._kenadLiveChart = chart;
+          return chart;
+        } catch (error) {
+          console.error("Financial chart could not render", error);
+          destroyFinanceChart(host);
+          return null;
+        }
+      }
+      function renderExpenseMix(byCategory, reportedTotal, period) {
+        const shell = document.getElementById("expenseChartShell");
+        const host = document.getElementById("expenseChart");
         const legend = document.getElementById("categoryLegend");
         const entries = Object.entries(byCategory || {})
           .map(([category, amount]) => ({
@@ -1229,49 +1222,108 @@
           }))
           .filter((entry) => entry.amount > 0)
           .sort((a, b) => b.amount - a.amount);
-        const total = entries.reduce((sum, entry) => sum + entry.amount, 0) ||
-          Number(reportedTotal) || 0;
-        const periodText = `${m[Number(month.value) - 1]} ${year.value}`;
+        const total =
+          entries.reduce((sum, entry) => sum + entry.amount, 0) ||
+          Number(reportedTotal) ||
+          0;
+        const periodMonth = Number(period?.month || month.value);
+        const periodYear = Number(period?.year || year.value);
+        const periodText = `${m[periodMonth - 1]} ${periodYear}`;
         document.getElementById("expensePeriod").textContent = periodText;
         document.getElementById("expenseRingTotal").textContent = fmt.currency(total);
         if (!entries.length || !total) {
-          ring.style.setProperty(
-            "--expense-gradient",
-            "conic-gradient(#e4edef 0 100%)",
-          );
-          ring.setAttribute("aria-label", `No paid expenses in ${periodText}`);
+          destroyFinanceChart(host);
+          shell.classList.add("is-empty");
+          host.innerHTML =
+            '<div class="chart-empty">No paid expenses for this period.</div>';
+          host.setAttribute("aria-label", `No paid expenses in ${periodText}`);
           legend.innerHTML =
             '<div class="category-empty">No paid expenses for this period.</div>';
           return;
         }
-        let cursor = 0;
-        const stops = entries.map((entry, index) => {
-          const start = cursor;
-          cursor += (entry.amount / total) * 100;
-          return `${expenseColors[index % expenseColors.length]} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
-        });
-        ring.style.setProperty(
-          "--expense-gradient",
-          `conic-gradient(${stops.join(",")})`,
-        );
-        ring.setAttribute(
-          "aria-label",
-          `${fmt.currency(total)} in paid expenses across ${entries.length} categories for ${periodText}`,
-        );
         legend.innerHTML = entries
           .map((entry, index) => {
             const percentage = (entry.amount / total) * 100;
             return `<div class="category-row"><span class="category-dot" style="background:${expenseColors[index % expenseColors.length]}"></span><div class="category-copy"><strong>${esc(categoryLabel(entry.category))}</strong><span>${percentage.toFixed(percentage >= 10 ? 0 : 1)}% of expenses</span></div><span class="category-value">${fmt.currency(entry.amount)}</span></div>`;
           })
           .join("");
+        if (!window.Chart) {
+          destroyFinanceChart(host);
+          shell.classList.add("is-empty");
+          host.innerHTML =
+            '<div class="chart-empty">Live expense chart is unavailable right now.</div>';
+          host.setAttribute("aria-label", "Live expense chart is unavailable");
+          return;
+        }
+        shell.classList.remove("is-empty");
+        const chartLabels = entries.map((entry) => categoryLabel(entry.category));
+        const chartValues = entries.map((entry) => entry.amount);
+        const ariaLabel = `${fmt.currency(total)} in paid expenses across ${entries.length} categories for ${periodText}. ${entries
+          .map((entry) => `${categoryLabel(entry.category)} ${fmt.currency(entry.amount)}`)
+          .join("; ")}`;
+        const options = {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "64%",
+          animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 750,
+            easing: "easeOutQuart",
+          },
+          interaction: { intersect: false, mode: "nearest" },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#102d37",
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: (context) => {
+                  const value = Number(context.raw) || 0;
+                  const sum = context.dataset.data.reduce(
+                    (result, amount) => result + (Number(amount) || 0),
+                    0,
+                  );
+                  const percentage = sum ? (value / sum) * 100 : 0;
+                  return `${context.label}: ${fmt.currency(value)} (${percentage.toFixed(percentage >= 10 ? 0 : 1)}%)`;
+                },
+              },
+            },
+          },
+        };
+        const liveChart = upsertFinanceChart(
+          host,
+          "doughnut",
+          chartLabels,
+          [
+            {
+              data: chartValues,
+              backgroundColor: entries.map(
+                (_, index) => expenseColors[index % expenseColors.length],
+              ),
+              borderColor: "#fff",
+              borderWidth: 4,
+              hoverOffset: 10,
+            },
+          ],
+          options,
+          ariaLabel,
+        );
+        if (!liveChart) {
+          shell.classList.add("is-empty");
+          host.innerHTML =
+            '<div class="chart-empty">Live expense chart is unavailable right now.</div>';
+          host.setAttribute("aria-label", "Live expense chart is unavailable");
+          return;
+        }
+        host.setAttribute("aria-label", ariaLabel);
       }
-      function renderCashflowChart() {
-        const chart = document.getElementById("cashflowChart");
-        const daysInMonth = new Date(
-          Number(year.value),
-          Number(month.value),
-          0,
-        ).getDate();
+      function renderCashflowChart(period) {
+        const host = document.getElementById("cashflowChart");
+        const periodMonth = Number(period?.month || month.value);
+        const periodYear = Number(period?.year || year.value);
+        const daysInMonth = new Date(periodYear, periodMonth, 0).getDate();
         const buckets = Array.from(
           { length: Math.ceil(daysInMonth / 7) },
           (_, index) => ({
@@ -1296,36 +1348,102 @@
           0,
           ...buckets.flatMap((bucket) => [bucket.income, bucket.expense]),
         );
-        const periodText = `${m[Number(month.value) - 1]} ${year.value}`;
-        if (!maximum) {
-          chart.innerHTML =
-            '<div class="chart-empty">No paid cash-flow activity for this period.</div>';
-          chart.setAttribute("aria-label", `No paid cash-flow activity in ${periodText}`);
+        const periodText = `${m[periodMonth - 1]} ${periodYear}`;
+        if (!maximum || !window.Chart) {
+          destroyFinanceChart(host);
+          host.innerHTML = `<div class="chart-empty">${window.Chart ? "No paid cash-flow activity for this period." : "Live cash-flow chart is unavailable right now."}</div>`;
+          host.setAttribute(
+            "aria-label",
+            window.Chart
+              ? `No paid cash-flow activity in ${periodText}`
+              : "Live cash-flow chart is unavailable",
+          );
           return;
         }
-        chart.innerHTML = `<div class="cashflow-groups" style="--group-count:${buckets.length}">${buckets
-          .map((bucket) => {
-            const incomeHeight = bucket.income
-              ? Math.max(4, (bucket.income / maximum) * 100)
-              : 0;
-            const expenseHeight = bucket.expense
-              ? Math.max(4, (bucket.expense / maximum) * 100)
-              : 0;
-            const incomeText = fmt.currency(bucket.income);
-            const expenseText = fmt.currency(bucket.expense);
-            return `<div class="cashflow-group" tabindex="0" role="img" aria-label="Days ${bucket.start} to ${bucket.end}: income ${esc(incomeText)}, expenses ${esc(expenseText)}"><div class="cashflow-bar-pair" aria-hidden="true"><span class="cashflow-bar income" style="--bar-height:${incomeHeight.toFixed(1)}%;--bar-min-height:${bucket.income ? "3px" : "0"}" title="Income: ${esc(incomeText)}"></span><span class="cashflow-bar expense" style="--bar-height:${expenseHeight.toFixed(1)}%;--bar-min-height:${bucket.expense ? "3px" : "0"}" title="Expenses: ${esc(expenseText)}"></span></div><span class="cashflow-label" aria-hidden="true">${bucket.start}–${bucket.end}</span></div>`;
-          })
-          .join("")}</div>`;
-        const accessibleValues = buckets
+        const chartLabels = buckets.map((bucket) => `${bucket.start}–${bucket.end}`);
+        const ariaLabel = `Paid income and expenses by week for ${periodText}: ${buckets
           .map(
             (bucket) =>
               `days ${bucket.start} to ${bucket.end}, income ${fmt.currency(bucket.income)}, expenses ${fmt.currency(bucket.expense)}`,
           )
-          .join("; ");
-        chart.setAttribute(
-          "aria-label",
-          `Paid income and expenses by week for ${periodText}: ${accessibleValues}`,
+          .join("; ")}`;
+        const options = {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 700, easing: "easeOutQuart" },
+          interaction: { intersect: false, mode: "index" },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#667b83", font: { size: 11, weight: "600" } },
+              border: { display: false },
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: "#e5edef" },
+              border: { display: false },
+              ticks: {
+                color: "#839da6",
+                font: { size: 10 },
+                callback: (value) => fmt.currency(Number(value)),
+              },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#102d37",
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                title: (items) => {
+                  const bucket = buckets[items[0]?.dataIndex];
+                  return bucket
+                    ? `${periodText}, days ${bucket.start}–${bucket.end}`
+                    : periodText;
+                },
+                label: (context) =>
+                  `${context.dataset.label}: ${fmt.currency(Number(context.raw) || 0)}`,
+              },
+            },
+          },
+        };
+        const liveChart = upsertFinanceChart(
+          host,
+          "bar",
+          chartLabels,
+          [
+            {
+              label: "Income",
+              data: buckets.map((bucket) => bucket.income),
+              backgroundColor: "rgba(63, 146, 125, .88)",
+              borderColor: "#2d8a72",
+              borderWidth: 1.5,
+              borderRadius: 8,
+              borderSkipped: false,
+              maxBarThickness: 38,
+            },
+            {
+              label: "Expenses",
+              data: buckets.map((bucket) => bucket.expense),
+              backgroundColor: "rgba(212, 154, 58, .84)",
+              borderColor: "#a86a1f",
+              borderWidth: 1.5,
+              borderRadius: 8,
+              borderSkipped: false,
+              maxBarThickness: 38,
+            },
+          ],
+          options,
+          ariaLabel,
         );
+        if (!liveChart) {
+          host.innerHTML =
+            '<div class="chart-empty">Live cash-flow chart is unavailable right now.</div>';
+          host.setAttribute("aria-label", "Live cash-flow chart is unavailable");
+          return;
+        }
+        host.setAttribute("aria-label", ariaLabel);
       }
       function renderLedger() {
         const query = document
@@ -1393,15 +1511,19 @@
           toast(e.message, "error");
         }
       }
-      async function load() {
+      async function load({ silent = false } = {}) {
         const requestId = ++activeLoad;
-        const periodText = `${m[Number(month.value) - 1]} ${year.value}`;
+        const selectedPeriod = {
+          month: Number(month.value),
+          year: Number(year.value),
+        };
+        const periodText = `${m[selectedPeriod.month - 1]} ${selectedPeriod.year}`;
         const metricSection = document.querySelector(".finance-metrics");
-        metricSection.setAttribute("aria-busy", "true");
+        if (!silent) metricSection.setAttribute("aria-busy", "true");
         document.getElementById("periodLabel").textContent = periodText;
         document.getElementById("expensePeriod").textContent = periodText;
         try {
-          const q = `month=${month.value}&year=${year.value}`;
+          const q = `month=${selectedPeriod.month}&year=${selectedPeriod.year}`;
           const [data, transactions] = await Promise.all([
             api.get("/financials/summary?" + q),
             api.get("/financials/transactions?" + q),
@@ -1425,12 +1547,13 @@
           document.getElementById("cashBalance").textContent = fmt.currency(data.cash.balance);
           document.getElementById("netFlowNote").textContent =
             `All-time cash · Income less paid expenses: ${fmt.currency(netFlow)}`;
-          renderExpenseMix(data.transactions.by_category, expenses);
-          renderCashflowChart();
+          const responsePeriod = data.period || selectedPeriod;
+          renderExpenseMix(data.transactions.by_category, expenses, responsePeriod);
+          renderCashflowChart(responsePeriod);
           recentActivity = Array.isArray(data.recent_transactions)
             ? data.recent_transactions
             : [];
-          recentActivityPage = 0;
+          if (!silent) recentActivityPage = 0;
           renderRecentActivity();
           renderLedger();
           const outstandingBills = Array.isArray(data.outstanding_bills)
@@ -1446,6 +1569,10 @@
             : empty(7, "No bills need action.");
         } catch (e) {
           if (requestId !== activeLoad) return;
+          if (silent) {
+            console.error("Financials could not refresh", e);
+            return;
+          }
           rows = [];
           recentActivity = [];
           recentActivityPage = 0;
@@ -1457,18 +1584,19 @@
           document.getElementById("netFlowNote").textContent =
             "Cash position unavailable";
           const cashflowChart = document.getElementById("cashflowChart");
+          destroyFinanceChart(cashflowChart);
           cashflowChart.innerHTML =
             '<div class="chart-empty">Cash-flow activity is unavailable right now.</div>';
           cashflowChart.setAttribute(
             "aria-label",
             `Cash-flow activity is unavailable for ${periodText}`,
           );
-          const expenseRing = document.getElementById("expenseRing");
-          expenseRing.style.setProperty(
-            "--expense-gradient",
-            "conic-gradient(#e4edef 0 100%)",
-          );
-          expenseRing.setAttribute(
+          const expenseChart = document.getElementById("expenseChart");
+          destroyFinanceChart(expenseChart);
+          document.getElementById("expenseChartShell").classList.add("is-empty");
+          expenseChart.innerHTML =
+            '<div class="chart-empty">Expense mix is unavailable right now.</div>';
+          expenseChart.setAttribute(
             "aria-label",
             `Expense data is unavailable for ${periodText}`,
           );
@@ -1805,6 +1933,10 @@
       });
       load();
       loadLoans();
+      window.addEventListener("focus", () => load({ silent: true }));
+      window.setInterval(() => {
+        if (document.visibilityState === "visible") load({ silent: true });
+      }, 60000);
     </script>
   </body>
 </html>
