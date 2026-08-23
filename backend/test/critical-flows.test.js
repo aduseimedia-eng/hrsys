@@ -405,6 +405,42 @@ test('financial dashboard responses omit stored receipt bytes', async () => {
   transactionQueries.forEach(call => assert.doesNotMatch(call.text, /\breceipt_data\b/i));
 });
 
+test('monthly cash flow returns paid weekly totals for the selected period', async () => {
+  const calls = mockQueries([{ rows: [
+    { week_number: '1', transaction_type: 'income', total: '1500.25' },
+    { week_number: '1', transaction_type: 'expense', total: '425.50' },
+    { week_number: '5', transaction_type: 'expense', total: '99.75' }
+  ] }]);
+  const res = response();
+
+  await financialsController.getCashFlow({
+    query: { month: '8', year: '2026' },
+    user: { company_id: 3 }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body.period, { year: 2026, month: 8 });
+  assert.equal(res.body.buckets.length, 5);
+  assert.deepEqual(res.body.buckets[0], { week: 1, start_day: 1, end_day: 7, income: 1500.25, expense: 425.5 });
+  assert.deepEqual(res.body.buckets[4], { week: 5, start_day: 29, end_day: 31, income: 0, expense: 99.75 });
+  assert.match(calls[0].text, /status='paid'/i);
+  assert.deepEqual(calls[0].params, [3, 2026, 8]);
+});
+
+test('monthly cash flow rejects an invalid reporting period before querying', async () => {
+  const calls = mockQueries([]);
+  const res = response();
+
+  await financialsController.getCashFlow({
+    query: { month: '13', year: '2026' },
+    user: { company_id: 3 }
+  }, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.match(res.body.error, /valid month and year/i);
+  assert.equal(calls.length, 0);
+});
+
 test('financial transactions reject a blank amount', async () => {
   const calls = mockQueries([]);
   const res = response();

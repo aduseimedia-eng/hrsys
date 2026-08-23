@@ -403,6 +403,28 @@
         gap: 15px;
         flex-wrap: wrap;
       }
+      .cashflow-header-tools {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .cashflow-period-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--text-muted);
+        font-size: .68rem;
+        font-weight: 750;
+      }
+      .cashflow-period-filter .form-control {
+        width: 145px;
+        min-height: 34px;
+        padding: 5px 8px;
+        background: #fff;
+        font-size: .72rem;
+      }
       .cashflow-legend span {
         display: inline-flex;
         align-items: center;
@@ -423,6 +445,7 @@
         height: 264px;
         min-height: 264px;
       }
+      .cashflow-chart[aria-busy="true"] { opacity: .58; }
       .chart-empty,
       .category-empty {
         min-height: 200px;
@@ -554,6 +577,7 @@
         .period-controls { width: 100%; }
         #month, #year { width: auto; flex: 1; }
         .finance-panel-header { align-items: flex-start; flex-wrap: wrap; }
+        .cashflow-header-tools { width: 100%; justify-content: space-between; }
         .activity-toolbar { width: 100%; justify-content: flex-start; }
         .activity-search { flex: 1 1 220px; }
       }
@@ -706,9 +730,15 @@
                   <h2>Monthly cash flow</h2>
                   <p>Paid income and expenses grouped by week</p>
                 </div>
-                <div class="cashflow-legend" aria-label="Chart legend">
-                  <span><i></i>Income</span>
-                  <span><i></i>Expenses</span>
+                <div class="cashflow-header-tools">
+                  <div class="cashflow-legend" aria-label="Chart legend">
+                    <span><i></i>Income</span>
+                    <span><i></i>Expenses</span>
+                  </div>
+                  <label class="cashflow-period-filter" for="cashflowPeriod">
+                    <span>Month</span>
+                    <input id="cashflowPeriod" class="form-control" type="month" aria-label="Cash-flow month" />
+                  </label>
                 </div>
               </header>
               <div class="finance-panel-body">
@@ -1088,12 +1118,14 @@
         ],
         now = new Date(),
         month = document.getElementById("month"),
-        year = document.getElementById("year");
+        year = document.getElementById("year"),
+        cashflowPeriod = document.getElementById("cashflowPeriod");
       let rows = [];
       let loans = [];
       let recentActivity = [];
       let recentActivityPage = 0;
       let activeLoad = 0;
+      let activeCashflowLoad = 0;
       let transactionMode = "transaction";
       let transactionReturnFocus = null;
       let loanReturnFocus = null;
@@ -1115,6 +1147,8 @@
       );
       for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--)
         year.innerHTML += `<option value="${y}">${y}</option>`;
+      cashflowPeriod.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      cashflowPeriod.addEventListener("change", () => loadCashflow());
       document.getElementById("category").innerHTML = Object.entries(labels)
         .map(([v, x]) => `<option value="${v}">${x}</option>`)
         .join("");
@@ -1324,31 +1358,22 @@
         }
         host.setAttribute("aria-label", ariaLabel);
       }
-      function renderCashflowChart(period) {
+      function cashflowSelection() {
+        const match = /^(\d{4})-(\d{2})$/.exec(cashflowPeriod.value || "");
+        if (!match) return { month: Number(month.value), year: Number(year.value) };
+        return { year: Number(match[1]), month: Number(match[2]) };
+      }
+      function renderCashflowChart(data) {
         const host = document.getElementById("cashflowChart");
-        const periodMonth = Number(period?.month || month.value);
-        const periodYear = Number(period?.year || year.value);
-        const daysInMonth = new Date(periodYear, periodMonth, 0).getDate();
-        const buckets = Array.from(
-          { length: Math.ceil(daysInMonth / 7) },
-          (_, index) => ({
-            start: index * 7 + 1,
-            end: Math.min((index + 1) * 7, daysInMonth),
-            income: 0,
-            expense: 0,
-          }),
-        );
-        rows
-          .filter((entry) => entry.status === "paid")
-          .forEach((entry) => {
-            const dateText = String(entry.transaction_date || "").slice(0, 10);
-            const day = Number(dateText.slice(8, 10));
-            const amount = Number(entry.amount) || 0;
-            const bucket = buckets[Math.floor((day - 1) / 7)];
-            if (bucket && ["income", "expense"].includes(entry.transaction_type)) {
-              bucket[entry.transaction_type] += amount;
-            }
-          });
+        const period = data?.period || cashflowSelection();
+        const periodMonth = Number(period.month);
+        const periodYear = Number(period.year);
+        const buckets = (Array.isArray(data?.buckets) ? data.buckets : []).map((bucket) => ({
+          start: Number(bucket.start_day),
+          end: Number(bucket.end_day),
+          income: Number(bucket.income) || 0,
+          expense: Number(bucket.expense) || 0,
+        }));
         const maximum = Math.max(
           0,
           ...buckets.flatMap((bucket) => [bucket.income, bucket.expense]),
@@ -1450,6 +1475,35 @@
         }
         host.setAttribute("aria-label", ariaLabel);
       }
+      async function loadCashflow({ period = null, silent = false } = {}) {
+        if (period?.year && period?.month) {
+          cashflowPeriod.value = `${period.year}-${String(period.month).padStart(2, "0")}`;
+        }
+        const selected = cashflowSelection();
+        const requestId = ++activeCashflowLoad;
+        const host = document.getElementById("cashflowChart");
+        host.setAttribute("aria-busy", "true");
+        try {
+          const data = await api.get(
+            `/financials/cash-flow?month=${selected.month}&year=${selected.year}`,
+          );
+          if (requestId !== activeCashflowLoad) return;
+          renderCashflowChart(data);
+        } catch (error) {
+          if (requestId !== activeCashflowLoad) return;
+          destroyFinanceChart(host);
+          const periodText = `${m[selected.month - 1]} ${selected.year}`;
+          host.innerHTML =
+            '<div class="chart-empty">Cash-flow activity is unavailable right now.</div>';
+          host.setAttribute(
+            "aria-label",
+            `Cash-flow activity is unavailable for ${periodText}`,
+          );
+          if (!silent) toast(error.message || "Could not load monthly cash flow", "error");
+        } finally {
+          if (requestId === activeCashflowLoad) host.removeAttribute("aria-busy");
+        }
+      }
       function renderLedger() {
         const query = document
           .getElementById("transactionSearch")
@@ -1516,7 +1570,7 @@
           toast(e.message, "error");
         }
       }
-      async function load({ silent = false } = {}) {
+      async function load({ silent = false, syncCashflow = !silent } = {}) {
         const requestId = ++activeLoad;
         const selectedPeriod = {
           month: Number(month.value),
@@ -1554,7 +1608,11 @@
             `All-time cash · Income less paid expenses: ${fmt.currency(netFlow)}`;
           const responsePeriod = data.period || selectedPeriod;
           renderExpenseMix(data.transactions.by_category, expenses, responsePeriod);
-          renderCashflowChart(responsePeriod);
+          loadCashflow(
+            syncCashflow
+              ? { period: responsePeriod, silent }
+              : { silent: true },
+          );
           recentActivity = Array.isArray(data.recent_transactions)
             ? data.recent_transactions
             : [];

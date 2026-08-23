@@ -8,6 +8,14 @@ const transactionProjection = `id, company_id, transaction_type, category,
   payment_method, due_date, status, notes, receipt_name, receipt_mime_type,
   receipt_size, created_by, updated_by, created_at, updated_at`;
 
+function reportingPeriod(query = {}) {
+  const now = new Date();
+  const year = query.year === undefined || query.year === '' ? now.getFullYear() : Number(query.year);
+  const month = query.month === undefined || query.month === '' ? now.getMonth() + 1 : Number(query.month);
+  if (!Number.isInteger(year) || year < 1900 || year > 9999 || !Number.isInteger(month) || month < 1 || month > 12) return null;
+  return { year, month };
+}
+
 function transactionValues(body) {
   return [body.transaction_type, body.category, body.transaction_date, String(body.title || '').trim(),
     String(body.payee_or_source || '').trim() || null, String(body.reference_no || '').trim() || null,
@@ -26,9 +34,9 @@ function validate(body) {
 
 exports.getSummary = async (req, res) => {
   try {
-    const year = Number(req.query.year) || new Date().getFullYear();
-    const month = Number(req.query.month) || new Date().getMonth() + 1;
-    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) return res.status(400).json({ error: 'Provide a valid month and year' });
+    const period = reportingPeriod(req.query);
+    if (!period) return res.status(400).json({ error: 'Provide a valid month and year' });
+    const { year, month } = period;
     const companyId = req.user.company_id;
     const [payroll, totals, cashTotals, bills, recent] = await Promise.all([
       db.query(`SELECT COALESCE(SUM(base_salary + allowances + overtime_pay + ssnit_employer), 0) AS total, COUNT(*) FILTER (WHERE status='paid') AS paid_count, COUNT(*) AS record_count FROM payroll WHERE company_id=$1 AND year=$2 AND month=$3`, [companyId, year, month]),
@@ -43,6 +51,43 @@ exports.getSummary = async (req, res) => {
     cashTotals.rows.forEach(row => { cash[row.transaction_type] = Number(row.total); });
     res.json({ period: { year, month }, payroll: { total: Number(payroll.rows[0].total), paid_count: Number(payroll.rows[0].paid_count), record_count: Number(payroll.rows[0].record_count) }, transactions: { ...total, by_category: byCategory }, cash: { ...cash, balance: cash.income - cash.expense }, outstanding_bills: bills.rows, recent_transactions: recent.rows });
   } catch (error) { console.error(error); res.status(500).json({ error: 'Could not fetch financial summary' }); }
+};
+
+exports.getCashFlow = async (req, res) => {
+  try {
+    const period = reportingPeriod(req.query);
+    if (!period) return res.status(400).json({ error: 'Provide a valid month and year' });
+    const { year, month } = period;
+    const { rows } = await db.query(
+      `SELECT ((EXTRACT(DAY FROM transaction_date)::int - 1) / 7) + 1 AS week_number,
+              transaction_type, COALESCE(SUM(amount), 0) AS total
+       FROM financial_transactions
+       WHERE company_id=$1 AND status='paid'
+         AND EXTRACT(YEAR FROM transaction_date)=$2
+         AND EXTRACT(MONTH FROM transaction_date)=$3
+       GROUP BY week_number, transaction_type
+       ORDER BY week_number, transaction_type`,
+      [req.user.company_id, year, month]
+    );
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const buckets = Array.from({ length: Math.ceil(daysInMonth / 7) }, (_, index) => ({
+      week: index + 1,
+      start_day: index * 7 + 1,
+      end_day: Math.min((index + 1) * 7, daysInMonth),
+      income: 0,
+      expense: 0
+    }));
+    rows.forEach((row) => {
+      const bucket = buckets[Number(row.week_number) - 1];
+      if (bucket && ['income', 'expense'].includes(row.transaction_type)) {
+        bucket[row.transaction_type] = Number(row.total) || 0;
+      }
+    });
+    res.json({ period, buckets });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Could not fetch monthly cash flow' });
+  }
 };
 
 exports.listTransactions = async (req, res) => {

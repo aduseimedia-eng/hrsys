@@ -6,6 +6,7 @@ const { uploadApplicant } = require('../config/multer');
 
 router.use(auth, rbac('admin'));
 router.get('/summary', ctrl.getSummary);
+router.get('/cash-flow', ctrl.getCashFlow);
 router.get('/transactions', ctrl.listTransactions);
 router.post('/transactions', ctrl.createTransaction);
 router.put('/transactions/:id', ctrl.updateTransaction);
