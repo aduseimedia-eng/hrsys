@@ -972,9 +972,7 @@ function plural(count, singular) {
 
 function shortMoney(value) {
   const amount = Number(value || 0);
-  if (amount >= 1000000) return `GHS${(amount / 1000000).toFixed(1)}m`;
-  if (amount >= 1000) return `GHS${(amount / 1000).toFixed(1)}k`;
-  return `GHS${amount.toLocaleString('en-US')}`;
+  return fmt.compactCurrency(amount);
 }
 
 function birthdayLabel(dateOfBirth) {

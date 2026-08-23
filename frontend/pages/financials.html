@@ -892,12 +892,13 @@
               ><input id="date" type="date" class="form-control" required />
             </div>
             <div class="form-group">
-              <label class="form-label required" for="amount">Amount</label
+              <label class="form-label required" for="amount" data-currency-label="Amount">Amount</label
               ><input
                 id="amount"
                 type="number"
                 min="0"
                 step="0.01"
+                data-currency-input
                 class="form-control"
                 required
               />
@@ -986,23 +987,27 @@
               ></select>
             </div>
             <div class="form-group">
-              <label class="form-label required" for="loanAmount">Loan amount</label
+              <label class="form-label required" for="loanAmount" data-currency-label="Loan amount">Loan amount</label
               ><input
                 id="loanAmount"
                 type="number"
                 min="0.01"
                 step="0.01"
+                data-currency-input
+                data-currency-min="positive"
                 class="form-control"
                 required
               />
             </div>
             <div class="form-group">
-              <label class="form-label required" for="loanRepayment">Monthly repayment</label
+              <label class="form-label required" for="loanRepayment" data-currency-label="Monthly repayment">Monthly repayment</label
               ><input
                 id="loanRepayment"
                 type="number"
                 min="0.01"
                 step="0.01"
+                data-currency-input
+                data-currency-min="positive"
                 class="form-control"
                 required
               />

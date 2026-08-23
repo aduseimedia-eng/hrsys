@@ -3986,12 +3986,9 @@
 
     function compactMoney(value) {
       if (value == null) return '--';
-      return new Intl.NumberFormat('en-GH', {
-        style: 'currency',
-        currency: 'GHS',
-        notation: Number(value) >= 10000 ? 'compact' : 'standard',
-        maximumFractionDigits: 0,
-      }).format(Number(value));
+      return Number(value) >= 10000
+        ? fmt.compactCurrency(Number(value))
+        : fmt.currency(Number(value));
     }
 
     function formatFileSize(size) {

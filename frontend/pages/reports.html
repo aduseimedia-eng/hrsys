@@ -520,9 +520,7 @@ function leaveDays(leave) {
 function shortMoney(value) {
   const n = Number(value || 0);
   if (!n) return '--';
-  if (Math.abs(n) >= 1000000) return `GHS ${(n / 1000000).toFixed(1)}m`;
-  if (Math.abs(n) >= 1000) return `GHS ${(n / 1000).toFixed(1)}k`;
-  return fmt.currency(n);
+  return fmt.compactCurrency(n);
 }
 
 function monthName(value) {

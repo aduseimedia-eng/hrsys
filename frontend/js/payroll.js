@@ -291,6 +291,7 @@ function showAmountModal(id) {
     const tax = Number(row.tax ?? row.deductions ?? 0);
     const ssnitEmployee = Number(row.ssnit_employee || 0);
     const otherDeductions = Number(row.other_deductions || 0);
+    const currencyDigits = fmt.currencyFractionDigits();
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -301,15 +302,15 @@ function showAmountModal(id) {
         </div>
         <div class="modal-body">
           <p style="color:var(--text-secondary);margin-bottom:16px">${row.first_name} ${row.last_name} - ${months[row.month - 1]} ${row.year}</p>
-          <p style="font-size:.82rem;color:var(--text-muted);margin:-8px 0 16px">HR controls each payroll component. Gross pay and net pay are calculated automatically.</p>
+          <p style="font-size:.82rem;color:var(--text-muted);margin:-8px 0 16px">All amounts are in ${fmt.currencyCode()}. Gross pay and net pay are calculated automatically.</p>
           <div class="form-grid">
-            <div class="form-group"><label class="form-label">Base salary</label><input type="number" min="0" id="pay-base" class="form-control" step="0.01" value="${Number(row.base_salary || 0)}"></div>
-            <div class="form-group"><label class="form-label">Allowances</label><input type="number" min="0" id="pay-allowances" class="form-control" step="0.01" value="${Number(row.allowances || 0)}"></div>
-            <div class="form-group"><label class="form-label">Tax</label><input type="number" min="0" id="pay-tax" class="form-control" step="0.01" value="${tax}"></div>
-            <div class="form-group"><label class="form-label">SSNIT (employee)</label><input type="number" id="pay-ssnit" class="form-control" readonly value="${ssnitEmployee.toFixed(2)}"></div>
-            <div class="form-group"><label class="form-label">Other deductions</label><input type="number" min="0" id="pay-other-deductions" class="form-control" step="0.01" value="${otherDeductions}"></div>
-            <div class="form-group"><label class="form-label">Gross pay</label><input type="number" id="pay-gross" class="form-control" readonly value="${gross.toFixed(2)}"></div>
-            <div class="form-group"><label class="form-label">Net pay</label><input type="number" id="pay-net" class="form-control" readonly value="${Number(row.net_salary || 0).toFixed(2)}"></div>
+            <div class="form-group"><label class="form-label">Base salary</label><input type="number" min="0" id="pay-base" class="form-control" step="${fmt.currencyStep()}" value="${Number(row.base_salary || 0)}"></div>
+            <div class="form-group"><label class="form-label">Allowances</label><input type="number" min="0" id="pay-allowances" class="form-control" step="${fmt.currencyStep()}" value="${Number(row.allowances || 0)}"></div>
+            <div class="form-group"><label class="form-label">Tax</label><input type="number" min="0" id="pay-tax" class="form-control" step="${fmt.currencyStep()}" value="${tax}"></div>
+            <div class="form-group"><label class="form-label">SSNIT (employee)</label><input type="number" id="pay-ssnit" class="form-control" readonly value="${ssnitEmployee.toFixed(currencyDigits)}"></div>
+            <div class="form-group"><label class="form-label">Other deductions</label><input type="number" min="0" id="pay-other-deductions" class="form-control" step="${fmt.currencyStep()}" value="${otherDeductions}"></div>
+            <div class="form-group"><label class="form-label">Gross pay</label><input type="number" id="pay-gross" class="form-control" readonly value="${gross.toFixed(currencyDigits)}"></div>
+            <div class="form-group"><label class="form-label">Net pay</label><input type="number" id="pay-net" class="form-control" readonly value="${Number(row.net_salary || 0).toFixed(currencyDigits)}"></div>
             <div class="form-group"><label class="form-label">Status</label><select id="pay-status" class="form-control form-select">
               <option value="pending" ${row.status === 'pending' ? 'selected' : ''}>Pending</option>
               <option value="processed" ${row.status === 'processed' ? 'selected' : ''}>Processed</option>
@@ -330,8 +331,8 @@ function showAmountModal(id) {
       const ssnitValue = Number(document.getElementById('pay-ssnit').value || 0);
       const otherValue = Number(document.getElementById('pay-other-deductions').value || 0);
       const grossValue = Math.max(0, baseValue + allowanceValue);
-      document.getElementById('pay-gross').value = grossValue.toFixed(2);
-      document.getElementById('pay-net').value = Math.max(0, grossValue - taxValue - ssnitValue - otherValue).toFixed(2);
+      document.getElementById('pay-gross').value = grossValue.toFixed(currencyDigits);
+      document.getElementById('pay-net').value = Math.max(0, grossValue - taxValue - ssnitValue - otherValue).toFixed(currencyDigits);
     };
     ['pay-base', 'pay-allowances', 'pay-tax', 'pay-other-deductions'].forEach((field) => document.getElementById(field).addEventListener('input', syncTotals));
   }).catch((e) => toast(e.message, 'error'));
@@ -401,7 +402,7 @@ async function showOvertimeRateModal() {
     const settings = await api.get('/attendance/overtime/settings');
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
-    overlay.innerHTML = `<div class="modal" style="max-width:440px"><div class="modal-header"><h3>Overtime rate</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div><div class="modal-body"><p style="color:var(--text-secondary);margin-bottom:16px">Approved overtime is paid at this hourly rate when payroll is processed.</p><div class="form-group"><label class="form-label">Hourly overtime rate (₵)</label><input id="overtime-hourly-rate" type="number" class="form-control" min="0" step="0.01" value="${Number(settings.hourly_rate || 0)}"></div><p style="font-size:.8rem;color:var(--text-muted)">Employees are prompted for an overtime reason after clocking out later than ${String(settings.late_clock_out_after || '17:30').slice(0,5)}.</p></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="saveOvertimeRate(this)">Save rate</button></div></div>`;
+    overlay.innerHTML = `<div class="modal" style="max-width:440px"><div class="modal-header"><h3>Overtime rate</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div><div class="modal-body"><p style="color:var(--text-secondary);margin-bottom:16px">Approved overtime is paid at this hourly rate when payroll is processed.</p><div class="form-group"><label class="form-label">Hourly overtime rate (${fmt.currencyCode()})</label><input id="overtime-hourly-rate" type="number" class="form-control" min="0" step="${fmt.currencyStep()}" value="${Number(settings.hourly_rate || 0)}"></div><p style="font-size:.8rem;color:var(--text-muted)">Employees are prompted for an overtime reason after clocking out later than ${String(settings.late_clock_out_after || '17:30').slice(0,5)}.</p></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="saveOvertimeRate(this)">Save rate</button></div></div>`;
     document.body.appendChild(overlay);
   } catch (error) { toast(error.message || 'Could not load overtime settings', 'error'); }
 }

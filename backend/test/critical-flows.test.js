@@ -14,6 +14,7 @@ const attendanceController = require('../controllers/attendance.controller');
 const payrollController = require('../controllers/payroll.controller');
 const financialsController = require('../controllers/financials.controller');
 const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
+const { currencyFractionDigits, roundCurrency } = require('../config/currencies');
 const messagesController = require('../controllers/messages.controller');
 const rbac = require('../middleware/rbac');
 const originalGetClient = db.getClient;
@@ -41,6 +42,23 @@ function mockQueries(results) {
   return calls;
 }
 
+function mockTransaction(transactionResults, poolResults = []) {
+  const transactionCalls = [];
+  const client = {
+    released: false,
+    async query(text, params) {
+      transactionCalls.push({ text, params });
+      const next = transactionResults.shift();
+      if (next instanceof Error) throw next;
+      return next || { rows: [], rowCount: 0 };
+    },
+    release() { this.released = true; }
+  };
+  db.getClient = async () => client;
+  const poolCalls = mockQueries(poolResults);
+  return { client, poolCalls, transactionCalls };
+}
+
 test.afterEach(() => {
   db.query = () => { throw new Error('Database mock missing'); };
   db.getClient = originalGetClient;
@@ -52,6 +70,24 @@ test('Ghana payroll calculates SSNIT and graduated PAYE from monthly pay', () =>
   assert.equal(result.ssnitEmployer, 650);
   assert.equal(result.payeTax, 779.75);
   assert.equal(result.deductions, 1054.75);
+});
+
+test('currency precision follows each ISO currency minor unit', () => {
+  assert.equal(currencyFractionDigits('JPY'), 0);
+  assert.equal(currencyFractionDigits('USD'), 2);
+  assert.equal(currencyFractionDigits('KWD'), 3);
+  assert.equal(currencyFractionDigits('CLF'), 4);
+  assert.equal(currencyFractionDigits('UYW'), 4);
+  assert.equal(roundCurrency(1.23456, 'KWD'), 1.235);
+  assert.equal(roundCurrency(1.23456, 'CLF'), 1.2346);
+});
+
+test('payroll compliance amounts retain the selected currency precision', () => {
+  const result = calculateMonthlyPayroll({ basicSalary: 1234.567, fractionDigits: 3 });
+  assert.equal(result.ssnitEmployee, 67.901);
+  assert.equal(result.ssnitEmployer, 160.494);
+  assert.equal(calculateMonthlyPayroll({ basicSalary: 1234.567, fractionDigits: 0 }).ssnitEmployee, 68);
+  assert.equal(calculateMonthlyPayroll({ basicSalary: 1234.567, fractionDigits: 4 }).ssnitEmployee, 67.9012);
 });
 
 test('login returns a token and never exposes the password hash', async () => {
@@ -289,18 +325,60 @@ test('department manager updates are scoped to an active employee in the same co
   assert.deepEqual(calls[2].params, ['Operations', 12, 4, 3]);
 });
 
-test('system preferences persist company defaults and formatting choices', async () => {
-  const calls = mockQueries([{ rows: [{ announcement_expiry_days: 30, default_records_per_page: 25, employee_code_prefix: 'PEP', currency_symbol: '₵', currency_symbol_position: 'prefix' }] }]);
+test('system preferences persist company defaults and an ISO currency', async () => {
+  const calls = mockQueries([{ rows: [{ announcement_expiry_days: 30, default_records_per_page: 25, employee_code_prefix: 'PEP', currency: 'EUR' }] }]);
   const res = response();
 
   await companyController.updateSystemPreferences({
-    body: { announcement_expiry_days: 30, default_records_per_page: 25, employee_code_prefix: 'PEP', currency_symbol: '₵', currency_symbol_position: 'prefix' },
+    body: { announcement_expiry_days: 30, default_records_per_page: 25, employee_code_prefix: 'PEP', currency: 'eur' },
     user: { company_id: 3 }
   }, res);
 
   assert.equal(res.statusCode, 200);
+  assert.equal(res.body.currency, 'EUR');
   assert.match(calls[0].text, /announcement_expiry_days/i);
-  assert.deepEqual(calls[0].params, [30, 25, 'PEP', '₵', 'prefix', 3]);
+  assert.match(calls[0].text, /currency=COALESCE\(\$6,currency\)/i);
+  assert.deepEqual(calls[0].params, [30, 25, 'PEP', null, 'prefix', 'EUR', 3]);
+});
+
+test('system preferences reject an unsupported currency before querying', async () => {
+  const calls = mockQueries([]);
+  const res = response();
+
+  await companyController.updateSystemPreferences({
+    body: { announcement_expiry_days: 30, default_records_per_page: 25, employee_code_prefix: 'EMP-', currency: 'ZZZ' },
+    user: { company_id: 3 }
+  }, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.match(res.body.error, /valid ISO currency/i);
+  assert.equal(calls.length, 0);
+});
+
+test('older system preference clients preserve the selected currency', async () => {
+  const calls = mockQueries([{ rows: [{ currency: 'CAD', currency_symbol: '$', currency_symbol_position: 'prefix' }] }]);
+  const res = response();
+
+  await companyController.updateSystemPreferences({
+    body: { announcement_expiry_days: 45, default_records_per_page: 50, employee_code_prefix: 'TEAM-', currency_symbol: '$', currency_symbol_position: 'prefix' },
+    user: { company_id: 4 }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.currency, 'CAD');
+  assert.deepEqual(calls[0].params, [45, 50, 'TEAM-', '$', 'prefix', null, 4]);
+});
+
+test('authenticated staff can read safe company preferences', async () => {
+  const calls = mockQueries([{ rows: [{ currency: 'JPY', locale: 'ja-JP', default_records_per_page: 25 }] }]);
+  const res = response();
+
+  await companyController.getSystemPreferences({ user: { company_id: 7, role: 'employee' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.currency, 'JPY');
+  assert.match(calls[0].text, /^SELECT currency, locale/i);
+  assert.deepEqual(calls[0].params, [7]);
 });
 
 test('financial dashboard responses omit stored receipt bytes', async () => {
@@ -475,14 +553,74 @@ test('HR attendance export produces a CSV scoped to its company', async () => {
 });
 
 test('payroll processing creates payroll and notification records for each active employee', async () => {
-  const calls = mockQueries([
-    { rows: [{ id: 4, salary: 4000 }, { id: 5, salary: 5000 }] },
-    { rows: [] }, { rows: [] }, { rows: [] }, { rows: [] }
-  ]);
+  const { client, poolCalls, transactionCalls } = mockTransaction([
+    { rows: [] },
+    { rows: [{ currency: 'USD' }] },
+    { rows: [] },
+    { rows: [{ id: 4, salary: 4000, allowances: '200.00' }, { id: 5, salary: 5000, allowances: '250.00' }] },
+    { rows: [] }, { rows: [] }, { rows: [] }
+  ], [{ rows: [] }, { rows: [] }]);
   const res = response();
   await payrollController.processMonth({ body: { month: 7, year: 2026 }, user: { company_id: 1, role: 'admin' } }, res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.count, 2);
-  assert.equal(calls.filter(call => /INSERT INTO payroll/.test(call.text)).length, 2);
-  assert.equal(calls.filter(call => /INSERT INTO notifications/.test(call.text)).length, 2);
+  assert.equal(transactionCalls.filter(call => /INSERT INTO payroll/.test(call.text)).length, 2);
+  assert.equal(poolCalls.filter(call => /INSERT INTO notifications/.test(call.text)).length, 2);
+  assert.equal(transactionCalls.at(-1).text, 'COMMIT');
+  assert.equal(client.released, true);
+});
+
+test('payroll processing preserves the selected currency precision', async () => {
+  const { client, transactionCalls } = mockTransaction([
+    { rows: [] },
+    { rows: [{ currency: 'KWD' }] },
+    { rows: [] },
+    { rows: [{
+      id: 4,
+      salary: '1000.1234',
+      allowances: '50.006',
+      overtime_hours: '1.25',
+      overtime_pay: '1.235',
+      benefit_deductions: '2.3456',
+      loan_deductions: '3.4567'
+    }] },
+    { rows: [] }, { rows: [] }, { rows: [] }
+  ], [{ rows: [] }]);
+  const res = response();
+  await payrollController.processMonth({ body: { month: 7, year: 2026 }, user: { company_id: 1, role: 'admin' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  const employeeQuery = transactionCalls.find(call => /FROM employees e/.test(call.text));
+  assert.ok(employeeQuery);
+  assert.deepEqual(employeeQuery.params, [7, 2026, 1, 0.05, 3]);
+  assert.match(employeeQuery.text, /ROUND\(e\.salary \* \$4::numeric, \$5::int\) AS allowances/i);
+  const insert = transactionCalls.find(call => /INSERT INTO payroll/.test(call.text));
+  assert.ok(insert);
+  assert.match(insert.text, /\$18::numeric \+ \$16::numeric \+ \$17::numeric/i);
+  assert.equal(insert.params[5], '50.006');
+  assert.equal(insert.params[7], '1.235');
+  assert.equal(insert.params[15], '2.3456');
+  assert.equal(insert.params[16], '3.4567');
+  assert.equal(insert.params[17], 119.903);
+  const loanUpdate = transactionCalls.find(call => /UPDATE employee_loans/.test(call.text));
+  assert.ok(loanUpdate);
+  assert.deepEqual(loanUpdate.params, [1, 4, 7, 2026]);
+  assert.equal(transactionCalls.at(-1).text, 'COMMIT');
+  assert.equal(client.released, true);
+});
+
+test('payroll processing blocks an invalid company currency', async () => {
+  const { client, poolCalls, transactionCalls } = mockTransaction([
+    { rows: [] },
+    { rows: [{ currency: 'ZZZ' }] },
+    { rows: [] }
+  ]);
+  const res = response();
+  await payrollController.processMonth({ body: { month: 7, year: 2026 }, user: { company_id: 1, role: 'admin' } }, res);
+
+  assert.equal(res.statusCode, 409);
+  assert.match(res.body.error, /base currency in Settings/i);
+  assert.equal(transactionCalls.at(-1).text, 'ROLLBACK');
+  assert.equal(poolCalls.length, 0);
+  assert.equal(client.released, true);
 });

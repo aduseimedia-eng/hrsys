@@ -275,7 +275,6 @@
                   <div class="form-group"><label class="form-label" for="company-announcement-expiry">Default Expire Days</label><p class="form-hint">New announcements automatically expire after this many days.</p><input id="company-announcement-expiry" type="number" min="1" max="3650" class="form-control" required></div>
                   <div class="form-group"><label class="form-label" for="company-records-per-page">Default Records Per Page</label><p class="form-hint">The default number of records shown on supported list pages.</p><input id="company-records-per-page" type="number" min="5" max="200" class="form-control" required></div>
                 </div>
-                <div class="system-preference-actions"><button class="btn btn-primary btn-sm" type="button" onclick="saveSystemPreferences()">Save Defaults</button></div>
               </div>
             </section>
             <section class="system-preference-group">
@@ -283,10 +282,9 @@
               <div>
                 <div class="form-grid">
                   <div class="form-group span-2"><label class="form-label" for="company-employee-prefix">Employee ID Prefix</label><p class="form-hint">Added to every automatically generated employee ID (for example, PEP0001).</p><input id="company-employee-prefix" class="form-control" maxlength="20" placeholder="EMP-"></div>
-                  <div class="form-group"><label class="form-label" for="company-currency-symbol">Currency Symbol</label><p class="form-hint">Symbol shown for monetary values.</p><input id="company-currency-symbol" class="form-control" maxlength="8" placeholder="$"></div>
-                  <div class="form-group"><label class="form-label" for="company-currency-position">Symbol Position</label><p class="form-hint">Choose whether the currency symbol appears before or after amounts.</p><select id="company-currency-position" class="form-control form-select"><option value="prefix">Prefix</option><option value="suffix">Suffix</option></select></div>
+                  <div class="form-group span-2"><label class="form-label" for="company-currency">Company Base Currency</label><p class="form-hint">Choose the ISO currency used for payroll, financials, loans, benefits, assets, training, and reports.</p><select id="company-currency" class="form-control form-select" required aria-describedby="company-currency-preview"></select><p class="form-hint" id="company-currency-preview">Select a currency to see how amounts will appear.</p><p class="form-hint">Changing this setting changes how existing values are labelled; it does not convert stored amounts or change subscription billing.</p></div>
                 </div>
-                <div class="system-preference-actions"><button class="btn btn-primary btn-sm" type="button" onclick="saveSystemPreferences()">Save Formatting</button></div>
+                <div class="system-preference-actions"><button class="btn btn-primary" id="system-preferences-save" type="button" onclick="saveSystemPreferences()" disabled>Save System Preferences</button></div>
               </div>
             </section>
             <h4 class="settings-subheading">Company Profile</h4>
@@ -297,7 +295,6 @@
               <div class="form-group"><label class="form-label" for="company-city">City</label><input id="company-city" class="form-control" maxlength="120" placeholder="Accra"></div>
               <div class="form-group"><label class="form-label" for="company-country">Country or region</label><input id="company-country" class="form-control" maxlength="120" placeholder="e.g. Ghana, United Kingdom, Canada"></div>
               <div class="form-group"><label class="form-label" for="company-timezone">Timezone</label><select id="company-timezone" class="form-control form-select"><option value="Africa/Accra">Africa/Accra (GMT)</option><option value="Africa/Lagos">Africa/Lagos (WAT)</option><option value="Europe/London">Europe/London</option></select></div>
-              <div class="form-group"><label class="form-label" for="company-currency">Currency</label><select id="company-currency" class="form-control form-select"><option value="GHS">GHS — Ghana cedi</option><option value="USD">USD — US dollar</option><option value="GBP">GBP — Pound sterling</option></select></div>
               <div class="form-group"><label class="form-label" for="company-work-week">Work week</label><select id="company-work-week" class="form-control form-select"><option value="Monday-Friday">Monday–Friday</option><option value="Monday-Saturday">Monday–Saturday</option><option value="Sunday-Thursday">Sunday–Thursday</option></select></div>
               <div class="form-group"><label class="form-label" for="company-locale">Display language &amp; region</label><select id="company-locale" class="form-control form-select"><option value="en-GB">English (United Kingdom)</option><option value="en-US">English (United States)</option><option value="en-CA">English (Canada)</option><option value="fr-FR">Français (France)</option><option value="es-ES">Español (España)</option><option value="pt-BR">Português (Brasil)</option></select></div>
               <div class="form-group"><label class="form-label" for="company-date-format">Date format</label><select id="company-date-format" class="form-control form-select"><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="MM/DD/YYYY">MM/DD/YYYY</option><option value="YYYY-MM-DD">YYYY-MM-DD</option></select></div>
@@ -513,7 +510,7 @@
           <form class="settings-editor-form" id="settings-overtime-form">
             <div class="form-group"><label class="form-label required" for="settings-late-clock-in">Mark late after</label><input id="settings-late-clock-in" type="time" class="form-control" required><p class="form-hint">Clock-ins after this time are recorded as late.</p></div>
             <div class="form-group"><label class="form-label required" for="settings-overtime-cutoff">Overtime starts after</label><input id="settings-overtime-cutoff" type="time" class="form-control" required><p class="form-hint">Clock-outs after this time can be submitted as overtime.</p></div>
-            <div class="form-group"><label class="form-label required" for="settings-overtime-rate">Hourly overtime rate</label><input id="settings-overtime-rate" type="number" min="0" step="0.01" class="form-control" required placeholder="0.00"></div>
+            <div class="form-group"><label class="form-label required" for="settings-overtime-rate" data-currency-label="Hourly overtime rate">Hourly overtime rate</label><input id="settings-overtime-rate" type="number" min="0" step="0.01" data-currency-input class="form-control" required placeholder="0.00"></div>
             <div class="settings-editor-actions"><button class="btn btn-primary" type="submit">Save Attendance Rules</button></div>
           </form>
         </section>
@@ -561,7 +558,6 @@
       let settingsCalendarEvents = [];
       let settingsAnnouncements = [];
       expandCompanyOptions('company-timezone', ['UTC', 'Africa/Accra', 'Africa/Lagos', 'Africa/Nairobi', 'America/New_York', 'America/Los_Angeles', 'America/Toronto', 'Europe/London', 'Europe/Paris', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Australia/Sydney']);
-      expandCompanyOptions('company-currency', ['USD', 'EUR', 'GBP', 'GHS', 'CAD', 'AUD', 'NGN', 'KES', 'ZAR', 'AED', 'INR', 'SGD']);
       loadSettings();
       loadBranding();
       loadCompanyProfile();
@@ -837,7 +833,6 @@
       async function loadCompanyProfile() {
         try {
           const company = await api.get('/company/settings');
-          localStorage.setItem(`hrconnect.company-preferences.${user.company_id}`, JSON.stringify(company));
           document.getElementById('company-legal-name').value = company.legal_name || '';
           document.getElementById('company-email').value = company.email || '';
           document.getElementById('company-phone').value = company.phone || '';
@@ -845,7 +840,7 @@
           document.getElementById('company-country').value = company.country || '';
           document.getElementById('company-address').value = company.address || '';
           setCompanySelect('company-timezone', company.timezone || 'Africa/Accra');
-          setCompanySelect('company-currency', company.currency || 'GHS');
+          populateCurrencyOptions(company.currency || 'USD');
           setCompanySelect('company-work-week', company.work_week || 'Monday-Friday');
           setCompanySelect('company-locale', company.locale || 'en-GB');
           setCompanySelect('company-date-format', company.date_format || 'DD/MM/YYYY');
@@ -853,8 +848,7 @@
           document.getElementById('company-announcement-expiry').value = Number(company.announcement_expiry_days || 30);
           document.getElementById('company-records-per-page').value = Number(company.default_records_per_page || 25);
           document.getElementById('company-employee-prefix').value = company.employee_code_prefix || 'EMP-';
-          document.getElementById('company-currency-symbol').value = company.currency_symbol || '';
-          document.getElementById('company-currency-position').value = company.currency_symbol_position || 'prefix';
+          document.getElementById('system-preferences-save').disabled = false;
         } catch (error) {
           toast(error.message || 'Could not load company profile', 'error');
         }
@@ -876,6 +870,59 @@
         });
       }
 
+      const fallbackCurrencyCodes = 'AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLF CLP CNY COP CRC CUC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HRK HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SLL SOS SRD SSP STN SVC SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UYW UZS VES VND VUV WST XAF XCD XCG XDR XOF XPF XSU YER ZAR ZMW ZWG ZWL'.split(' ');
+
+      function supportedCurrencyCodes() {
+        return [...fallbackCurrencyCodes];
+      }
+
+      function currencyDisplayName(code) {
+        try {
+          const locale = document.getElementById('company-locale').value || companyPreferences().locale || 'en-GB';
+          return new Intl.DisplayNames([locale], { type: 'currency' }).of(code) || code;
+        } catch (_) {
+          return code;
+        }
+      }
+
+      function populateCurrencyOptions(selected = 'USD') {
+        const select = document.getElementById('company-currency');
+        const currency = String(selected || 'USD').toUpperCase();
+        const codes = supportedCurrencyCodes();
+        if (!codes.includes(currency)) codes.push(currency);
+        const fragment = document.createDocumentFragment();
+        codes.sort().forEach((code) => {
+          const option = document.createElement('option');
+          option.value = code;
+          option.textContent = `${code} — ${currencyDisplayName(code)}`;
+          fragment.appendChild(option);
+        });
+        select.replaceChildren(fragment);
+        select.value = currency;
+        if (!select.dataset.previewBound) {
+          select.addEventListener('change', renderCurrencyPreview);
+          select.dataset.previewBound = 'true';
+        }
+        renderCurrencyPreview();
+      }
+
+      function renderCurrencyPreview() {
+        const code = document.getElementById('company-currency').value || 'USD';
+        const locale = document.getElementById('company-locale').value || companyPreferences().locale || 'en-GB';
+        let preview;
+        try {
+          preview = new Intl.NumberFormat(locale, { style: 'currency', currency: code }).format(1234.56);
+        } catch (_) {
+          preview = fmt.currency(1234.56, code);
+        }
+        document.getElementById('company-currency-preview').textContent = `Preview: ${preview} · ${code}`;
+      }
+
+      document.getElementById('company-locale').addEventListener('change', () => {
+        populateCurrencyOptions(document.getElementById('company-currency').value || 'USD');
+      });
+      populateCurrencyOptions(api.getCompanyPreferences().currency || 'USD');
+
       async function saveCompanyProfile() {
         const payload = {
           legal_name: document.getElementById('company-legal-name').value,
@@ -885,15 +932,13 @@
           country: document.getElementById('company-country').value,
           address: document.getElementById('company-address').value,
           timezone: document.getElementById('company-timezone').value,
-          currency: document.getElementById('company-currency').value,
           work_week: document.getElementById('company-work-week').value,
           locale: document.getElementById('company-locale').value,
           date_format: document.getElementById('company-date-format').value,
           week_start: document.getElementById('company-week-start').value
         };
         try {
-          const saved = await api.put('/company/settings', payload);
-          localStorage.setItem(`hrconnect.company-preferences.${user.company_id}`, JSON.stringify(saved));
+          await api.put('/company/settings', payload);
           toast('Company profile saved', 'success');
         } catch (error) {
           toast(error.message || 'Could not save company profile', 'error');
@@ -905,12 +950,11 @@
           announcement_expiry_days: Number(document.getElementById('company-announcement-expiry').value),
           default_records_per_page: Number(document.getElementById('company-records-per-page').value),
           employee_code_prefix: document.getElementById('company-employee-prefix').value.trim(),
-          currency_symbol: document.getElementById('company-currency-symbol').value.trim(),
-          currency_symbol_position: document.getElementById('company-currency-position').value
+          currency: document.getElementById('company-currency').value
         };
         try {
-          const saved = await api.put('/company/preferences', payload);
-          localStorage.setItem(`hrconnect.company-preferences.${user.company_id}`, JSON.stringify(saved));
+          await api.put('/company/preferences', payload);
+          renderCurrencyPreview();
           toast('System preferences saved', 'success');
         } catch (error) {
           toast(error.message || 'Could not save system preferences', 'error');
@@ -1044,7 +1088,7 @@
       }
 
       function money(amount, currency) {
-        return new Intl.NumberFormat("en-GH", {
+        return new Intl.NumberFormat(companyPreferences().locale || "en-GB", {
           style: "currency",
           currency,
         }).format(Number(amount || 0) / 100);

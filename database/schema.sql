@@ -26,8 +26,6 @@ CREATE TABLE companies (
   employee_code_prefix VARCHAR(20) NOT NULL DEFAULT 'EMP-',
   currency_symbol VARCHAR(8),
   currency_symbol_position VARCHAR(8) NOT NULL DEFAULT 'prefix' CHECK (currency_symbol_position IN ('prefix','suffix')),
-  phone       VARCHAR(40),
-  address     TEXT,
   logo_url    VARCHAR(300),
   is_active   BOOLEAN DEFAULT TRUE,
   created_at  TIMESTAMPTZ DEFAULT NOW(),
@@ -58,7 +56,7 @@ CREATE TABLE employees (
   department_id  INT REFERENCES departments(id) ON DELETE SET NULL,
   manager_id     INT REFERENCES employees(id)   ON DELETE SET NULL,
   job_title      VARCHAR(120),
-  salary         NUMERIC(12,2) DEFAULT 0,
+  salary         NUMERIC(16,4) DEFAULT 0,
   hire_date      DATE,
   phone          VARCHAR(30),
   phone_verified_at TIMESTAMPTZ,
@@ -157,7 +155,7 @@ CREATE TABLE IF NOT EXISTS candidate_applications (
 CREATE TABLE IF NOT EXISTS candidate_documents (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, document_type VARCHAR(40) NOT NULL, original_name VARCHAR(255) NOT NULL, mime_type VARCHAR(150), file_data BYTEA NOT NULL, uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_notes (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, author_id INT REFERENCES employees(id) ON DELETE SET NULL, body TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_interviews (id SERIAL PRIMARY KEY, application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE, interviewer_id INT REFERENCES employees(id) ON DELETE SET NULL, scheduled_at TIMESTAMPTZ NOT NULL, duration_minutes INT NOT NULL DEFAULT 45, meeting_location VARCHAR(300), score SMALLINT CHECK (score BETWEEN 1 AND 5), feedback TEXT, status VARCHAR(20) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','completed','cancelled')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-CREATE TABLE IF NOT EXISTS candidate_offers (id SERIAL PRIMARY KEY, application_id INT NOT NULL UNIQUE REFERENCES candidate_applications(id) ON DELETE CASCADE, salary NUMERIC(12,2), start_date DATE, message TEXT, status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','accepted','declined')), sent_at TIMESTAMPTZ, accepted_at TIMESTAMPTZ, declined_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS candidate_offers (id SERIAL PRIMARY KEY, application_id INT NOT NULL UNIQUE REFERENCES candidate_applications(id) ON DELETE CASCADE, salary NUMERIC(16,4), start_date DATE, message TEXT, status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','accepted','declined')), sent_at TIMESTAMPTZ, accepted_at TIMESTAMPTZ, declined_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS candidate_stage_events (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   application_id INT NOT NULL REFERENCES candidate_applications(id) ON DELETE CASCADE,
@@ -252,7 +250,7 @@ CREATE TABLE leave_requests (
 
 CREATE TABLE company_overtime_settings (
   company_id INT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
-  hourly_rate NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (hourly_rate >= 0),
+  hourly_rate NUMERIC(16,4) NOT NULL DEFAULT 0 CHECK (hourly_rate >= 0),
   late_clock_in_after TIME NOT NULL DEFAULT TIME '09:00',
   late_clock_out_after TIME NOT NULL DEFAULT TIME '17:30',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -279,21 +277,21 @@ CREATE TABLE payroll (
   employee_id   INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   month         SMALLINT NOT NULL CHECK (month BETWEEN 1 AND 12),
   year          SMALLINT NOT NULL,
-  base_salary   NUMERIC(12,2) NOT NULL,
-  allowances    NUMERIC(12,2) DEFAULT 0,
+  base_salary   NUMERIC(16,4) NOT NULL,
+  allowances    NUMERIC(16,4) DEFAULT 0,
   overtime_hours NUMERIC(8,2) NOT NULL DEFAULT 0,
-  overtime_pay NUMERIC(12,2) NOT NULL DEFAULT 0,
-  tax           NUMERIC(12,2) DEFAULT 0,
-  ssnit_employee NUMERIC(12,2) DEFAULT 0,
-  ssnit_employer NUMERIC(12,2) DEFAULT 0,
-  pensionable_earnings NUMERIC(12,2) DEFAULT 0,
-  pension_tier1 NUMERIC(12,2) DEFAULT 0,
-  pension_tier2 NUMERIC(12,2) DEFAULT 0,
-  other_deductions NUMERIC(12,2) DEFAULT 0,
-  benefit_deductions NUMERIC(12,2) NOT NULL DEFAULT 0,
-  loan_deductions NUMERIC(12,2) NOT NULL DEFAULT 0,
-  deductions    NUMERIC(12,2) DEFAULT 0,
-  net_salary    NUMERIC(12,2) GENERATED ALWAYS AS (base_salary + allowances + overtime_pay - deductions) STORED,
+  overtime_pay NUMERIC(16,4) NOT NULL DEFAULT 0,
+  tax           NUMERIC(16,4) DEFAULT 0,
+  ssnit_employee NUMERIC(16,4) DEFAULT 0,
+  ssnit_employer NUMERIC(16,4) DEFAULT 0,
+  pensionable_earnings NUMERIC(16,4) DEFAULT 0,
+  pension_tier1 NUMERIC(16,4) DEFAULT 0,
+  pension_tier2 NUMERIC(16,4) DEFAULT 0,
+  other_deductions NUMERIC(16,4) DEFAULT 0,
+  benefit_deductions NUMERIC(16,4) NOT NULL DEFAULT 0,
+  loan_deductions NUMERIC(16,4) NOT NULL DEFAULT 0,
+  deductions    NUMERIC(16,4) DEFAULT 0,
+  net_salary    NUMERIC(16,4) GENERATED ALWAYS AS (base_salary + allowances + overtime_pay - deductions) STORED,
   status        VARCHAR(20) DEFAULT 'pending'
                   CHECK (status IN ('pending','processed','paid')),
   paid_at       TIMESTAMPTZ,
@@ -309,12 +307,50 @@ CREATE TABLE benefits (
   provider VARCHAR(160), description TEXT, eligibility TEXT,
   eligible_employment_type VARCHAR(30) NOT NULL DEFAULT 'all'
     CHECK (eligible_employment_type IN ('all', 'staff', 'national_service', 'contractual', 'internship')),
-  employee_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
-  employer_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  employee_cost NUMERIC(16,4) NOT NULL DEFAULT 0,
+  employer_cost NUMERIC(16,4) NOT NULL DEFAULT 0,
   enrollment_info TEXT, is_active BOOLEAN NOT NULL DEFAULT true,
   created_by INT REFERENCES employees(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE employee_training (
+  id SERIAL PRIMARY KEY,
+  company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  course_title VARCHAR(200) NOT NULL,
+  provider VARCHAR(160),
+  training_type VARCHAR(80),
+  start_date DATE,
+  completion_date DATE,
+  certificate_number VARCHAR(120),
+  certificate_expiry DATE,
+  cost NUMERIC(16,4) NOT NULL DEFAULT 0,
+  status VARCHAR(20) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','in_progress','completed','expired')),
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_employee_training_company ON employee_training(company_id, employee_id, completion_date DESC);
+CREATE INDEX idx_employee_training_expiry ON employee_training(company_id, certificate_expiry) WHERE certificate_expiry IS NOT NULL;
+
+CREATE TABLE operations_register_entries (
+  id SERIAL PRIMARY KEY,
+  company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  register_type VARCHAR(50) NOT NULL,
+  entry_date DATE NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  contact_name VARCHAR(180),
+  reference_no VARCHAR(100),
+  amount NUMERIC(16,4),
+  due_date DATE,
+  status VARCHAR(30) NOT NULL DEFAULT 'open',
+  notes TEXT,
+  created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_operations_register_type ON operations_register_entries(company_id, register_type, entry_date DESC);
+CREATE INDEX idx_operations_register_due ON operations_register_entries(company_id, due_date) WHERE due_date IS NOT NULL;
 
 CREATE TABLE financial_transactions (
   id SERIAL PRIMARY KEY,
@@ -324,7 +360,7 @@ CREATE TABLE financial_transactions (
   transaction_date DATE NOT NULL,
   title VARCHAR(180) NOT NULL,
   payee_or_source VARCHAR(180), reference_no VARCHAR(100),
-  amount NUMERIC(14,2) NOT NULL CHECK (amount >= 0), payment_method VARCHAR(30) NOT NULL DEFAULT 'bank' CHECK (payment_method IN ('cash', 'bank', 'mobile_money', 'other')), due_date DATE,
+  amount NUMERIC(16,4) NOT NULL CHECK (amount >= 0), payment_method VARCHAR(30) NOT NULL DEFAULT 'bank' CHECK (payment_method IN ('cash', 'bank', 'mobile_money', 'other')), due_date DATE,
   status VARCHAR(20) NOT NULL DEFAULT 'paid' CHECK (status IN ('draft', 'pending', 'paid', 'void')),
   notes TEXT, receipt_name VARCHAR(255), receipt_mime_type VARCHAR(150), receipt_size INT, receipt_data BYTEA,
   created_by INT REFERENCES employees(id) ON DELETE SET NULL, updated_by INT REFERENCES employees(id) ON DELETE SET NULL,
@@ -346,7 +382,7 @@ CREATE TABLE company_assets (
   serial_number VARCHAR(160), status VARCHAR(30) NOT NULL DEFAULT 'available' CHECK (status IN ('available','assigned','maintenance','retired','lost')),
   condition VARCHAR(30) NOT NULL DEFAULT 'good' CHECK (condition IN ('new','good','fair','poor')),
   assigned_to INT REFERENCES employees(id) ON DELETE SET NULL, assigned_at DATE, purchase_date DATE,
-  purchase_cost NUMERIC(14,2), notes TEXT, created_by INT REFERENCES employees(id) ON DELETE SET NULL,
+  purchase_cost NUMERIC(16,4), notes TEXT, created_by INT REFERENCES employees(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(company_id, asset_code)
 );
 CREATE INDEX idx_company_assets_assignment ON company_assets(company_id, assigned_to, status);
@@ -370,8 +406,8 @@ CREATE TRIGGER trg_audit_payroll AFTER INSERT OR UPDATE OR DELETE ON payroll FOR
 CREATE TABLE employee_loans (
   id SERIAL PRIMARY KEY, company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   employee_id INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-  principal_amount NUMERIC(12,2) NOT NULL, remaining_balance NUMERIC(12,2) NOT NULL,
-  monthly_repayment NUMERIC(12,2) NOT NULL, start_date DATE NOT NULL, reason TEXT,
+  principal_amount NUMERIC(16,4) NOT NULL, remaining_balance NUMERIC(16,4) NOT NULL,
+  monthly_repayment NUMERIC(16,4) NOT NULL, start_date DATE NOT NULL, reason TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active','paid','cancelled')),
   approved_by INT REFERENCES employees(id) ON DELETE SET NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

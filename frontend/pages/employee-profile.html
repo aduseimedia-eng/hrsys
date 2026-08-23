@@ -1683,7 +1683,7 @@
           <div class="form-group"><label class="form-label">Job Title</label><select id="e-title" class="form-control form-select">${optionList(JOB_TITLES, emp.job_title)}</select></div>
           <div class="form-group"><label class="form-label">Employment Type</label><select id="e-employment-type" class="form-control form-select">${optionList(EMPLOYMENT_TYPES, emp.employment_type)}</select></div>
           <div class="form-group"><label class="form-label">Hire Date</label><input type="date" id="e-hire-date" class="form-control" value="${emp.hire_date ? emp.hire_date.split("T")[0] : ""}"></div>
-          <div class="form-group"><label class="form-label">Salary</label><input type="number" id="e-salary" class="form-control" value="${emp.salary || ""}"></div>
+          <div class="form-group"><label class="form-label">Salary (${fmt.currencyCode()})</label><input type="number" id="e-salary" class="form-control" min="0" step="${fmt.currencyStep()}" value="${emp.salary || ""}"></div>
           <div class="form-group"><label class="form-label required">Employee ID</label><input type="text" id="e-employee-code" class="form-control" maxlength="50" value="${emp.employee_code || ""}" placeholder="e.g. EMP-001"></div>
           `
               : ""
@@ -1749,7 +1749,7 @@
             { value: "admin", label: "Admin" },
           ],
           emp.role,
-        )}</select></div><div class="form-group"><label class="form-label">New monthly salary (GHS)</label><input id="promotion-salary" type="number" min="0" step="0.01" class="form-control" value="${safe(emp.salary ?? "")}"></div><div class="form-group"><label class="form-label">Effective date</label><input id="promotion-date" type="date" class="form-control" value="${new Date().toISOString().slice(0, 10)}"></div><div class="form-group span-2"><label class="form-label">Promotion notes</label><textarea id="promotion-notes" class="form-control" rows="3" placeholder="Reason or promotion details"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="savePromotion(${emp.id})">Confirm Promotion</button></div></div>`;
+        )}</select></div><div class="form-group"><label class="form-label">New monthly salary (${fmt.currencyCode()})</label><input id="promotion-salary" type="number" min="0" step="${fmt.currencyStep()}" class="form-control" value="${safe(emp.salary ?? "")}"></div><div class="form-group"><label class="form-label">Effective date</label><input id="promotion-date" type="date" class="form-control" value="${new Date().toISOString().slice(0, 10)}"></div><div class="form-group span-2"><label class="form-label">Promotion notes</label><textarea id="promotion-notes" class="form-control" rows="3" placeholder="Reason or promotion details"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="savePromotion(${emp.id})">Confirm Promotion</button></div></div>`;
         document.body.appendChild(overlay);
       }
 

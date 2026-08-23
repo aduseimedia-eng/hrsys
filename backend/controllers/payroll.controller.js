@@ -1,6 +1,7 @@
 // controllers/payroll.controller.js
 const db = require('../config/db');
 const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
+const { currencyFractionDigits, normalizeCurrency } = require('../config/currencies');
 const { notifyEmployee } = require('../services/push.service');
 
 // ─── Get my payslips ──────────────────────────────────────────
@@ -73,15 +74,46 @@ exports.getAll = async (req, res) => {
 
 // ─── Process payroll for a month (generate from salaries) ────
 exports.processMonth = async (req, res) => {
+  const { month, year } = req.body;
+  if (!month || !year) return res.status(400).json({ error: 'Month and year required' });
+
+  let client;
+  const processedEmployeeIds = [];
   try {
-    const { month, year } = req.body;
-    if (!month || !year) return res.status(400).json({ error: 'Month and year required' });
+    client = await db.getClient();
+    await client.query('BEGIN');
+
+    const { rows: companyRows } = await client.query(
+      'SELECT currency FROM companies WHERE id=$1 FOR UPDATE',
+      [req.user.company_id]
+    );
+    const currency = normalizeCurrency(companyRows[0]?.currency);
+    if (!currency) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Select a valid company base currency in Settings before processing payroll' });
+    }
+    const fractionDigits = currencyFractionDigits(currency);
+    const configuredAllowanceRate = Number.parseFloat(process.env.ALLOWANCE_RATE || '0.05');
+    const allowanceRate = Number.isFinite(configuredAllowanceRate) && configuredAllowanceRate >= 0
+      ? configuredAllowanceRate
+      : 0.05;
+
+    // Keep every loan used by this payroll stable until its matching balance
+    // update commits, so the snapshot and repayment always reconcile.
+    await client.query(
+      `SELECT id FROM employee_loans
+       WHERE company_id=$1 AND status='active'
+         AND start_date <= make_date($3::int, $2::int, 1)
+       FOR UPDATE`,
+      [req.user.company_id, month, year]
+    );
 
     // Get all active employees not yet in payroll for this period
-    const { rows: emps } = await db.query(
+    const { rows: emps } = await client.query(
       `SELECT e.id, e.salary, e.employment_type,
+              ROUND(e.salary * $4::numeric, $5::int) AS allowances,
               COALESCE(ot.overtime_hours, 0) AS overtime_hours,
-              COALESCE(ot.overtime_hours, 0) * COALESCE(os.hourly_rate, 0) AS overtime_pay,
+              ROUND(COALESCE(ot.overtime_hours, 0) * COALESCE(os.hourly_rate, 0), $5::int) AS overtime_pay,
               COALESCE(benefits.employee_cost, 0) AS benefit_deductions,
               COALESCE(loans.repayment, 0) AS loan_deductions
        FROM employees e
@@ -109,42 +141,62 @@ exports.processMonth = async (req, res) => {
          AND NOT EXISTS (
            SELECT 1 FROM payroll p WHERE p.employee_id = e.id AND p.month=$1 AND p.year=$2
          )`,
-      [month, year, req.user.company_id]
+      [month, year, req.user.company_id, allowanceRate, fractionDigits]
     );
 
-    if (!emps.length) return res.status(409).json({ error: 'Payroll already processed for this period' });
-
-    const allowanceRate = parseFloat(process.env.ALLOWANCE_RATE || 0.05);
+    if (!emps.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Payroll already processed for this period' });
+    }
 
     for (const emp of emps) {
-      const allowances = (emp.salary * allowanceRate).toFixed(2);
+      const allowances = emp.allowances || '0';
       const overtimeHours = Number(emp.overtime_hours || 0);
-      const overtimePay = Number(emp.overtime_pay || 0).toFixed(2);
-      const benefitDeductions = Number(emp.benefit_deductions || 0).toFixed(2);
-      const loanDeductions = Number(emp.loan_deductions || 0).toFixed(2);
-      const compliance = calculateMonthlyPayroll({ basicSalary: Number(emp.salary), allowances });
-      await db.query(
+      const overtimePay = emp.overtime_pay || '0';
+      const benefitDeductions = emp.benefit_deductions || '0';
+      const loanDeductions = emp.loan_deductions || '0';
+      // Currency controls numeric precision only; statutory rules remain the
+      // explicitly Ghana-specific rules in config/ghana-payroll.js.
+      const compliance = calculateMonthlyPayroll({
+        basicSalary: Number(emp.salary),
+        allowances: Number(allowances),
+        fractionDigits
+      });
+      await client.query(
         `INSERT INTO payroll (company_id, employee_id, month, year, base_salary, allowances, overtime_hours, overtime_pay, tax, ssnit_employee, ssnit_employer, pensionable_earnings, pension_tier1, pension_tier2, other_deductions, benefit_deductions, loan_deductions, deductions, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'processed')`,
-        [req.user.company_id, emp.id, month, year, emp.salary, allowances, overtimeHours, overtimePay, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.pensionableEarnings, compliance.pensionTier1, compliance.pensionTier2, compliance.otherDeductions, benefitDeductions, loanDeductions, Number(compliance.deductions) + Number(benefitDeductions) + Number(loanDeductions)]
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::numeric + $16::numeric + $17::numeric,'processed')`,
+        [req.user.company_id, emp.id, month, year, emp.salary, allowances, overtimeHours, overtimePay, compliance.payeTax, compliance.ssnitEmployee, compliance.ssnitEmployer, compliance.pensionableEarnings, compliance.pensionTier1, compliance.pensionTier2, compliance.otherDeductions, benefitDeductions, loanDeductions, compliance.deductions]
       );
       if (Number(loanDeductions) > 0) {
-        await db.query(
+        await client.query(
           `UPDATE employee_loans SET remaining_balance=GREATEST(0, remaining_balance-LEAST(monthly_repayment, remaining_balance)),
              status=CASE WHEN remaining_balance-LEAST(monthly_repayment, remaining_balance) <= 0 THEN 'paid' ELSE 'active' END
            WHERE company_id=$1 AND employee_id=$2 AND status='active' AND start_date <= make_date($4::int, $3::int, 1)`,
           [req.user.company_id, emp.id, month, year]
         );
       }
-      // Notify employee
-      await notifyEmployee({ companyId: req.user.company_id, employeeId: emp.id, type: 'payroll', message: 'Your payroll for this month has been processed. View your payslip.' });
+      processedEmployeeIds.push(emp.id);
     }
-
-    res.json({ message: `Payroll processed for ${emps.length} employees`, count: emps.length });
+    await client.query('COMMIT');
   } catch (err) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
     console.error(err);
-    res.status(500).json({ error: 'Could not process payroll' });
+    return res.status(500).json({ error: 'Could not process payroll' });
+  } finally {
+    if (client) client.release();
   }
+
+  // Notifications are intentionally outside the financial transaction. A push
+  // delivery problem must not roll back or misreport an already committed payroll.
+  for (const employeeId of processedEmployeeIds) {
+    await notifyEmployee({
+      companyId: req.user.company_id,
+      employeeId,
+      type: 'payroll',
+      message: 'Your payroll for this month has been processed. View your payslip.'
+    }).catch((error) => console.error('Payroll notification failed:', error.message));
+  }
+  res.json({ message: `Payroll processed for ${processedEmployeeIds.length} employees`, count: processedEmployeeIds.length });
 };
 
 // ─── Mark as paid ─────────────────────────────────────────────

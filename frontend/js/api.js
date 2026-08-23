@@ -185,8 +185,15 @@ const api = {
   getToken() { return localStorage.getItem('hr_token'); },
   setToken(t) { localStorage.setItem('hr_token', t); },
   getUser()   { return JSON.parse(localStorage.getItem('hr_user') || 'null'); },
-  setUser(u)  { localStorage.setItem('hr_user', JSON.stringify(u)); },
-  clearAuth() { localStorage.removeItem('hr_token'); localStorage.removeItem('hr_user'); },
+  setUser(u)  {
+    const previousCompanyId = this.getUser()?.company_id;
+    localStorage.setItem('hr_user', JSON.stringify(u));
+    if (previousCompanyId !== u?.company_id) resetCompanyPreferenceSync();
+  },
+  clearAuth() { localStorage.removeItem('hr_token'); localStorage.removeItem('hr_user'); resetCompanyPreferenceSync(); },
+  getCompanyPreferences() { return companyPreferences(); },
+  setCompanyPreferences(preferences) { return storeCompanyPreferences(preferences); },
+  refreshCompanyPreferences(options) { return refreshCompanyPreferences(options); },
 
   // ─── Core fetch ───────────────────────────────────────────
   async request(method, path, body = null, opts = {}) {
@@ -197,7 +204,12 @@ const api = {
 
     const headers = { 'Content-Type': 'application/json' };
     const token = this.getToken();
+    const requestCompanyId = this.getUser()?.company_id;
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (token && path !== '/company/preferences') {
+      await refreshCompanyPreferences().catch(() => {});
+    }
+    const requestPath = method === 'GET' ? withDefaultPageSize(path) : path;
 
     const config = { method, headers };
     if (body && !(body instanceof FormData)) {
@@ -207,7 +219,7 @@ const api = {
       config.body = body;
     }
 
-    const res = await fetch(`${API_BASE}${path}`, config);
+    const res = await fetch(`${API_BASE}${requestPath}`, config);
 
     if (res.status === 401) {
       this.clearAuth();
@@ -217,10 +229,14 @@ const api = {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    const sameCompanySession = this.getToken() === token && this.getUser()?.company_id === requestCompanyId;
+    if (sameCompanySession && ['/company/preferences', '/company/settings'].includes(path) && data && typeof data === 'object') {
+      storeCompanyPreferences(data);
+    }
     return data;
   },
 
-  get(path)          { return this.request('GET', withDefaultPageSize(path)); },
+  get(path)          { return this.request('GET', path); },
   post(path, body)   { return this.request('POST', path, body); },
   put(path, body)    { return this.request('PUT', path, body); },
   patch(path, body)  { return this.request('PATCH', path, body); },
@@ -439,11 +455,92 @@ function toast(message, type = 'info', duration = 3500) {
 }
 
 // ─── Format helpers ─────────────────────────────────────────
+let companyPreferencesSyncPromise = null;
+let companyPreferencesSyncedCompanyId = null;
+let companyPreferencesSyncedAt = 0;
+const browserSupportedCurrencies = (() => {
+  try {
+    return typeof Intl.supportedValuesOf === 'function'
+      ? new Set(Intl.supportedValuesOf('currency'))
+      : null;
+  } catch (_) {
+    return null;
+  }
+})();
+const supplementaryCurrencyCodes = new Set(['CLF', 'UYW']);
+
+function companyPreferencesStorageKey(user = api?.getUser?.()) {
+  return `hrconnect.company-preferences.${user?.company_id || 'default'}`;
+}
+
 function companyPreferences() {
   try {
-    const user = api?.getUser?.();
-    return JSON.parse(localStorage.getItem(`hrconnect.company-preferences.${user?.company_id || 'default'}`) || '{}');
+    return JSON.parse(localStorage.getItem(companyPreferencesStorageKey()) || '{}');
   } catch (_) { return {}; }
+}
+
+function resetCompanyPreferenceSync() {
+  companyPreferencesSyncPromise = null;
+  companyPreferencesSyncedCompanyId = null;
+  companyPreferencesSyncedAt = 0;
+}
+
+function normalizeCurrencyCode(value) {
+  const code = String(value || 'USD').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(code)) return 'USD';
+  if (browserSupportedCurrencies && !browserSupportedCurrencies.has(code) && !supplementaryCurrencyCodes.has(code)) return 'USD';
+  try {
+    return new Intl.NumberFormat('en', { style: 'currency', currency: code })
+      .resolvedOptions().currency || 'USD';
+  } catch (_) {
+    return 'USD';
+  }
+}
+
+function storeCompanyPreferences(preferences = {}) {
+  const current = companyPreferences();
+  const next = { ...current, ...preferences };
+  next.currency = normalizeCurrencyCode(next.currency || 'USD');
+  // ISO currency formatting replaces the legacy free-form symbol override.
+  delete next.currency_symbol;
+  delete next.currency_symbol_position;
+  localStorage.setItem(companyPreferencesStorageKey(), JSON.stringify(next));
+  applyCompanyCurrencyLabels();
+  window.dispatchEvent(new CustomEvent('hrconnect:company-preferences-updated', { detail: next }));
+  return next;
+}
+
+async function refreshCompanyPreferences({ force = false } = {}) {
+  if (USE_MOCK_API) return companyPreferences();
+  const user = api?.getUser?.();
+  const token = api?.getToken?.();
+  if (!user?.company_id || !token) return companyPreferences();
+  const cacheIsFresh = companyPreferencesSyncedCompanyId === user.company_id
+    && Date.now() - companyPreferencesSyncedAt < 60000;
+  if (!force && cacheIsFresh) return companyPreferences();
+  if (companyPreferencesSyncPromise) return companyPreferencesSyncPromise;
+
+  const syncCompanyId = user.company_id;
+  const syncToken = token;
+  const syncPromise = (async () => {
+    const response = await fetch(`${API_BASE}/company/preferences`, {
+      headers: { Authorization: `Bearer ${syncToken}` },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Could not refresh company preferences');
+    if (api.getUser()?.company_id !== syncCompanyId || api.getToken() !== syncToken) {
+      return companyPreferences();
+    }
+    companyPreferencesSyncedCompanyId = syncCompanyId;
+    companyPreferencesSyncedAt = Date.now();
+    return storeCompanyPreferences(data);
+  })();
+  companyPreferencesSyncPromise = syncPromise;
+  try {
+    return await syncPromise;
+  } finally {
+    if (companyPreferencesSyncPromise === syncPromise) companyPreferencesSyncPromise = null;
+  }
 }
 
 function withDefaultPageSize(path) {
@@ -468,13 +565,44 @@ const fmt = {
   currency(n, currency) {
     if (n == null) return '—';
     const preferences = companyPreferences();
-    if (!currency && preferences.currency_symbol) {
-      const amount = new Intl.NumberFormat(preferences.locale || 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-      return preferences.currency_symbol_position === 'suffix'
-        ? `${amount} ${preferences.currency_symbol}`
-        : `${preferences.currency_symbol}${amount}`;
-    }
-    return new Intl.NumberFormat(preferences.locale || 'en-GB', { style:'currency', currency: currency || preferences.currency || 'USD' }).format(n);
+    return new Intl.NumberFormat(preferences.locale || 'en-GB', {
+      style: 'currency',
+      currency: normalizeCurrencyCode(currency || preferences.currency || 'USD'),
+    }).format(Number(n));
+  },
+  compactCurrency(n, currency) {
+    if (n == null) return '—';
+    const preferences = companyPreferences();
+    return new Intl.NumberFormat(preferences.locale || 'en-GB', {
+      style: 'currency',
+      currency: normalizeCurrencyCode(currency || preferences.currency || 'USD'),
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(Number(n));
+  },
+  currencyCode(currency) {
+    return normalizeCurrencyCode(currency || companyPreferences().currency || 'USD');
+  },
+  currencyFractionDigits(currency) {
+    const preferences = companyPreferences();
+    const code = normalizeCurrencyCode(currency || preferences.currency || 'USD');
+    return new Intl.NumberFormat(preferences.locale || 'en-GB', {
+      style: 'currency',
+      currency: code,
+    }).resolvedOptions().maximumFractionDigits;
+  },
+  currencyStep(currency) {
+    const digits = fmt.currencyFractionDigits(currency);
+    return digits ? `0.${'0'.repeat(Math.max(0, digits - 1))}1` : '1';
+  },
+  currencySymbol(currency) {
+    const preferences = companyPreferences();
+    const code = normalizeCurrencyCode(currency || preferences.currency || 'USD');
+    return new Intl.NumberFormat(preferences.locale || 'en-GB', {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'narrowSymbol',
+    }).formatToParts(0).find((part) => part.type === 'currency')?.value || code;
   },
   duration(clockIn, clockOut) {
     if (!clockIn || !clockOut) return '—';
@@ -512,6 +640,37 @@ const fmt = {
     return `<span class="badge ${cls}">${status}</span>`;
   }
 };
+
+function applyCompanyCurrencyLabels(root = document) {
+  if (!root?.querySelectorAll) return;
+  const code = fmt.currencyCode();
+  root.querySelectorAll('[data-currency-label]').forEach((label) => {
+    label.textContent = `${label.dataset.currencyLabel} (${code})`;
+  });
+  root.querySelectorAll('[data-currency-symbol]').forEach((element) => {
+    element.textContent = fmt.currencySymbol();
+  });
+  root.querySelectorAll('[data-currency-input]').forEach((input) => {
+    const digits = fmt.currencyFractionDigits();
+    input.step = fmt.currencyStep();
+    input.placeholder = digits ? `0.${'0'.repeat(digits)}` : '0';
+    if (input.dataset.currencyMin === 'positive') input.min = fmt.currencyStep();
+  });
+}
+
+applyCompanyCurrencyLabels();
+window.addEventListener('storage', (event) => {
+  if (event.key !== companyPreferencesStorageKey()) return;
+  applyCompanyCurrencyLabels();
+  window.dispatchEvent(new CustomEvent('hrconnect:company-preferences-updated', { detail: companyPreferences() }));
+  let previous = {};
+  let next = {};
+  try { previous = JSON.parse(event.oldValue || '{}'); } catch (_) {}
+  try { next = JSON.parse(event.newValue || '{}'); } catch (_) {}
+  const displayChanged = previous.currency !== next.currency || previous.locale !== next.locale;
+  const canReload = !/\/pages\/(?:login|settings|workspace)\.html$/i.test(window.location.pathname);
+  if (displayChanged && canReload) window.location.reload();
+});
 
 // ─── Avatar helper ──────────────────────────────────────────
 function avatarEl(employee, size = 'md') {
@@ -1222,7 +1381,7 @@ window.openNotificationsPanel = openNotificationsPanel;
 function notificationMeta(type) {
   const meta = {
     message: ['Message', '✉'], announcement: ['Announcement', '📣'], leave_request: ['Leave request', '◷'],
-    leave_approved: ['Leave approved', '✓'], leave_rejected: ['Leave update', '!'], payroll: ['Payroll', '₵'],
+    leave_approved: ['Leave approved', '✓'], leave_rejected: ['Leave update', '!'], payroll: ['Payroll', fmt.currencySymbol()],
     review: ['Performance review', '★'], it_ticket: ['IT ticket', '⌁'], welcome: ['Welcome', '✦']
   };
   return meta[type] || ['KenadHR update', '•'];
