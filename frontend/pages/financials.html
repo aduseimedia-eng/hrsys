@@ -2129,10 +2129,11 @@
           saveButton.textContent = "Record loan";
         }
       }
-      function openTransaction(id) {
+      function openTransaction(id, mode = "transaction") {
         transactionReturnFocus = document.activeElement;
-        transactionMode = "transaction";
-        setIncomeFormMode(false);
+        transactionMode = mode;
+        const isIncomeEntry = mode === "cash_income";
+        setIncomeFormMode(isIncomeEntry);
         const r = id ? rows.find((x) => x.id === id) : null;
         const editableLegacyCategory = {
           quarterly_rent: "rent",
@@ -2141,11 +2142,15 @@
         };
         document.getElementById("modalTitle").textContent = r
           ? "Edit transaction"
-          : "New transaction";
+          : isIncomeEntry ? "Record income" : "New transaction";
         document.getElementById("transactionModalSubtitle").textContent = r
           ? "Update this entry while keeping the company ledger in sync."
-          : "Record income or an expense in the company ledger.";
-        document.getElementById("save-transaction-btn").textContent = "Save transaction";
+          : isIncomeEntry
+            ? "Record money received directly into the company cash ledger."
+            : "Record income or an expense in the company ledger.";
+        document.getElementById("save-transaction-btn").textContent = isIncomeEntry
+          ? "Save cash income"
+          : "Save transaction";
         [
           "id",
           "type",
@@ -2162,19 +2167,18 @@
         ].forEach((x) => (document.getElementById(x).value = ""));
         document.getElementById("receipt").value = "";
         document.getElementById("id").value = r?.id || "";
-        document.getElementById("type").value =
-          r?.transaction_type || "expense";
+        document.getElementById("type").value = r?.transaction_type || (isIncomeEntry ? "income" : "expense");
         document.getElementById("category").value = r?.category
           ? labels[r.category]
             ? r.category
             : editableLegacyCategory[r.category] || "other"
-          : "petty_cash";
+          : isIncomeEntry ? "cash_income" : "petty_cash";
         document.getElementById("date").value =
           r?.transaction_date
             ? String(r.transaction_date).slice(0, 10)
             : new Date().toISOString().slice(0, 10);
         document.getElementById("amount").value = r?.amount || "";
-        document.getElementById("payment-method").value = r?.payment_method || "bank";
+        document.getElementById("payment-method").value = r?.payment_method || (isIncomeEntry ? "cash" : "bank");
         document.getElementById("title").value = r?.title || "";
         document.getElementById("party").value = r?.payee_or_source || "";
         document.getElementById("reference").value = r?.reference_no || "";
@@ -2186,7 +2190,7 @@
         document.getElementById("status").value = r?.status || "paid";
         document.getElementById("notes").value = r?.notes || "";
         document.getElementById("transactionModal").style.display = "flex";
-        document.getElementById("type").focus();
+        document.getElementById(isIncomeEntry ? "amount" : "type").focus();
       }
       function openBill() {
         openTransaction();
@@ -2203,18 +2207,7 @@
         document.getElementById("due").focus();
       }
       function openCashIncome() {
-        openTransaction();
-        transactionMode = "cash_income";
-        setIncomeFormMode(true);
-        document.getElementById("modalTitle").textContent = "Record income";
-        document.getElementById("transactionModalSubtitle").textContent =
-          "Record money received directly into the company cash ledger.";
-        document.getElementById("type").value = "income";
-        document.getElementById("category").value = "cash_income";
-        document.getElementById("payment-method").value = "cash";
-        document.getElementById("status").value = "paid";
-        document.getElementById("save-transaction-btn").textContent = "Save cash income";
-        document.getElementById("amount").focus();
+        openTransaction(null, "cash_income");
       }
       async function settleBill(id) {
         if (!confirm("Mark this bill as settled?")) return;
