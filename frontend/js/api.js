@@ -1297,6 +1297,8 @@ async function loadMessageNavCount() {
 // ─── Load notification badge ────────────────────────────────
 let notificationsCache = null;
 let notificationsRequest = null;
+let notificationsFilter = 'all';
+let notificationsSearch = '';
 
 async function getNotifications({ refresh = false } = {}) {
   if (!refresh && notificationsCache) return notificationsCache;
@@ -1346,6 +1348,8 @@ async function openNotificationsPanel() {
     panel.remove();
     return;
   }
+  notificationsFilter = 'all';
+  notificationsSearch = '';
 
   panel = document.createElement('aside');
   panel.id = 'notif-panel';
@@ -1358,6 +1362,15 @@ async function openNotificationsPanel() {
     <div class="notif-panel-actions">
       <button class="btn btn-outline btn-sm" id="notif-read-all" type="button">Read all</button>
       <button class="btn btn-danger btn-sm" id="notif-clear-all" type="button">Clear all</button>
+    </div>
+    <div class="notif-toolbar">
+      <label class="sr-only" for="notif-search">Search notifications</label>
+      <input id="notif-search" class="form-control" type="search" placeholder="Search updates" autocomplete="off">
+      <button class="btn btn-outline btn-sm" id="notif-refresh" type="button">Refresh</button>
+    </div>
+    <div class="notif-filters" role="tablist" aria-label="Notification filter">
+      <button class="active" type="button" data-notif-filter="all" role="tab" aria-selected="true">All</button>
+      <button type="button" data-notif-filter="unread" role="tab" aria-selected="false">Unread</button>
     </div>
     <div class="push-alert-control">
       <div><strong>Device alerts</strong><span id="push-status-label">Checking…</span></div>
@@ -1373,6 +1386,25 @@ async function openNotificationsPanel() {
   document.getElementById('notif-close').onclick = () => panel.remove();
   document.getElementById('notif-read-all').onclick = () => markAllNotificationsRead(panel);
   document.getElementById('notif-clear-all').onclick = () => clearAllNotifications(panel);
+  document.getElementById('notif-refresh').onclick = async () => {
+    notificationsCache = null;
+    await renderNotifications(panel, { refresh: true });
+  };
+  document.getElementById('notif-search').addEventListener('input', (event) => {
+    notificationsSearch = event.target.value.trim().toLowerCase();
+    renderNotifications(panel);
+  });
+  panel.querySelectorAll('[data-notif-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      notificationsFilter = button.dataset.notifFilter;
+      panel.querySelectorAll('[data-notif-filter]').forEach((item) => {
+        const active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-selected', String(active));
+      });
+      renderNotifications(panel);
+    });
+  });
   await renderNotifications(panel);
 }
 
@@ -1397,12 +1429,17 @@ function notificationLink(row) {
   return defaults[row.type] || '/pages/staff-portal.html#overview';
 }
 
-async function renderNotifications(panel = document.getElementById('notif-panel')) {
+async function renderNotifications(panel = document.getElementById('notif-panel'), { refresh = false } = {}) {
   try {
-    const rows = await getNotifications();
+    const rows = await getNotifications({ refresh });
     if (!panel?.isConnected) return;
     const list = panel.querySelector('#notif-list');
     const unread = rows.filter((row) => !row.is_read).length;
+    const visibleRows = rows.filter((row) => {
+      const matchesFilter = notificationsFilter === 'all' || !row.is_read;
+      const searchable = `${notificationMeta(row.type)[0]} ${row.message}`.toLowerCase();
+      return matchesFilter && (!notificationsSearch || searchable.includes(notificationsSearch));
+    });
     panel.querySelector('#notif-summary').textContent = unread ? `${unread} unread update${unread === 1 ? '' : 's'}` : (rows.length ? 'You’re all caught up' : 'No updates yet');
     panel.querySelector('#notif-read-all').disabled = unread === 0;
     panel.querySelector('#notif-clear-all').disabled = rows.length === 0;
@@ -1410,7 +1447,11 @@ async function renderNotifications(panel = document.getElementById('notif-panel'
       list.innerHTML = '<div class="notif-empty"><div>✓</div><strong>All caught up</strong><p>New KenadHR updates will appear here.</p></div>';
       return;
     }
-    list.innerHTML = rows.map((row) => `
+    if (!visibleRows.length) {
+      list.innerHTML = '<div class="notif-empty"><strong>No matching updates</strong><p>Try a different search or filter.</p></div>';
+      return;
+    }
+    list.innerHTML = visibleRows.map((row) => `
       <button class="notif-item ${row.is_read ? '' : 'unread'}" type="button" data-notification-id="${row.id}" aria-label="Open ${escapeUi(notificationMeta(row.type)[0])}">
         <span class="notif-type-icon notif-${escapeUi(row.type || 'general')}">${notificationMeta(row.type)[1]}</span>
         <span class="notif-content">
@@ -1421,7 +1462,7 @@ async function renderNotifications(panel = document.getElementById('notif-panel'
       </button>
     `).join('');
     list.querySelectorAll('[data-notification-id]').forEach((item, index) => {
-      item.addEventListener('click', () => openNotification(rows[index]));
+      item.addEventListener('click', () => openNotification(visibleRows[index]));
     });
   } catch (e) {
     if (panel?.isConnected) panel.querySelector('#notif-list').innerHTML = `<div class="notif-empty"><strong>Could not load notifications</strong><p>${escapeUi(e.message || 'Please try again.')}</p></div>`;

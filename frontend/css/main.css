@@ -662,6 +662,13 @@ tbody tr:hover { background: var(--bg-page); }
 .notif-panel-header p { margin:4px 0 0; color:var(--text-muted); font-size:.78rem; }
 .notif-panel-actions { display:flex; gap:8px; padding:0 20px 14px; border-bottom:1px solid var(--border); }
 .notif-panel-actions .btn { flex:1; justify-content:center; }
+.notif-toolbar { display:flex; gap:8px; padding:12px 20px 8px; background:#fbfcfe; }
+.notif-toolbar .form-control { min-width:0; flex:1; min-height:34px; font-size:.78rem; }
+.notif-toolbar .btn { flex:0 0 auto; }
+.notif-filters { display:flex; gap:6px; padding:0 20px 12px; border-bottom:1px solid var(--border); background:#fbfcfe; }
+.notif-filters button { border:0; border-radius:999px; padding:5px 10px; background:transparent; color:var(--text-muted); font:700 .72rem var(--font,system-ui); cursor:pointer; }
+.notif-filters button:hover, .notif-filters button:focus-visible { background:#eaf1ff; color:var(--brand); outline:0; }
+.notif-filters button.active { background:#e6efff; color:var(--brand); }
 .push-alert-control { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:#f7faff; }
 .push-alert-control strong { display:block; color:#24304a; font-size:.82rem; }
 .push-alert-control span { display:block; margin-top:2px; color:var(--text-muted); font-size:.74rem; }
