@@ -147,6 +147,7 @@
               "'": "&#39;",
             })[c],
         );
+      const dateValue = (value) => (value ? String(value).slice(0, 10) : "");
       function closeTraining() {
         document.getElementById("training-modal").style.display = "none";
         window.dispatchEvent(new Event("hrconnect:request-page-height"));
@@ -185,10 +186,10 @@
           ? "Edit Training Record"
           : "Add Training Record";
         document.getElementById("training-id").value = r?.id || "";
-        document.getElementById("tr-employee").innerHTML = employees
+        document.getElementById("tr-employee").innerHTML = '<option value="">Select employee</option>' + employees
           .map(
             (e) =>
-              `<option value="${e.id}" ${r?.employee_id === e.id ? "selected" : ""}>${esc(e.first_name + " " + e.last_name)}</option>`,
+              `<option value="${e.id}" ${Number(r?.employee_id) === Number(e.id) ? "selected" : ""}>${esc(e.first_name + " " + e.last_name)}</option>`,
           )
           .join("");
         [
@@ -202,20 +203,23 @@
           "cost",
           "notes",
         ].forEach(
-          (k) =>
-            (document.getElementById("tr-" + k).value =
-              r?.[
-                {
-                  course: "course_title",
-                  type: "training_type",
-                  start: "start_date",
-                  completion: "completion_date",
-                  certificate: "certificate_number",
-                  expiry: "certificate_expiry",
-                  cost: "cost",
-                  notes: "notes",
-                }[k] || k
-              ] || ""),
+          (k) => {
+            const value = r?.[
+              {
+                course: "course_title",
+                type: "training_type",
+                start: "start_date",
+                completion: "completion_date",
+                certificate: "certificate_number",
+                expiry: "certificate_expiry",
+                cost: "cost",
+                notes: "notes",
+              }[k] || k
+            ];
+            document.getElementById("tr-" + k).value = ["start", "completion", "expiry"].includes(k)
+              ? dateValue(value)
+              : value || "";
+          },
         );
         document.getElementById("tr-status").value = r?.status || "scheduled";
         document.getElementById("training-modal").style.display = "flex";
@@ -223,9 +227,21 @@
       }
       async function saveTraining() {
         try {
+          const employee = document.getElementById("tr-employee");
+          const course = document.getElementById("tr-course");
+          const cost = document.getElementById("tr-cost");
+          if (!employee.value || !course.value.trim()) {
+            toast("Select an employee and enter a course title", "error");
+            return;
+          }
+          if (cost.value && (!Number.isFinite(Number(cost.value)) || Number(cost.value) < 0)) {
+            toast("Enter a valid non-negative training cost", "error");
+            cost.focus();
+            return;
+          }
           const body = {
-              employee_id: Number(document.getElementById("tr-employee").value),
-              course_title: document.getElementById("tr-course").value,
+              employee_id: Number(employee.value),
+              course_title: course.value.trim(),
               provider: document.getElementById("tr-provider").value,
               training_type: document.getElementById("tr-type").value,
               start_date: document.getElementById("tr-start").value,

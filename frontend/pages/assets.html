@@ -225,6 +225,7 @@
         String(v || "")
           .replace(/_/g, " ")
           .replace(/\b\w/g, (x) => x.toUpperCase());
+      const dateValue = (value) => (value ? String(value).slice(0, 10) : "");
       function closeAsset() {
         document.getElementById("asset-modal").style.display = "none";
         window.dispatchEvent(new Event("hrconnect:request-page-height"));
@@ -295,13 +296,13 @@
           employees
             .map(
               (e) =>
-                `<option value="${e.id}" ${a?.assigned_to === e.id ? "selected" : ""}>${esc(e.first_name + " " + e.last_name)}</option>`,
+                `<option value="${e.id}" ${Number(a?.assigned_to) === Number(e.id) ? "selected" : ""}>${esc(e.first_name + " " + e.last_name)}</option>`,
             )
             .join("");
         document.getElementById("asset-assigned-date").value =
-          a?.assigned_at || "";
+          dateValue(a?.assigned_at);
         document.getElementById("asset-purchase-date").value =
-          a?.purchase_date || "";
+          dateValue(a?.purchase_date);
         document.getElementById("asset-cost").value = a?.purchase_cost ?? "";
         document.getElementById("asset-notes").value = a?.notes || "";
         toggleAssignment();
@@ -310,13 +311,26 @@
       }
       async function saveAsset() {
         try {
+          const code = document.getElementById("asset-code");
+          const name = document.getElementById("asset-name");
+          const status = document.getElementById("asset-status");
+          const assignee = document.getElementById("asset-employee");
+          if (!code.value.trim() || !name.value.trim()) {
+            toast("Asset ID and asset name are required", "error");
+            return;
+          }
+          if (status.value === "assigned" && !assignee.value) {
+            toast("Choose the employee this asset is assigned to", "error");
+            assignee.focus();
+            return;
+          }
           const id = document.getElementById("asset-id").value,
             body = {
-              asset_code: document.getElementById("asset-code").value,
-              name: document.getElementById("asset-name").value,
+              asset_code: code.value.trim(),
+              name: name.value.trim(),
               category: document.getElementById("asset-category").value,
               serial_number: document.getElementById("asset-serial").value,
-              status: document.getElementById("asset-status").value,
+              status: status.value,
               condition: document.getElementById("asset-condition").value,
               assigned_to: document.getElementById("asset-employee").value,
               assigned_at: document.getElementById("asset-assigned-date").value,

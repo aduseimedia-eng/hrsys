@@ -130,6 +130,7 @@
               "'": "&#39;",
             })[c],
         );
+      const dateValue = (value) => (value ? String(value).slice(0, 10) : "");
       function closeContract() {
         document.getElementById("contract-modal").style.display = "none";
         window.dispatchEvent(new Event("hrconnect:request-page-height"));
@@ -176,16 +177,16 @@
           ? "Edit Contract"
           : "Add Contract";
         document.getElementById("ct-id").value = r?.id || "";
-        document.getElementById("ct-employee").innerHTML = employees
+        document.getElementById("ct-employee").innerHTML = '<option value="">Select employee</option>' + employees
           .map(
             (e) =>
-              `<option value="${e.id}" ${r?.employee_id === e.id ? "selected" : ""}>${esc(e.first_name + " " + e.last_name)}</option>`,
+              `<option value="${e.id}" ${Number(r?.employee_id) === Number(e.id) ? "selected" : ""}>${esc(e.first_name + " " + e.last_name)}</option>`,
           )
           .join("");
         document.getElementById("ct-type").value =
           r?.contract_type || "Employment contract";
-        document.getElementById("ct-start").value = r?.start_date || "";
-        document.getElementById("ct-end").value = r?.end_date || "";
+        document.getElementById("ct-start").value = dateValue(r?.start_date);
+        document.getElementById("ct-end").value = dateValue(r?.end_date);
         document.getElementById("ct-notice").value = r?.notice_days ?? 30;
         document.getElementById("ct-status").value = r?.status || "active";
         document.getElementById("ct-notes").value = r?.notes || "";
@@ -194,11 +195,23 @@
       }
       async function saveContract() {
         try {
+          const employee = document.getElementById("ct-employee");
+          const start = document.getElementById("ct-start");
+          const end = document.getElementById("ct-end");
+          if (!employee.value || !start.value || !end.value) {
+            toast("Select an employee and enter both contract dates", "error");
+            return;
+          }
+          if (end.value < start.value) {
+            toast("End date must be after the start date", "error");
+            end.focus();
+            return;
+          }
           const body = {
-              employee_id: Number(document.getElementById("ct-employee").value),
+              employee_id: Number(employee.value),
               contract_type: document.getElementById("ct-type").value,
-              start_date: document.getElementById("ct-start").value,
-              end_date: document.getElementById("ct-end").value,
+              start_date: start.value,
+              end_date: end.value,
               notice_days: document.getElementById("ct-notice").value,
               status: document.getElementById("ct-status").value,
               notes: document.getElementById("ct-notes").value,
