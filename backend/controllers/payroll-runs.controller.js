@@ -86,7 +86,7 @@ exports.calculate = async (req, res) => {
     );
     if (!profiles.rows.length) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'No active payroll profiles are eligible for this run' }); }
 
-    const rules = await getEffectiveRuleSet({ countryCode: run.country_code, effectiveDate: run.period_end, executor: client });
+    const rules = await getEffectiveRuleSet({ countryCode: run.country_code, effectiveDate: run.period_end, companyId: req.user.company_id, executor: client });
     const fractionDigits = currencyFractionDigits(run.currency_code);
     const ruleVersions = [...new Set(rules.map((rule) => rule.version))].join(',');
     for (const profile of profiles.rows) {

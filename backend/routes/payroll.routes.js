@@ -6,6 +6,8 @@ const rbac   = require('../middleware/rbac');
 
 router.get ('/mine',           auth, ctrl.getMine);
 router.get ('/setup',          auth, rbac('admin'), ctrl.getGlobalSetup);
+router.get ('/settings/rules', auth, rbac('admin'), ctrl.getRuleSettings);
+router.post('/settings/rules/:code', auth, rbac('admin'), ctrl.saveRuleSettings);
 router.get ('/summary',        auth, rbac('admin'), ctrl.getSummary);
 router.get ('/',               auth, rbac('admin'), ctrl.getAll);
 router.post('/process',        auth, rbac('admin'), ctrl.processMonth);

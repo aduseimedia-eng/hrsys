@@ -10,12 +10,11 @@ const payrollTrendCharts = {};
 if (user.role === 'admin') {
   document.getElementById('admin-tab').style.display = '';
   document.getElementById('summary-tab').style.display = '';
-  document.getElementById('runs-tab').style.display = '';
 
   document.getElementById('admin-payroll-actions').innerHTML =
     `<button class="btn btn-outline" onclick="downloadAllPayslips()">Download All PDF</button>
      <button class="btn btn-outline" onclick="showOvertimeRateModal()">Overtime Rate</button>
-     <button class="btn btn-outline" onclick="switchTab('runs')">Payroll Runs</button>
+     <button class="btn btn-outline" onclick="location.href=appUrl('/pages/payroll-runs.html')">Payroll Runs</button>
      <button class="btn btn-primary" onclick="showProcessModal()">Process Payroll</button>`;
 
   const mSel = document.getElementById('pr-month');
@@ -114,12 +113,11 @@ function renderPayrollTrend(hostId, rows) {
 }
 
 function switchTab(tab) {
-  const tabs = ['mine', 'all', 'summary', 'runs'];
+  const tabs = ['mine', 'all', 'summary'];
   tabs.forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'':'none');
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
   if (tab==='all') loadAllPayroll();
   if (tab==='summary') loadSummary();
-  if (tab==='runs') loadPayrollRuns();
 }
 
 const payrollRunActions = {

@@ -40,6 +40,41 @@ exports.getGlobalSetup = async (req, res) => {
   }
 };
 
+exports.getRuleSettings = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT sr.code, sr.name, srv.version, srv.effective_from, srv.effective_to, srv.employee_rate, srv.employer_rate, srv.maximum_amount,
+        COALESCE(json_agg(json_build_object('lower_bound',tb.lower_bound,'upper_bound',tb.upper_bound,'rate',tb.rate) ORDER BY tb.lower_bound) FILTER (WHERE tb.id IS NOT NULL),'[]') AS tax_brackets
+       FROM statutory_rules sr JOIN countries c ON c.id=sr.country_id JOIN statutory_rule_versions srv ON srv.statutory_rule_id=sr.id
+       LEFT JOIN tax_brackets tb ON tb.statutory_rule_version_id=srv.id
+       WHERE c.iso_code='GH' AND srv.active=true AND (srv.company_id IS NULL OR srv.company_id=$1)
+       GROUP BY sr.code,sr.name,srv.id ORDER BY (srv.company_id IS NOT NULL) DESC,srv.effective_from DESC`, [req.user.company_id]
+    );
+    res.json(rows);
+  } catch (error) { res.status(500).json({ error: 'Could not load payroll tax settings' }); }
+};
+
+exports.saveRuleSettings = async (req, res) => {
+  const { code } = req.params;
+  const { effective_from: effectiveFrom, employee_rate: employeeRate, employer_rate: employerRate, maximum_amount: maximumAmount, tax_brackets: brackets } = req.body;
+  if (!['GH-SSNIT', 'GH-PAYE'].includes(code) || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom || '')) return res.status(400).json({ error: 'Provide a supported Ghana rule and effective date' });
+  if (code === 'GH-PAYE' && (!Array.isArray(brackets) || !brackets.length)) return res.status(400).json({ error: 'Provide at least one PAYE tax bracket' });
+  let client;
+  try {
+    client = await db.getClient(); await client.query('BEGIN');
+    const rule = await client.query(`SELECT sr.id FROM statutory_rules sr JOIN countries c ON c.id=sr.country_id WHERE sr.code=$1 AND c.iso_code='GH'`, [code]);
+    if (!rule.rows.length) throw new Error('Payroll rule not found');
+    const version = `${code}-C${req.user.company_id}-${effectiveFrom}`;
+    const saved = await client.query(
+      `INSERT INTO statutory_rule_versions(statutory_rule_id,company_id,version,calculation_type,calculation_basis,employee_rate,employer_rate,maximum_amount,currency_code,effective_from,priority)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,'GHS',$9,$10) RETURNING id`,
+      [rule.rows[0].id, req.user.company_id, version, code === 'GH-PAYE' ? 'progressive' : 'percentage_with_ceiling', code === 'GH-PAYE' ? 'monthly_income' : 'pensionable_pay', code === 'GH-PAYE' ? null : Number(employeeRate), code === 'GH-PAYE' ? null : Number(employerRate), code === 'GH-PAYE' ? null : Number(maximumAmount), effectiveFrom, code === 'GH-PAYE' ? 20 : 10]
+    );
+    for (const bracket of brackets || []) await client.query(`INSERT INTO tax_brackets(statutory_rule_version_id,lower_bound,upper_bound,rate) VALUES($1,$2,$3,$4)`, [saved.rows[0].id, Number(bracket.lower_bound || 0), bracket.upper_bound === null || bracket.upper_bound === '' ? null : Number(bracket.upper_bound), Number(bracket.rate || 0)]);
+    await client.query('COMMIT'); res.status(201).json({ id: saved.rows[0].id, version });
+  } catch (error) { if (client) await client.query('ROLLBACK').catch(() => {}); console.error(error); res.status(500).json({ error: 'Could not save payroll tax settings' }); } finally { if (client) client.release(); }
+};
+
 // ─── Get my payslips ──────────────────────────────────────────
 exports.getMine = async (req, res) => {
   try {

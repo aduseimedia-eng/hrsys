@@ -256,6 +256,7 @@
             <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Organisation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#people-organisation" data-panel="people-organisation">People &amp; organisation</a><a href="#department-settings" data-panel="department-settings">Departments</a><a href="#company-calendar" data-panel="company-calendar">Calendar &amp; events</a><a href="#calendar-settings" data-panel="calendar-settings">Company calendar</a><a href="#company-branding" data-panel="company-branding">Company branding</a></div></div>
             <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workforce<svg viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#hr-policies" data-panel="hr-policies">HR policies</a><a href="#attendance-settings" data-panel="attendance-settings">Attendance &amp; overtime</a><a href="#communication" data-panel="communication">Communication</a><a href="#announcement-settings" data-panel="announcement-settings">Announcements</a></div></div>
             <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workspace<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#app-preferences" data-panel="app-preferences">App preferences</a><a href="#billing" data-panel="billing">Billing &amp; plans</a></div></div>
+            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Payroll<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#payroll-tax-settings" data-panel="payroll-tax-settings">Taxes &amp; statutory rules</a></div></div>
           </nav>
           <div class="settings-content">
             <div class="settings-overview" aria-label="Settings overview">
@@ -543,7 +544,12 @@
         </article>
           </div>
         </div>
-      </main>
+      <section class="settings-hub-section settings-panel" id="payroll-tax-settings">
+        <h2>Payroll taxes &amp; statutory rules</h2><p>Schedule Ghana PAYE and SSNIT rates for future payroll calculations. Finalised runs remain unchanged.</p>
+        <div class="settings-editor-form"><div class="form-group"><label class="form-label">Effective from</label><input id="payroll-tax-effective" class="form-control" type="date"></div><div class="form-group"><label class="form-label">Employee SSNIT rate</label><input id="payroll-ssnit-employee" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Employer SSNIT rate</label><input id="payroll-ssnit-employer" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Monthly SSNIT ceiling</label><input id="payroll-ssnit-ceiling" class="form-control" type="number" min="0" step="0.01"></div><div class="settings-editor-actions span-2"><button class="btn btn-primary" onclick="saveSsnitSettings()">Save SSNIT rule</button></div></div>
+        <h3 class="settings-subheading">PAYE brackets</h3><textarea id="payroll-paye-brackets" class="form-control" rows="8" aria-label="PAYE brackets as JSON"></textarea><div class="settings-editor-actions" style="margin-top:12px"><button class="btn btn-primary" onclick="savePayeSettings()">Save PAYE rule</button></div><div id="payroll-tax-current" class="settings-editor-list"></div>
+      </section>
+    </main>
     </div>
 
     <script src="../js/api.js"></script>
@@ -1179,6 +1185,24 @@
         }
       }
 
+      async function loadPayrollTaxSettings() {
+        try {
+          const rules = await api.get('/payroll/settings/rules');
+          const ssnit = rules.find(rule => rule.code === 'GH-SSNIT');
+          const paye = rules.find(rule => rule.code === 'GH-PAYE');
+          if (ssnit) { document.getElementById('payroll-ssnit-employee').value = ssnit.employee_rate || ''; document.getElementById('payroll-ssnit-employer').value = ssnit.employer_rate || ''; document.getElementById('payroll-ssnit-ceiling').value = ssnit.maximum_amount || ''; }
+          if (paye) document.getElementById('payroll-paye-brackets').value = JSON.stringify(paye.tax_brackets || [], null, 2);
+          document.getElementById('payroll-tax-effective').value = new Date().toISOString().slice(0, 10);
+          document.getElementById('payroll-tax-current').innerHTML = rules.map(rule => `<div class="settings-editor-row"><div><strong>${escapeUi(rule.name)}</strong><span>Effective ${escapeUi(rule.effective_from)} · ${escapeUi(rule.version)}</span></div></div>`).join('');
+        } catch (error) { document.getElementById('payroll-tax-current').textContent = error.message || 'Could not load payroll tax settings.'; }
+      }
+      async function saveSsnitSettings() {
+        try { await api.post('/payroll/settings/rules/GH-SSNIT', { effective_from: document.getElementById('payroll-tax-effective').value, employee_rate: document.getElementById('payroll-ssnit-employee').value, employer_rate: document.getElementById('payroll-ssnit-employer').value, maximum_amount: document.getElementById('payroll-ssnit-ceiling').value }); toast('SSNIT rule scheduled', 'success'); loadPayrollTaxSettings(); } catch (error) { toast(error.message || 'Could not save SSNIT rule', 'error'); }
+      }
+      async function savePayeSettings() {
+        try { const tax_brackets = JSON.parse(document.getElementById('payroll-paye-brackets').value); await api.post('/payroll/settings/rules/GH-PAYE', { effective_from: document.getElementById('payroll-tax-effective').value, tax_brackets }); toast('PAYE rule scheduled', 'success'); loadPayrollTaxSettings(); } catch (error) { toast(error.message || 'Enter valid PAYE bracket JSON', 'error'); }
+      }
+      document.querySelector('[data-panel="payroll-tax-settings"]')?.addEventListener('click', () => setTimeout(loadPayrollTaxSettings, 0));
       verifyReturnedPayment();
     </script>
   </body>

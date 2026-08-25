@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 // Loads immutable, effective-dated data for a run. The engine receives this
 // snapshot as data and never queries the database or assumes a jurisdiction.
-async function getEffectiveRuleSet({ countryCode, effectiveDate, executor = db }) {
+async function getEffectiveRuleSet({ countryCode, effectiveDate, companyId, executor = db }) {
   const { rows } = await executor.query(
     `SELECT sr.code, sr.name, srv.version, srv.calculation_type, srv.calculation_basis,
             srv.employee_rate, srv.employer_rate, srv.fixed_amount, srv.minimum_amount,
@@ -16,10 +16,10 @@ async function getEffectiveRuleSet({ countryCode, effectiveDate, executor = db }
        AND srv.active=true AND srv.effective_from <= $2
        AND (srv.effective_to IS NULL OR srv.effective_to >= $2)
      LEFT JOIN tax_brackets tb ON tb.statutory_rule_version_id=srv.id
-     WHERE c.iso_code=$1
+     WHERE c.iso_code=$1 AND (srv.company_id IS NULL OR srv.company_id=$3)
      GROUP BY sr.code, sr.name, srv.id
-     ORDER BY srv.priority, sr.code`,
-    [String(countryCode || '').toUpperCase(), effectiveDate]
+     ORDER BY (srv.company_id IS NOT NULL) DESC, srv.priority, sr.code`,
+    [String(countryCode || '').toUpperCase(), effectiveDate, companyId]
   );
   if (!rows.length) throw new Error(`No effective payroll rules found for ${countryCode} on ${effectiveDate}`);
   return rows;
