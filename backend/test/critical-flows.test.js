@@ -12,6 +12,7 @@ const documentsController = require('../controllers/documents.controller');
 const leaveController = require('../controllers/leave.controller');
 const attendanceController = require('../controllers/attendance.controller');
 const payrollController = require('../controllers/payroll.controller');
+const payrollRunsController = require('../controllers/payroll-runs.controller');
 const financialsController = require('../controllers/financials.controller');
 const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
 const { calculatePayroll } = require('../services/payroll-engine');
@@ -108,6 +109,60 @@ test('global payroll engine delegates Ghana calculations to an effective rule se
   assert.equal(payroll.employeeTax.toFixed(2), '779.75');
   assert.equal(payroll.netPay.toFixed(2), '3945.25');
   assert.equal(payroll.totalEmployerCost.toFixed(2), '5650.00');
+});
+
+test('global payroll run creation derives jurisdiction from a company pay group', async () => {
+  const calls = mockQueries([
+    { rows: [{ id: 3, legal_entity_id: 4, country_id: 1, currency_code: 'GHS' }] },
+    { rows: [{ id: 91, status: 'draft', country_id: 1 }] }
+  ]);
+  const res = response();
+
+  await payrollRunsController.create({
+    user: { id: 5, company_id: 77 },
+    body: { pay_group_id: 3, period_start: '2026-08-01', period_end: '2026-08-31', payment_date: '2026-08-28' }
+  }, res);
+
+  assert.equal(res.statusCode, 201);
+  assert.equal(res.body.id, 91);
+  assert.deepEqual(calls[0].params, [3, 77]);
+  assert.deepEqual(calls[1].params, [77, 4, 3, 1, 'GHS', '2026-08-01', '2026-08-31', '2026-08-28', 5]);
+});
+
+test('global payroll finalization only follows approval and is audited', async () => {
+  const calls = mockQueries([{ rows: [{ id: 91, status: 'finalized' }] }, { rows: [] }]);
+  const res = response();
+
+  await payrollRunsController.transition({ user: { id: 5, company_id: 77 }, params: { id: 91 }, body: { action: 'finalize' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, 'finalized');
+  assert.deepEqual(calls[0].params, ['finalized', 5, 91, 77, 'approved']);
+  assert.deepEqual(calls[1].params, [77, 5, 91, 'Finalized payroll run']);
+});
+
+test('global payroll calculation snapshots results before allowing approval', async () => {
+  const { client, transactionCalls } = mockTransaction([
+    {},
+    { rows: [{ id: 91, company_id: 77, pay_group_id: 3, country_code: 'GH', currency_code: 'GHS', period_end: '2026-08-31', status: 'draft' }] },
+    { rows: [{ employee_id: 22, salary: '5000.00' }] },
+    { rows: [
+      { code: 'GH-SSNIT', name: 'SSNIT', version: 'GH-2026.01', employee_rate: '0.055', employer_rate: '0.13', maximum_amount: '25000', tax_brackets: [] },
+      { code: 'GH-PAYE', name: 'PAYE', version: 'GH-2026.01', tax_brackets: [{ lower_bound: 0, upper_bound: null, rate: '0.10', fixed_amount: 0 }] }
+    ] },
+    { rows: [{ id: 501 }] }, {}, {}, {}, {}, {},
+    { rows: [{ id: 91, status: 'calculated' }] }, {}, {}
+  ]);
+  const res = response();
+
+  await payrollRunsController.calculate({ user: { id: 5, company_id: 77 }, params: { id: 91 } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, 'calculated');
+  assert.equal(res.body.employee_count, 1);
+  assert.equal(client.released, true);
+  assert.match(transactionCalls[4].text, /INSERT INTO payroll_results/);
+  assert.match(transactionCalls[10].text, /UPDATE payroll_runs SET status='calculated'/);
 });
 
 test('currency precision follows each ISO currency minor unit', () => {

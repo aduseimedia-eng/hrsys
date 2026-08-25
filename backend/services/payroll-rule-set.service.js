@@ -2,8 +2,8 @@ const db = require('../config/db');
 
 // Loads immutable, effective-dated data for a run. The engine receives this
 // snapshot as data and never queries the database or assumes a jurisdiction.
-async function getEffectiveRuleSet({ countryCode, effectiveDate }) {
-  const { rows } = await db.query(
+async function getEffectiveRuleSet({ countryCode, effectiveDate, executor = db }) {
+  const { rows } = await executor.query(
     `SELECT sr.code, sr.name, srv.version, srv.calculation_type, srv.calculation_basis,
             srv.employee_rate, srv.employer_rate, srv.fixed_amount, srv.minimum_amount,
             srv.maximum_amount, srv.currency_code,
