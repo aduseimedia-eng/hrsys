@@ -77,6 +77,15 @@
     .process-payroll-note { margin:14px 0 0; padding:11px 12px; border-radius:9px; background:#fff8e8; color:#76541a; font-size:.82rem; line-height:1.45; }
     .process-confirm { display:flex; gap:9px; align-items:flex-start; margin-top:18px; color:var(--text-secondary); font-size:.85rem; line-height:1.4; cursor:pointer; }
     .process-confirm input { margin-top:3px; accent-color:var(--navy-800); }
+    .payroll-dashboard { display:none; grid-template-columns:minmax(0,1fr) 280px; gap:16px; margin-bottom:22px; }
+    .payroll-dashboard-main { min-width:0; display:grid; gap:16px; }
+    .payroll-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .payroll-kpi, .payroll-dash-card { border:1px solid var(--border); border-radius:14px; background:var(--bg-surface); box-shadow:var(--shadow-sm); }
+    .payroll-kpi { padding:15px; }.payroll-kpi span { color:var(--text-muted); display:block; font-size:.7rem; font-weight:700; text-transform:uppercase; }.payroll-kpi strong { display:block; margin-top:6px; font-size:1.22rem; color:var(--text-primary); }.payroll-kpi small { display:block; margin-top:5px; color:var(--text-muted); font-size:.72rem; }
+    .payroll-dash-card { overflow:hidden; }.payroll-dash-header { padding:14px 16px; border-bottom:1px solid var(--border); }.payroll-dash-header h3 { margin:0; font-size:.88rem; }.payroll-dash-header p { margin:3px 0 0; color:var(--text-muted); font-size:.71rem; }
+    .payroll-pipeline { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:15px; }.payroll-stage { padding:12px; text-align:center; border-radius:10px; background:var(--navy-50); }.payroll-stage strong { display:block; color:var(--brand); font-size:1.15rem; }.payroll-stage span { color:var(--text-muted); font-size:.66rem; font-weight:700; text-transform:uppercase; }.payroll-stage.paid { background:#e9f8ef; }.payroll-stage.paid strong { color:#178047; }
+    .payroll-trend { height:255px; padding:12px 16px 16px; }.payroll-bottom-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }.payroll-donut { height:240px; padding:10px 14px 14px; }.payroll-side { display:grid; gap:16px; align-content:start; }.payroll-list { padding:4px 14px 12px; }.payroll-person { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:.78rem; }.payroll-person:last-child { border-bottom:0; }.payroll-person strong { display:block; color:var(--text-primary); }.payroll-person small { color:var(--text-muted); }.payroll-person b { color:var(--brand); white-space:nowrap; align-self:center; }
+    @media(max-width:1180px){.payroll-dashboard{grid-template-columns:1fr}.payroll-side{grid-template-columns:repeat(2,minmax(0,1fr)}}@media(max-width:760px){.payroll-kpis,.payroll-bottom-grid,.payroll-side{grid-template-columns:1fr}.payroll-pipeline{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -96,6 +105,16 @@
       <div><h1>Payroll</h1><p>View and manage salary and payslips</p></div>
       <div id="admin-payroll-actions" style="display:flex;gap:10px"></div>
     </div>
+
+    <section id="payroll-dashboard" class="payroll-dashboard" aria-label="Payroll dashboard">
+      <div class="payroll-dashboard-main">
+        <div class="payroll-kpis" id="payroll-kpis"><div class="payroll-kpi"><span>Loading payroll</span><strong>—</strong></div></div>
+        <article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Payslip pipeline</h3><p>Current month status distribution</p></div><div class="payroll-pipeline" id="payroll-pipeline"></div></article>
+        <article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Payroll cost trend</h3><p>Net payroll over the last 12 processed periods</p></div><div id="payroll-dashboard-trend" class="payroll-trend"></div></article>
+        <div class="payroll-bottom-grid"><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Cost by department</h3><p>Current month net pay</p></div><div id="payroll-department-chart" class="payroll-donut"></div></article><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Deduction mix</h3><p>Current month deductions</p></div><div id="payroll-deduction-chart" class="payroll-donut"></div></article></div>
+      </div>
+      <aside class="payroll-side"><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Top earners</h3><p>Current month</p></div><div id="payroll-top-earners" class="payroll-list"></div></article><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Payroll at a glance</h3><p>Current processing status</p></div><div id="payroll-glance" class="payroll-list"></div></article></aside>
+    </section>
 
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('mine')">My Payslips</button>

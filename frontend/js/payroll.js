@@ -21,6 +21,59 @@ if (user.role === 'admin') {
   for (let y = now.getFullYear(); y >= now.getFullYear()-3; y--) {
     ySel.innerHTML += `<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`;
   }
+  loadPayrollDashboard();
+}
+
+async function loadPayrollDashboard() {
+  const dashboard = document.getElementById('payroll-dashboard');
+  if (!dashboard || user.role !== 'admin') return;
+  dashboard.style.display = 'grid';
+  try {
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const [summary, rows] = await Promise.all([
+      api.get('/payroll/summary'),
+      api.get(`/payroll?month=${month}&year=${year}`)
+    ]);
+    const gross = rows.reduce((total, row) => total + Number(row.base_salary || 0) + Number(row.allowances || 0) + Number(row.overtime_pay || 0), 0);
+    const deductions = rows.reduce((total, row) => total + Number(row.deductions || 0), 0);
+    const net = rows.reduce((total, row) => total + Number(row.net_salary || 0), 0);
+    const statusCount = (status) => rows.filter((row) => row.status === status).length;
+    document.getElementById('payroll-kpis').innerHTML = [
+      ['Net payroll', fmt.currency(net), `${rows.length} payslips`],
+      ['Gross pay', fmt.currency(gross), `${months[month - 1]} ${year}`],
+      ['Deductions', fmt.currency(deductions), 'Current period'],
+      ['Paid payslips', String(statusCount('paid')), `${rows.length ? Math.round((statusCount('paid') / rows.length) * 100) : 0}% complete`]
+    ].map(([label, value, detail]) => `<article class="payroll-kpi"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`).join('');
+    document.getElementById('payroll-pipeline').innerHTML = [
+      ['Pending', statusCount('pending'), 'draft'],
+      ['Processed', statusCount('processed'), 'review'],
+      ['Paid', statusCount('paid'), 'paid']
+    ].map(([label, value, style]) => `<div class="payroll-stage ${style}"><strong>${value}</strong><span>${label}</span></div>`).join('');
+    const trendRows = summary.slice().reverse();
+    KenadCharts.line('#payroll-dashboard-trend', trendRows.map((row) => `${months[Number(row.month) - 1].slice(0, 3)} ${String(row.year).slice(-2)}`), trendRows.map((row) => Number(row.total_net || 0)), '#2563eb');
+    const departments = rows.reduce((grouped, row) => {
+      const name = row.department_name || 'Unassigned';
+      grouped[name] = (grouped[name] || 0) + Number(row.net_salary || 0);
+      return grouped;
+    }, {});
+    KenadCharts.doughnut('#payroll-department-chart', Object.keys(departments), Object.values(departments));
+    const deductionParts = {
+      Tax: rows.reduce((total, row) => total + Number(row.tax || 0), 0),
+      SSNIT: rows.reduce((total, row) => total + Number(row.ssnit_employee || 0), 0),
+      Other: rows.reduce((total, row) => total + Number(row.other_deductions || 0) + Number(row.loan_deductions || 0) + Number(row.benefit_deductions || 0), 0)
+    };
+    KenadCharts.doughnut('#payroll-deduction-chart', Object.keys(deductionParts), Object.values(deductionParts));
+    const topEarners = rows.slice().sort((a, b) => Number(b.net_salary || 0) - Number(a.net_salary || 0)).slice(0, 6);
+    document.getElementById('payroll-top-earners').innerHTML = topEarners.length ? topEarners.map((row) => `<div class="payroll-person"><div><strong>${row.employee_name || 'Employee'}</strong><small>${row.department_name || 'No department'}</small></div><b>${fmt.currency(row.net_salary)}</b></div>`).join('') : '<div class="empty-state"><p>No payroll for this period.</p></div>';
+    document.getElementById('payroll-glance').innerHTML = [
+      ['Employees paid', `${statusCount('paid')} of ${rows.length}`],
+      ['Pending review', String(statusCount('pending') + statusCount('processed'))],
+      ['Average net pay', fmt.currency(rows.length ? net / rows.length : 0)]
+    ].map(([label, value]) => `<div class="payroll-person"><div><strong>${label}</strong></div><b>${value}</b></div>`).join('');
+  } catch (error) {
+    dashboard.innerHTML = `<div class="empty-state"><p>${error.message || 'Could not load payroll dashboard.'}</p></div>`;
+  }
 }
 
 function switchTab(tab) {
