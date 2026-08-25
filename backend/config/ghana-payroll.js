@@ -13,7 +13,7 @@ const TIER_1_TOTAL_RATE = 0.135;
 const TIER_2_RATE = 0.05;
 const TIER_1_EMPLOYER_RATE = TIER_1_TOTAL_RATE - EMPLOYEE_SSNIT_RATE;
 // SSNIT 2026 maximum insurable earnings: GH¢69,000 annually (GH¢5,750 monthly).
-const MONTHLY_SSNIT_CAP = 25000;
+const MONTHLY_SSNIT_CAP = 5750;
 const money = (value, fractionDigits) => roundToFractionDigits(value, fractionDigits);
 
 function calculatePaye(chargeableIncome, fractionDigits = 2) {

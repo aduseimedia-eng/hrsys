@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS payroll_country_configs (
 );
 
 INSERT INTO payroll_country_configs(country_id, enabled, effective_from, version, status)
-SELECT id, true, DATE '2026-01-01', 'GH-2026.01', 'active' FROM countries WHERE iso_code='GH'
+SELECT id, true, DATE '2024-01-01', 'GH-2024.01', 'active' FROM countries WHERE iso_code='GH'
 ON CONFLICT (country_id, version) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS pay_groups (
@@ -220,12 +220,12 @@ SELECT id, 'GH-PAYE', 'PAYE income tax', 'tax', 'Ghana progressive monthly incom
 FROM countries WHERE iso_code='GH' ON CONFLICT (country_id, code) DO NOTHING;
 
 INSERT INTO statutory_rule_versions(statutory_rule_id, version, calculation_type, calculation_basis, employee_rate, employer_rate, maximum_amount, currency_code, effective_from, priority)
-SELECT sr.id, 'GH-2026.01', 'percentage_with_ceiling', 'pensionable_pay', 0.055, 0.13, 25000, 'GHS', DATE '2026-01-01', 10
+SELECT sr.id, 'GH-2026.01', 'percentage_with_ceiling', 'pensionable_pay', 0.055, 0.13, 5750, 'GHS', DATE '2026-01-01', 10
 FROM statutory_rules sr JOIN countries c ON c.id=sr.country_id
 WHERE c.iso_code='GH' AND sr.code='GH-SSNIT'
 ON CONFLICT (statutory_rule_id, version) DO NOTHING;
 INSERT INTO statutory_rule_versions(statutory_rule_id, version, calculation_type, calculation_basis, currency_code, effective_from, priority)
-SELECT sr.id, 'GH-2026.01', 'progressive', 'monthly_income', 'GHS', DATE '2026-01-01', 20
+SELECT sr.id, 'GH-2024.01', 'progressive', 'monthly_income', 'GHS', DATE '2024-01-01', 20
 FROM statutory_rules sr JOIN countries c ON c.id=sr.country_id
 WHERE c.iso_code='GH' AND sr.code='GH-PAYE'
 ON CONFLICT (statutory_rule_id, version) DO NOTHING;
@@ -241,5 +241,5 @@ CROSS JOIN (VALUES
   (3896.67::NUMERIC, 19896.67::NUMERIC, .25::NUMERIC), (19896.67::NUMERIC, 50416.67::NUMERIC, .30::NUMERIC),
   (50416.67::NUMERIC, NULL::NUMERIC, .35::NUMERIC)
 ) AS bands(lower_bound, upper_bound, rate)
-WHERE c.iso_code='GH' AND sr.code='GH-PAYE' AND rv.version='GH-2026.01'
+WHERE c.iso_code='GH' AND sr.code='GH-PAYE' AND rv.version='GH-2024.01'
   AND NOT EXISTS (SELECT 1 FROM tax_brackets existing WHERE existing.statutory_rule_version_id=rv.id);
