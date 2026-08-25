@@ -14,6 +14,7 @@ const attendanceController = require('../controllers/attendance.controller');
 const payrollController = require('../controllers/payroll.controller');
 const financialsController = require('../controllers/financials.controller');
 const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
+const { calculatePayroll } = require('../services/payroll-engine');
 const { currencyFractionDigits, roundCurrency } = require('../config/currencies');
 const messagesController = require('../controllers/messages.controller');
 const rbac = require('../middleware/rbac');
@@ -70,6 +71,43 @@ test('Ghana payroll calculates SSNIT and graduated PAYE from monthly pay', () =>
   assert.equal(result.ssnitEmployer, 650);
   assert.equal(result.payeTax, 779.75);
   assert.equal(result.deductions, 1054.75);
+});
+
+test('global payroll setup is scoped to the requesting company', async () => {
+  const calls = mockQueries([
+    { rows: [{ iso_code: 'GH', name: 'Ghana', currency_code: 'GHS' }] },
+    { rows: [{ id: 12, name: 'Kenad Ghana', country_code: 'GH' }] },
+    { rows: [{ id: 18, name: 'Default monthly payroll', pay_frequency: 'monthly' }] },
+    { rows: [{ active_profiles: 8, profiles_without_pay_group: 0 }] }
+  ]);
+  const res = response();
+
+  await payrollController.getGlobalSetup({ user: { company_id: 77 } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.legal_entities[0].id, 12);
+  assert.equal(res.body.profile_coverage.active_profiles, 8);
+  assert.deepEqual(calls.slice(1).map(call => call.params), [[77], [77], [77]]);
+});
+
+test('global payroll engine delegates Ghana calculations to an effective rule set', () => {
+  const payroll = calculatePayroll({
+    countryCode: 'GH', basicSalary: '5000.00', allowances: '0.00', fractionDigits: 2,
+    rules: [
+      { code: 'GH-SSNIT', name: 'SSNIT', employee_rate: '0.055', employer_rate: '0.13', maximum_amount: '25000' },
+      { code: 'GH-PAYE', name: 'PAYE', tax_brackets: [
+        { lower_bound: 0, upper_bound: 490, rate: 0 }, { lower_bound: 490, upper_bound: 600, rate: '0.05' },
+        { lower_bound: 600, upper_bound: 730, rate: '0.10' }, { lower_bound: 730, upper_bound: '3896.67', rate: '0.175' },
+        { lower_bound: '3896.67', upper_bound: '19896.67', rate: '0.25' }, { lower_bound: '19896.67', upper_bound: '50416.67', rate: '0.30' },
+        { lower_bound: '50416.67', upper_bound: null, rate: '0.35' }
+      ] }
+    ]
+  });
+
+  assert.equal(payroll.employeeSocialSecurity.toFixed(2), '275.00');
+  assert.equal(payroll.employeeTax.toFixed(2), '779.75');
+  assert.equal(payroll.netPay.toFixed(2), '3945.25');
+  assert.equal(payroll.totalEmployerCost.toFixed(2), '5650.00');
 });
 
 test('currency precision follows each ISO currency minor unit', () => {

@@ -71,23 +71,24 @@ psql -U postgres -c "CREATE DATABASE hrconnect;"
 # Run the schema
 psql -U postgres -d hrconnect -f database/schema.sql
 
+# Apply incremental architecture migrations, including global payroll setup
+npm run migrate --prefix backend
+
 ```
 
 ### Applying migrations to an existing database
 
-New installations get the current schema directly from `database/schema.sql`. For an
-existing installation, run each numbered migration once, in order, and record it in
-your deployment notes. The current migration adds the `national_service` and
-`internship` employee employment types:
+For an existing installation, use the migration runner. It records each numbered
+migration, so it is safe to run again during deployment:
 
 ```bash
-psql -v ON_ERROR_STOP=1 -U postgres -d hrconnect -f database/migrations/002_employee_employment_types.sql
+npm run migrate --prefix backend
 ```
 
-Confirm it was applied before deploying the related UI:
+Confirm the global payroll foundation is available before enabling the related UI:
 
 ```bash
-psql -U postgres -d hrconnect -c "SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'employees_employment_type_check';"
+psql -U postgres -d hrconnect -c "SELECT iso_code, currency_code FROM countries ORDER BY iso_code;"
 ```
 
 ### 3. Backend Setup

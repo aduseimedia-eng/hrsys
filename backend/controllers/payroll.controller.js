@@ -4,6 +4,42 @@ const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
 const { currencyFractionDigits, normalizeCurrency } = require('../config/currencies');
 const { notifyEmployee } = require('../services/push.service');
 
+// Admin: configuration required before versioned payroll runs are introduced.
+exports.getGlobalSetup = async (req, res) => {
+  try {
+    const [countries, legalEntities, payGroups, profileCoverage] = await Promise.all([
+      db.query(`SELECT iso_code, name, currency_code, currency_symbol, default_timezone, default_locale
+                FROM countries WHERE active=true ORDER BY name`),
+      db.query(`SELECT le.id, le.name, le.registration_number, le.tax_identifier, le.currency_code,
+                       le.timezone, le.active, c.iso_code AS country_code, c.name AS country_name
+                FROM legal_entities le JOIN countries c ON c.id=le.country_id
+                WHERE le.company_id=$1 ORDER BY le.name`, [req.user.company_id]),
+      db.query(`SELECT pg.id, pg.legal_entity_id, pg.name, pg.currency_code, pg.pay_frequency,
+                       pg.pay_day, pg.active, c.iso_code AS country_code
+                FROM pay_groups pg JOIN countries c ON c.id=pg.country_id
+                WHERE pg.company_id=$1 ORDER BY pg.name`, [req.user.company_id]),
+      db.query(`SELECT COUNT(*)::int AS active_profiles,
+                       COUNT(*) FILTER (WHERE pay_group_id IS NULL)::int AS profiles_without_pay_group
+                FROM employee_payroll_profiles
+                WHERE company_id=$1 AND payroll_status='active'
+                  AND effective_from <= CURRENT_DATE
+                  AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)`, [req.user.company_id])
+    ]);
+    res.json({
+      countries: countries.rows,
+      legal_entities: legalEntities.rows,
+      pay_groups: payGroups.rows,
+      profile_coverage: profileCoverage.rows[0] || { active_profiles: 0, profiles_without_pay_group: 0 }
+    });
+  } catch (error) {
+    if (error.code === '42P01') {
+      return res.status(503).json({ error: 'Global payroll setup is not ready. Run database migrations first.' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'Could not fetch global payroll setup' });
+  }
+};
+
 // ─── Get my payslips ──────────────────────────────────────────
 exports.getMine = async (req, res) => {
   try {

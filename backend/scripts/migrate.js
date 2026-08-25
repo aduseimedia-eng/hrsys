@@ -21,8 +21,9 @@ async function run() {
     const applied = await db.query('SELECT 1 FROM schema_migrations WHERE name=$1', [name]);
     if (applied.rows.length) continue;
 
-    // A new database was created from the latest schema, so its migrations are already included.
-    if (!rows[0].companies_table) {
+    // schema.sql is the baseline through migration 061. Apply all newer
+    // migrations so fresh databases receive incremental architecture upgrades.
+    if (!rows[0].companies_table && name <= '061_global_currency_precision.sql') {
       await db.query('INSERT INTO schema_migrations (name) VALUES ($1)', [name]);
       continue;
     }
