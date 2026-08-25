@@ -59,6 +59,8 @@ exports.saveRuleSettings = async (req, res) => {
   const { effective_from: effectiveFrom, employee_rate: employeeRate, employer_rate: employerRate, maximum_amount: maximumAmount, tax_brackets: brackets } = req.body;
   if (!['GH-SSNIT', 'GH-PAYE'].includes(code) || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom || '')) return res.status(400).json({ error: 'Provide a supported Ghana rule and effective date' });
   if (code === 'GH-PAYE' && (!Array.isArray(brackets) || !brackets.length)) return res.status(400).json({ error: 'Provide at least one PAYE tax bracket' });
+  if (code === 'GH-SSNIT' && [employeeRate, employerRate, maximumAmount].some(value => !Number.isFinite(Number(value)) || Number(value) < 0)) return res.status(400).json({ error: 'Provide non-negative SSNIT rates and ceiling' });
+  if (code === 'GH-PAYE' && brackets.some(bracket => !Number.isFinite(Number(bracket.lower_bound)) || !Number.isFinite(Number(bracket.rate)) || Number(bracket.rate) < 0 || (bracket.upper_bound != null && bracket.upper_bound !== '' && !Number.isFinite(Number(bracket.upper_bound))))) return res.status(400).json({ error: 'Each PAYE bracket needs valid bounds and a non-negative rate' });
   let client;
   try {
     client = await db.getClient(); await client.query('BEGIN');

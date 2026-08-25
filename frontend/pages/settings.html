@@ -542,13 +542,13 @@
             <div class="billing-plans" id="billing-plans"></div>
           </div>
         </article>
+        <section class="settings-hub-section settings-panel" id="payroll-tax-settings">
+          <h2>Payroll taxes &amp; statutory rules</h2><p>Schedule Ghana PAYE and SSNIT rates for future payroll calculations. Finalised runs remain unchanged.</p>
+          <div class="settings-editor-form"><div class="form-group"><label class="form-label">Effective from</label><input id="payroll-tax-effective" class="form-control" type="date"></div><div class="form-group"><label class="form-label">Employee SSNIT rate</label><input id="payroll-ssnit-employee" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Employer SSNIT rate</label><input id="payroll-ssnit-employer" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Monthly SSNIT ceiling</label><input id="payroll-ssnit-ceiling" class="form-control" type="number" min="0" step="0.01"></div><div class="settings-editor-actions span-2"><button class="btn btn-primary" onclick="saveSsnitSettings()">Save SSNIT rule</button></div></div>
+          <h3 class="settings-subheading">PAYE brackets</h3><p style="font-size:.8rem;color:var(--text-muted)">Use a JSON list of <code>lower_bound</code>, <code>upper_bound</code> (or null) and <code>rate</code>. For example, 0.05 means 5%.</p><textarea id="payroll-paye-brackets" class="form-control" rows="8" aria-label="PAYE brackets as JSON"></textarea><div class="settings-editor-actions" style="margin-top:12px"><button class="btn btn-primary" onclick="savePayeSettings()">Save PAYE rule</button></div><div id="payroll-tax-current" class="settings-editor-list"></div>
+        </section>
           </div>
         </div>
-      <section class="settings-hub-section settings-panel" id="payroll-tax-settings">
-        <h2>Payroll taxes &amp; statutory rules</h2><p>Schedule Ghana PAYE and SSNIT rates for future payroll calculations. Finalised runs remain unchanged.</p>
-        <div class="settings-editor-form"><div class="form-group"><label class="form-label">Effective from</label><input id="payroll-tax-effective" class="form-control" type="date"></div><div class="form-group"><label class="form-label">Employee SSNIT rate</label><input id="payroll-ssnit-employee" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Employer SSNIT rate</label><input id="payroll-ssnit-employer" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Monthly SSNIT ceiling</label><input id="payroll-ssnit-ceiling" class="form-control" type="number" min="0" step="0.01"></div><div class="settings-editor-actions span-2"><button class="btn btn-primary" onclick="saveSsnitSettings()">Save SSNIT rule</button></div></div>
-        <h3 class="settings-subheading">PAYE brackets</h3><textarea id="payroll-paye-brackets" class="form-control" rows="8" aria-label="PAYE brackets as JSON"></textarea><div class="settings-editor-actions" style="margin-top:12px"><button class="btn btn-primary" onclick="savePayeSettings()">Save PAYE rule</button></div><div id="payroll-tax-current" class="settings-editor-list"></div>
-      </section>
     </main>
     </div>
 
