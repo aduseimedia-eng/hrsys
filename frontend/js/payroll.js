@@ -10,10 +10,12 @@ const payrollTrendCharts = {};
 if (user.role === 'admin') {
   document.getElementById('admin-tab').style.display = '';
   document.getElementById('summary-tab').style.display = '';
+  document.getElementById('runs-tab').style.display = '';
 
   document.getElementById('admin-payroll-actions').innerHTML =
     `<button class="btn btn-outline" onclick="downloadAllPayslips()">Download All PDF</button>
      <button class="btn btn-outline" onclick="showOvertimeRateModal()">Overtime Rate</button>
+     <button class="btn btn-outline" onclick="switchTab('runs')">Payroll Runs</button>
      <button class="btn btn-primary" onclick="showProcessModal()">Process Payroll</button>`;
 
   const mSel = document.getElementById('pr-month');
@@ -112,10 +114,67 @@ function renderPayrollTrend(hostId, rows) {
 }
 
 function switchTab(tab) {
-  ['mine','all','summary'].forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'':'none');
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['mine','all','summary'][i]===tab));
+  const tabs = ['mine', 'all', 'summary', 'runs'];
+  tabs.forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'':'none');
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
   if (tab==='all') loadAllPayroll();
   if (tab==='summary') loadSummary();
+  if (tab==='runs') loadPayrollRuns();
+}
+
+const payrollRunActions = {
+  draft: ['Calculate', 'calculate'], calculated: ['Submit', 'submit'],
+  pending_approval: ['Approve', 'approve'], approved: ['Finalize', 'finalize'],
+  finalized: ['Mark paid', 'mark_paid']
+};
+
+function runPeriod(run) {
+  const options = { month: 'short', day: 'numeric', year: 'numeric' };
+  return `${new Date(`${run.period_start}T00:00:00`).toLocaleDateString(undefined, options)} – ${new Date(`${run.period_end}T00:00:00`).toLocaleDateString(undefined, options)}`;
+}
+
+async function loadPayrollRuns() {
+  const body = document.getElementById('payroll-runs-tbody');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="6"><div class="loading-state"><div class="spinner"></div></div></td></tr>';
+  try {
+    const runs = await api.get('/payroll/runs');
+    body.innerHTML = runs.length ? runs.map((run) => {
+      const action = payrollRunActions[run.status];
+      return `<tr><td><strong>${runPeriod(run)}</strong></td><td>${safe(run.pay_group_name || '—')}</td><td>${safe(run.country_code || '—')}</td><td>${safe(run.currency_code || '—')}</td><td>${fmt.statusBadge(String(run.status).replace('_', ' '))}</td><td><div class="payroll-run-actions">${action ? `<button class="btn btn-primary btn-sm" onclick="advancePayrollRun(${run.id}, '${action[1]}')">${action[0]}</button>` : '<span class="payroll-run-meta">Complete</span>'}</div></td></tr>`;
+    }).join('') : '<tr><td colspan="6"><div class="empty-state"><p>No global payroll runs yet. Create one to calculate payroll with Ghana rules.</p></div></td></tr>';
+  } catch (error) { body.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>${safe(error.message || 'Could not load payroll runs.')}</p></div></td></tr>`; }
+}
+
+async function showCreatePayrollRun() {
+  try {
+    const setup = await api.get('/payroll/setup');
+    if (!setup.pay_groups?.length) return toast('No active pay group is available.', 'warning');
+    const today = new Date(), start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10), end = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `<div class="modal" style="max-width:540px"><div class="modal-header"><h3>Create global payroll run</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div><div class="modal-body"><p style="margin:0 0 18px;color:var(--text-secondary);font-size:.88rem">Create a draft, then calculate it using the effective country rules.</p><div class="form-group"><label class="form-label">Pay group</label><select id="global-run-pay-group" class="form-control form-select">${setup.pay_groups.map(group => `<option value="${group.id}">${safe(group.name)} · ${safe(group.country_code)} · ${safe(group.pay_frequency)}</option>`).join('')}</select></div><div class="form-grid"><div class="form-group"><label class="form-label">Period start</label><input id="global-run-start" class="form-control" type="date" value="${start}"></div><div class="form-group"><label class="form-label">Period end</label><input id="global-run-end" class="form-control" type="date" value="${end}"></div></div><div class="form-group"><label class="form-label">Payment date</label><input id="global-run-payment" class="form-control" type="date" value="${end}"></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="createPayrollRun(this)">Create draft</button></div></div>`;
+    document.body.appendChild(overlay);
+  } catch (error) { toast(error.message || 'Could not load payroll setup', 'error'); }
+}
+
+async function createPayrollRun(button) {
+  try {
+    button.disabled = true;
+    await api.post('/payroll/runs', { pay_group_id: Number(document.getElementById('global-run-pay-group').value), period_start: document.getElementById('global-run-start').value, period_end: document.getElementById('global-run-end').value, payment_date: document.getElementById('global-run-payment').value || null });
+    button.closest('.modal-overlay').remove(); toast('Draft payroll run created. Select Calculate when ready.', 'success'); loadPayrollRuns();
+  } catch (error) { button.disabled = false; toast(error.message || 'Could not create payroll run', 'error'); }
+}
+
+async function advancePayrollRun(id, action) {
+  const labels = { calculate: 'Calculate', submit: 'Submit', approve: 'Approve', finalize: 'Finalize', mark_paid: 'Mark paid' };
+  if (!confirm(`${labels[action]} this payroll run?`)) return;
+  try {
+    if (action === 'calculate') await api.post(`/payroll/runs/${id}/calculate`);
+    else await api.post(`/payroll/runs/${id}/transition`, { action });
+    const completed = { calculate: 'calculated', submit: 'submitted', approve: 'approved', finalize: 'finalized', mark_paid: 'marked as paid' };
+    toast(`Payroll run ${completed[action]}.`, 'success'); loadPayrollRuns();
+  } catch (error) { toast(error.message || `Could not ${action} payroll run`, 'error'); }
 }
 
 async function loadMyPayslips() {

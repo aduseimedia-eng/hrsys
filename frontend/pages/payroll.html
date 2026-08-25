@@ -84,7 +84,7 @@
     .payroll-kpi { padding:15px; }.payroll-kpi span { color:var(--text-muted); display:block; font-size:.7rem; font-weight:700; text-transform:uppercase; }.payroll-kpi strong { display:block; margin-top:6px; font-size:1.22rem; color:var(--text-primary); }.payroll-kpi small { display:block; margin-top:5px; color:var(--text-muted); font-size:.72rem; }
     .payroll-dash-card { overflow:hidden; }.payroll-dash-header { padding:14px 16px; border-bottom:1px solid var(--border); }.payroll-dash-header h3 { margin:0; font-size:.88rem; }.payroll-dash-header p { margin:3px 0 0; color:var(--text-muted); font-size:.71rem; }
     .payroll-pipeline { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:15px; }.payroll-stage { padding:12px; text-align:center; border-radius:10px; background:var(--navy-50); }.payroll-stage strong { display:block; color:var(--brand); font-size:1.15rem; }.payroll-stage span { color:var(--text-muted); font-size:.66rem; font-weight:700; text-transform:uppercase; }.payroll-stage.paid { background:#e9f8ef; }.payroll-stage.paid strong { color:#178047; }
-    .payroll-trend { height:255px; padding:12px 16px 16px; }.payroll-bottom-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }.payroll-donut { height:240px; padding:10px 14px 14px; }.payroll-side { display:grid; gap:16px; align-content:start; }.payroll-list { padding:4px 14px 12px; }.payroll-person { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:.78rem; }.payroll-person:last-child { border-bottom:0; }.payroll-person strong { display:block; color:var(--text-primary); }.payroll-person small { color:var(--text-muted); }.payroll-person b { color:var(--brand); white-space:nowrap; align-self:center; }
+    .payroll-trend { height:255px; padding:12px 16px 16px; }.payroll-bottom-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }.payroll-donut { height:240px; padding:10px 14px 14px; }.payroll-side { display:grid; gap:16px; align-content:start; }.payroll-list { padding:4px 14px 12px; }.payroll-person { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:.78rem; }.payroll-person:last-child { border-bottom:0; }.payroll-person strong { display:block; color:var(--text-primary); }.payroll-person small { color:var(--text-muted); }.payroll-person b { color:var(--brand); white-space:nowrap; align-self:center; }.payroll-run-meta { color:var(--text-muted); font-size:.78rem; }.payroll-run-actions { display:flex; gap:7px; justify-content:flex-end; }.payroll-run-actions .btn { white-space:nowrap; }
     @media(max-width:1180px){.payroll-dashboard{grid-template-columns:1fr}.payroll-side{grid-template-columns:repeat(2,minmax(0,1fr)}}@media(max-width:760px){.payroll-kpis,.payroll-bottom-grid,.payroll-side{grid-template-columns:1fr}.payroll-pipeline{grid-template-columns:1fr}}
   </style>
 </head>
@@ -120,6 +120,7 @@
       <button class="tab-btn active" onclick="switchTab('mine')">My Payslips</button>
       <button class="tab-btn" id="admin-tab" style="display:none" onclick="switchTab('all')">All Payroll</button>
       <button class="tab-btn" id="summary-tab" style="display:none" onclick="switchTab('summary')">Summary</button>
+      <button class="tab-btn" id="runs-tab" style="display:none" onclick="switchTab('runs')">Payroll Runs</button>
     </div>
 
     <!-- My payslips -->
@@ -159,6 +160,11 @@
           <tbody id="summary-tbody"></tbody>
         </table>
       </div>
+    </div>
+
+    <div id="tab-runs" style="display:none">
+      <section class="card" style="margin-bottom:16px"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h3>Global payroll runs</h3><p style="margin:3px 0 0;color:var(--text-muted);font-size:.82rem">Calculate a country-rule-based payroll before approval and payment.</p></div><button class="btn btn-primary btn-sm" onclick="showCreatePayrollRun()">Create payroll run</button></div></section>
+      <div class="table-container"><table><thead><tr><th>Period</th><th>Pay group</th><th>Country</th><th>Currency</th><th>Status</th><th>Actions</th></tr></thead><tbody id="payroll-runs-tbody"><tr><td colspan="6"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody></table></div>
     </div>
   </main>
 </div>
@@ -418,6 +424,6 @@ loadMyPayslips();
 </script>
 <script src="/vendor/chartjs/chart.umd.min.js"></script>
 <script src="../js/charts.js"></script>
-<script src="../js/payroll.js?v=20260721c"></script>
+<script src="../js/payroll.js?v=20260825a"></script>
 </body>
 </html>
