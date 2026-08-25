@@ -5,6 +5,7 @@ loadNotifCount();
 
 const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const now = new Date();
+const payrollTrendCharts = {};
 
 if (user.role === 'admin') {
   document.getElementById('admin-tab').style.display = '';
@@ -50,8 +51,7 @@ async function loadPayrollDashboard() {
       ['Processed', statusCount('processed'), 'review'],
       ['Paid', statusCount('paid'), 'paid']
     ].map(([label, value, style]) => `<div class="payroll-stage ${style}"><strong>${value}</strong><span>${label}</span></div>`).join('');
-    const trendRows = summary.slice().reverse();
-    KenadCharts.line('#payroll-dashboard-trend', trendRows.map((row) => `${months[Number(row.month) - 1].slice(0, 3)} ${String(row.year).slice(-2)}`), trendRows.map((row) => Number(row.total_net || 0)), '#2563eb');
+    renderPayrollTrend('payroll-dashboard-trend', summary.slice().reverse());
     const departments = rows.reduce((grouped, row) => {
       const name = row.department_name || 'Unassigned';
       grouped[name] = (grouped[name] || 0) + Number(row.net_salary || 0);
@@ -74,6 +74,41 @@ async function loadPayrollDashboard() {
   } catch (error) {
     dashboard.innerHTML = `<div class="empty-state"><p>${error.message || 'Could not load payroll dashboard.'}</p></div>`;
   }
+}
+
+function renderPayrollTrend(hostId, rows) {
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  if (!window.Chart) {
+    KenadCharts.line(host, rows.map((row) => `${months[Number(row.month) - 1].slice(0, 3)} ${String(row.year).slice(-2)}`), rows.map((row) => Number(row.total_net || 0)), '#2563eb');
+    return;
+  }
+  payrollTrendCharts[hostId]?.destroy();
+  host.replaceChildren();
+  const canvas = document.createElement('canvas');
+  host.appendChild(canvas);
+  payrollTrendCharts[hostId] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: rows.map((row) => `${months[Number(row.month) - 1].slice(0, 3)} ${String(row.year).slice(-2)}`),
+      datasets: [
+        { label: 'Gross', data: rows.map((row) => Number(row.total_gross || row.total_base || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.10)', fill: true },
+        { label: 'Deductions', data: rows.map((row) => Number(row.total_deductions || 0)), borderColor: '#ef4444', backgroundColor: 'transparent', fill: false },
+        { label: 'Net', data: rows.map((row) => Number(row.total_net || 0)), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.07)', fill: true }
+      ].map((dataset) => ({ ...dataset, borderWidth: 2.5, tension: .35, pointRadius: 3, pointHoverRadius: 5, pointBorderWidth: 2, pointBorderColor: '#fff' }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 7, boxHeight: 7, padding: 14, color: '#64748b', font: { size: 11, weight: '600' } } },
+        tooltip: { backgroundColor: '#17243d', padding: 10, cornerRadius: 8, callbacks: { label: (item) => `${item.dataset.label}: ${fmt.currency(item.raw)}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#8190a8', font: { size: 10 } } },
+        y: { beginAtZero: true, border: { display: false }, grid: { color: '#e9eef6', drawTicks: false }, ticks: { color: '#8190a8', font: { size: 10 }, callback: (value) => fmt.currency(value) } }
+      }
+    }
+  });
 }
 
 function switchTab(tab) {
@@ -422,7 +457,7 @@ async function loadSummary() {
   const rows = await api.get('/payroll/summary');
   const tbody = document.getElementById('summary-tbody');
   if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>No data</p></div></td></tr>`; return; }
-  KenadCharts.line('#payroll-chart', rows.map(r => `${months[r.month-1].slice(0,3)} ${String(r.year).slice(-2)}`), rows.map(r => Number(r.total_net || 0)), '#59b78a');
+  renderPayrollTrend('payroll-chart', rows.slice().reverse());
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td style="font-weight:500">${months[r.month-1]} ${r.year}</td>

@@ -257,6 +257,7 @@ exports.getSummary = async (req, res) => {
       `SELECT year, month,
               SUM(net_salary) AS total_net,
               SUM(base_salary) AS total_base,
+              SUM(base_salary + allowances + overtime_pay) AS total_gross,
               SUM(deductions) AS total_deductions,
               COUNT(*) AS employee_count,
               COUNT(*) FILTER (WHERE status='paid') AS paid_count
