@@ -1293,6 +1293,11 @@ tbody tr:hover { background: #f7faff; }
 .modal .form-label { color: #647189; font-size: .76rem; font-weight: 700; letter-spacing: .02em; }
 .department-delete-dialog { padding: 28px; }
 @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Payroll run confirmations are intentionally compact. Do not let the shared
+   flex modal body collapse their single explanatory message into a scrollbox. */
+.modal:has(.run-dialog-note) { height: auto; max-height: none; overflow: visible; }
+.modal:has(.run-dialog-note) .modal-body { flex: 0 0 auto; overflow: visible; min-height: 0; }
 @keyframes modal-panel-in { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (max-width: 640px) {
   .modal-overlay { align-items: flex-end; padding: 0; }
