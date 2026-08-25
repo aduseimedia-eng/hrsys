@@ -1193,7 +1193,7 @@
           if (ssnit) { document.getElementById('payroll-ssnit-employee').value = ssnit.employee_rate || ''; document.getElementById('payroll-ssnit-employer').value = ssnit.employer_rate || ''; document.getElementById('payroll-ssnit-ceiling').value = ssnit.maximum_amount || ''; }
           if (paye) document.getElementById('payroll-paye-brackets').value = JSON.stringify(paye.tax_brackets || [], null, 2);
           document.getElementById('payroll-tax-effective').value = new Date().toISOString().slice(0, 10);
-          document.getElementById('payroll-tax-current').innerHTML = rules.map(rule => `<div class="settings-editor-row"><div><strong>${escapeUi(rule.name)}</strong><span>Effective ${escapeUi(rule.effective_from)} · ${escapeUi(rule.version)}</span></div></div>`).join('');
+          document.getElementById('payroll-tax-current').innerHTML = rules.map(rule => `<div class="settings-editor-row"><div><strong>${escapeUi(rule.name)}</strong><span>Effective ${escapeUi(fmt.date(`${rule.effective_from}T00:00:00`))} · ${escapeUi(rule.version)}</span></div></div>`).join('');
         } catch (error) { document.getElementById('payroll-tax-current').textContent = error.message || 'Could not load payroll tax settings.'; }
       }
       async function saveSsnitSettings() {
