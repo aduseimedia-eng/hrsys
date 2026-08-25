@@ -75,18 +75,15 @@
       .finance-actions .btn { min-height: 41px; }
       .finance-page .btn-primary,
       #transactionModal .btn-primary,
-      #loanModal .btn-primary {
         background: var(--brand);
         box-shadow: 0 7px 16px color-mix(in srgb, var(--brand) 22%, transparent);
       }
       .finance-page .btn-primary:hover,
       #transactionModal .btn-primary:hover,
-      #loanModal .btn-primary:hover {
         background: color-mix(in srgb, var(--brand) 86%, #17243d);
       }
       .finance-page .btn-outline:hover,
       #transactionModal .btn-outline:hover,
-      #loanModal .btn-outline:hover {
         border-color: var(--brand);
         background: color-mix(in srgb, var(--brand) 7%, white);
         color: var(--brand);
@@ -891,7 +888,6 @@
           <button class="tab-btn active" id="financeTabOverview" type="button" role="tab" aria-selected="true" aria-controls="overview" tabindex="0" onclick="tab('overview', this)">Overview</button>
           <button class="tab-btn" id="financeTabLedger" type="button" role="tab" aria-selected="false" aria-controls="ledger" tabindex="-1" onclick="tab('ledger', this)">Transactions</button>
           <button class="tab-btn" id="financeTabBills" type="button" role="tab" aria-selected="false" aria-controls="bills" tabindex="-1" onclick="tab('bills', this)">Bills to action</button>
-          <button class="tab-btn" id="financeTabLoans" type="button" role="tab" aria-selected="false" aria-controls="loans" tabindex="-1" onclick="tab('loans', this)">Employee loans</button>
         </nav>
         <section id="overview" role="tabpanel" aria-labelledby="financeTabOverview" aria-hidden="false">
           <div class="insights-grid">
@@ -1404,7 +1400,6 @@
         year = document.getElementById("year"),
         cashflowPeriod = document.getElementById("cashflowPeriod");
       let rows = [];
-      let loans = [];
       let recentActivity = [];
       let recentActivityPage = 0;
       let activeLoad = 0;
@@ -1460,7 +1455,7 @@
         );
       }
       function tab(name, b) {
-        ["overview", "ledger", "bills", "loans"].forEach((x) => {
+        ["overview", "ledger", "bills"].forEach((x) => {
           const panel = document.getElementById(x);
           const active = x === name;
           panel.style.display = active ? "" : "none";
@@ -2346,7 +2341,6 @@
         }
       });
       load();
-      loadLoans();
       window.addEventListener("focus", () => load({ silent: true }));
       window.setInterval(() => {
         if (document.visibilityState === "visible") load({ silent: true });
