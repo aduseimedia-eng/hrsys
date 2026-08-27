@@ -85,6 +85,26 @@ async function requisitionRelations(companyId, body) {
   };
 }
 
+async function isDepartmentHead(companyId, employeeId, departmentId) {
+  if (!departmentId) return false;
+  const result = await db.query(
+    'SELECT id FROM departments WHERE company_id=$1 AND id=$2 AND manager_id=$3',
+    [companyId, departmentId, employeeId]
+  );
+  return Boolean(result.rows.length);
+}
+
+async function canManageRequisition(req, requisitionId) {
+  if (req.user.role === 'admin') return true;
+  const result = await db.query(
+    `SELECT r.id FROM job_requisitions r
+       JOIN departments d ON d.id=r.department_id
+      WHERE r.id=$1 AND r.company_id=$2 AND d.manager_id=$3`,
+    [requisitionId, req.user.company_id, req.user.id]
+  );
+  return Boolean(result.rows.length);
+}
+
 async function syncRequisitionPublicationStatus(companyId, requisitionId) {
   const publishing = await db.query(
     "SELECT COUNT(*) FILTER (WHERE status='published')::int AS active FROM job_postings WHERE company_id=$1 AND requisition_id=$2",
@@ -236,17 +256,28 @@ exports.convertRequest = async (req, res) => {
 
 exports.getRequisitions = async (req, res) => { try {
   const approvalStatus = isOneOf(clean(req.query.approval_status), approvalStatuses);
+  const params = [req.user.company_id];
+  const filters = ['r.company_id=$1'];
+  if (approvalStatus) {
+    params.push(approvalStatus);
+    filters.push(`r.approval_status=$${params.length}`);
+  }
+  if (req.user.role !== 'admin') {
+    params.push(req.user.id);
+    filters.push(`d.manager_id=$${params.length}`);
+  }
   const result = await db.query(
-    `${requisitionSelect} WHERE r.company_id=$1 ${approvalStatus ? 'AND r.approval_status=$2' : ''}
+    `${requisitionSelect} WHERE ${filters.join(' AND ')}
       GROUP BY r.id,d.name,manager.first_name,manager.last_name,rr.request_number,rr.status ORDER BY r.created_at DESC`,
-    approvalStatus ? [req.user.company_id, approvalStatus] : [req.user.company_id]
+    params
   );
   res.json(result.rows);
 } catch (error) { res.status(500).json({ error: 'Could not load job requisitions' }); } };
 
 exports.getRequisition = async (req, res) => { try {
   const result = await db.query(`${requisitionSelect} WHERE r.id=$1 AND r.company_id=$2
-    GROUP BY r.id,d.name,manager.first_name,manager.last_name,rr.request_number,rr.status`, [req.params.id, req.user.company_id]);
+    AND ($3='admin' OR d.manager_id=$4)
+    GROUP BY r.id,d.name,manager.first_name,manager.last_name,rr.request_number,rr.status`, [req.params.id, req.user.company_id, req.user.role, req.user.id]);
   if (!result.rows.length) return res.status(404).json({ error: 'Job requisition not found' });
   res.json(result.rows[0]);
 } catch (error) { res.status(500).json({ error: 'Could not load job requisition' }); } };
@@ -254,6 +285,12 @@ exports.getRequisition = async (req, res) => { try {
 exports.createRequisition = async (req, res) => { try {
   const data = requisitionData(req.body);
   const relations = await requisitionRelations(req.user.company_id, req.body);
+  if (req.user.role !== 'admin') {
+    if (!await isDepartmentHead(req.user.company_id, req.user.id, relations.departmentId)) {
+      return res.status(403).json({ error: 'Only the assigned department head can create a requisition for that department' });
+    }
+    relations.hiringManagerId = req.user.id;
+  }
   if (relations.requestId) {
     const request = await db.query("SELECT id FROM recruitment_requests WHERE id=$1 AND company_id=$2 AND status IN ('approved','converted')", [relations.requestId, req.user.company_id]);
     if (!request.rows.length) throw new Error('Choose an approved recruitment request');
@@ -272,10 +309,14 @@ exports.createRequisition = async (req, res) => { try {
 exports.updateRequisition = async (req, res) => { try {
   const data = requisitionData(req.body);
   const relations = await requisitionRelations(req.user.company_id, req.body);
+  if (req.user.role !== 'admin' && !await isDepartmentHead(req.user.company_id, req.user.id, relations.departmentId)) {
+    return res.status(403).json({ error: 'Only the assigned department head can update this requisition' });
+  }
   const result = await db.query(`UPDATE job_requisitions SET title=$1,department_id=$2,hiring_manager_id=$3,description=$4,
       location=$5,employment_type=$6,closes_at=$7,headcount=$8,target_start_date=$9,updated_at=NOW()
-    WHERE id=$10 AND company_id=$11 AND status<>'closed' RETURNING *`,
-    [data.title, relations.departmentId, relations.hiringManagerId, data.description, data.location, data.employmentType, data.closesAt, data.headcount, data.targetStartDate, req.params.id, req.user.company_id]
+    WHERE id=$10 AND company_id=$11 AND status<>'closed'
+      AND ($12='admin' OR EXISTS (SELECT 1 FROM departments d WHERE d.id=job_requisitions.department_id AND d.manager_id=$13)) RETURNING *`,
+    [data.title, relations.departmentId, req.user.role === 'admin' ? relations.hiringManagerId : req.user.id, data.description, data.location, data.employmentType, data.closesAt, data.headcount, data.targetStartDate, req.params.id, req.user.company_id, req.user.role, req.user.id]
   );
   if (!result.rows.length) return res.status(409).json({ error: 'Closed requisitions cannot be edited' });
   res.json(result.rows[0]);
@@ -283,6 +324,12 @@ exports.updateRequisition = async (req, res) => { try {
 
 async function requisitionAction(req, res, action) {
   try {
+    if (['approve', 'reject', 'close'].includes(action) && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only HR administrators can approve, reject, or close requisitions' });
+    }
+    if (action === 'submit' && !await canManageRequisition(req, req.params.id)) {
+      return res.status(403).json({ error: 'Only the assigned department head can submit this requisition' });
+    }
     const note = clean(req.body.note) || null;
     let query, params;
     if (action === 'submit') {

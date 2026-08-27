@@ -8,8 +8,20 @@ let requisitionEmployees = [];
 const requisitionForm = document.getElementById('requisition-form');
 
 function setRequisitionOptions() {
-  document.getElementById('requisition-department').innerHTML = '<option value="">Not assigned</option>' + requisitionDepartments.map(item => `<option value="${item.id}">${recruitmentEscape(item.name)}</option>`).join('');
-  document.getElementById('requisition-manager').innerHTML = '<option value="">Not assigned</option>' + requisitionEmployees.map(item => `<option value="${item.id}">${recruitmentEscape(`${item.first_name} ${item.last_name}`)}</option>`).join('');
+  const isDepartmentHead = recruitmentRequisitionUser.role === 'manager';
+  const departments = isDepartmentHead
+    ? requisitionDepartments.filter(item => Number(item.manager_id) === Number(recruitmentRequisitionUser.id))
+    : requisitionDepartments;
+  document.getElementById('requisition-department').innerHTML = '<option value="">Not assigned</option>' + departments.map(item => `<option value="${item.id}">${recruitmentEscape(item.name)}</option>`).join('');
+  const managerField = document.getElementById('requisition-manager');
+  const managers = isDepartmentHead
+    ? requisitionEmployees.filter(item => Number(item.id) === Number(recruitmentRequisitionUser.id))
+    : requisitionEmployees;
+  managerField.innerHTML = '<option value="">Not assigned</option>' + managers.map(item => `<option value="${item.id}">${recruitmentEscape(`${item.first_name} ${item.last_name}`)}</option>`).join('');
+  if (isDepartmentHead) {
+    managerField.value = String(recruitmentRequisitionUser.id);
+    managerField.disabled = true;
+  }
 }
 
 function requisitionBody() {
@@ -38,7 +50,11 @@ function renderRequisitionWorkflow() {
   if (!currentRequisition) { target.innerHTML = '<p>Create the requisition as a draft or submit it for approval.</p>'; return; }
   const approval = currentRequisition.approval_status;
   const status = currentRequisition.status;
-  const review = approval === 'pending' ? `<label class="form-label" for="requisition-approval-note" style="margin-top:14px">Approval note</label><textarea id="requisition-approval-note" class="form-control" rows="3" placeholder="Optional approval or rejection note"></textarea><div class="recruitment-form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" id="approve-requisition" type="button">Approve requisition</button><button class="btn btn-outline btn-sm" id="reject-requisition" type="button">Reject requisition</button></div>` : '';
+  const review = approval === 'pending'
+    ? recruitmentRequisitionUser.role === 'admin'
+      ? `<label class="form-label" for="requisition-approval-note" style="margin-top:14px">Approval note</label><textarea id="requisition-approval-note" class="form-control" rows="3" placeholder="Optional approval or rejection note"></textarea><div class="recruitment-form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" id="approve-requisition" type="button">Approve requisition</button><button class="btn btn-outline btn-sm" id="reject-requisition" type="button">Reject requisition</button></div>`
+      : '<p style="margin-top:12px">Awaiting HR approval.</p>'
+    : '';
   const submit = ['draft', 'rejected'].includes(approval) ? '<button class="btn btn-primary btn-sm" id="submit-requisition" type="button" style="margin-top:14px">Submit for approval</button>' : '';
   const post = approval === 'approved' && status !== 'closed' ? `<a class="btn btn-primary btn-sm" href="recruitment-posting-form.html?requisition_id=${currentRequisition.id}" style="margin-top:14px">Create job posting</a>` : '';
   const close = status !== 'closed' && approval === 'approved' ? '<button class="btn btn-outline btn-sm" id="close-requisition" type="button" style="margin-top:10px">Close requisition</button>' : '';
