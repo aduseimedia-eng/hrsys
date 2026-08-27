@@ -54,6 +54,7 @@ app.use('/api/financials',    require('./routes/financials.routes'));
 app.use('/api/audit',         require('./routes/audit.routes'));
 app.use('/api/assets',        require('./routes/assets.routes'));
 app.use('/api/benefits',      require('./routes/benefits.routes'));
+app.use('/api/employee-requests', require('./routes/employee-requests.routes'));
 app.use('/api/loans',         require('./routes/loans.routes'));
 app.use('/api/recruitment',   require('./routes/recruitment.routes'));
 app.use('/api/documents',     require('./routes/documents.routes'));

@@ -777,6 +777,7 @@ function buildSidebar(activePage, options = {}) {
     { page: 'calendar',    icon: calendarIcon(),   label: 'Calendar',     roles: ['admin','manager','employee'] },
     { page: 'payroll',     icon: walletIcon(),     label: 'Payroll',      roles: ['admin','manager','employee'] },
     { page: 'benefits',    icon: docIcon(),        label: 'Benefits',     roles: ['admin','manager','employee'] },
+    { page: 'employee-requests', icon: docIcon(),  label: 'Employee Requests', roles: ['admin','manager','employee'] },
     { page: 'documents',   icon: docIcon(),        label: 'Documents',    roles: ['admin','manager','employee'] },
     { page: 'performance', icon: starIcon(),       label: 'Performance',  roles: ['admin','manager','employee'] },
     { page: 'training',    icon: checkIcon(),      label: 'Training Register', roles: ['admin','manager','employee'] },
@@ -800,6 +801,7 @@ function buildSidebar(activePage, options = {}) {
     { page: 'calendar', icon: calendarIcon(), label: 'Company Calendar', roles: ['admin', 'manager'] },
     { page: 'todos', icon: checkIcon(), label: 'To Do List', roles: ['admin', 'manager'] },
     { page: 'messages', icon: chatIcon(), label: 'Messages', roles: ['admin', 'manager'] },
+    { page: 'employee-requests', icon: docIcon(), label: 'Employee Requests', roles: ['admin', 'manager'] },
     { section: 'Pay & Benefits', icon: walletIcon(), roles: ['admin', 'manager'] },
     { page: 'payroll', icon: walletIcon(), label: 'Payroll', roles: ['admin', 'manager'] },
     { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },
@@ -849,6 +851,7 @@ function buildSidebar(activePage, options = {}) {
     { page: 'todos', icon: checkIcon(), label: 'To do list', roles: ['admin', 'manager'] },
     { page: 'messages', icon: chatIcon(), label: 'Messages', roles: ['admin', 'manager'] },
     { page: 'tickets', icon: docIcon(), label: 'Requests & Support', roles: ['admin', 'manager'] },
+    { page: 'employee-requests', icon: docIcon(), label: 'Employee Requests', roles: ['admin', 'manager'] },
     { section: 'Pay & Benefits', icon: walletIcon(), roles: ['admin', 'manager'] },
     { page: 'payroll', icon: walletIcon(), label: 'Payroll', roles: ['admin', 'manager'], activeFor: ['finance'] },
     { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },
@@ -928,6 +931,8 @@ function buildSidebar(activePage, options = {}) {
           ? appUrl('/pages/calendar.html')
           : item.page === 'benefits'
             ? appUrl('/pages/benefits.html')
+            : item.page === 'employee-requests'
+              ? appUrl('/pages/employee-requests.html')
             : item.page === 'loans'
               ? appUrl('/pages/loans.html')
               : item.page === 'training'
@@ -1059,6 +1064,7 @@ function setupQuickAccess(navItems, user, isManager) {
           : item.page === 'messages' ? appUrl('/pages/messages.html')
           : item.page === 'calendar' ? appUrl('/pages/calendar.html')
             : item.page === 'benefits' ? appUrl('/pages/benefits.html')
+            : item.page === 'employee-requests' ? appUrl('/pages/employee-requests.html')
               : item.page === 'training' ? appUrl('/pages/training.html')
                 : item.page === 'probation' ? appUrl('/pages/probation.html')
                   : item.page === 'contracts' ? appUrl('/pages/contracts.html')

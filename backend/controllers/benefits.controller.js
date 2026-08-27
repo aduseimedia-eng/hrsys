@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-const CATEGORIES = ['health_insurance', 'life_insurance', 'retirement', 'wellness', 'transport', 'meal', 'leave', 'education', 'other'];
+const CATEGORIES = ['health_insurance', 'life_insurance', 'retirement', 'ssnit_pension', 'allowance', 'wellness', 'transport', 'meal', 'leave', 'education', 'other'];
 const ELIGIBILITY_GROUPS = ['all', 'staff', 'national_service', 'contractual', 'internship'];
 
 function payload(body) {
