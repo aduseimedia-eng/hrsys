@@ -1235,12 +1235,12 @@
           </nav>
         </div>
         <div class="profile-actions">
+          ${canEdit ? `<button type="button" class="btn btn-sm profile-change-btn" onclick="showEditModal()">${profileIcon("edit")}<span>Edit profile</span></button>` : ""}
           ${!isOwn ? `<button type="button" class="btn btn-sm profile-change-btn" onclick="showSecureMessageModal()">${profileIcon("message")}<span>Send Message</span></button>` : ""}
           <button type="button" class="btn btn-sm profile-more-btn" aria-label="More profile actions" onclick="toggleProfileActionMenu()">${profileIcon("more")}</button>
           <div class="profile-action-menu" id="profile-action-menu">
             <button type="button" onclick="goBackToEmployees()">Back to employees</button>
             ${!isOwn ? `<button type="button" onclick="showSecureMessageModal()">Send message</button>` : ""}
-            ${canEdit ? `<button type="button" onclick="showEditModal()">Edit profile</button>` : ""}
             ${isAdmin && !isOwn ? `<button type="button" onclick="showPromotionModal()">Promote employee</button><button type="button" onclick="showAccountModal(${emp.id})">Account settings</button><button type="button" class="danger" onclick="showDeleteEmployeeModal(${emp.id})">Delete employee</button>` : ""}
           </div>
         </div>
