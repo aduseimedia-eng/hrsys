@@ -34,6 +34,29 @@
         padding: 22px !important;
         overflow: visible !important;
       }
+      .profile-loader {
+        min-height: min(60vh, 520px);
+        display: grid;
+        place-items: center;
+        padding: 32px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(145deg, #fff, var(--navy-50));
+      }
+      .profile-loader-card { text-align:center; }
+      .profile-loader-icon {
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 14px;
+        border-radius: 16px;
+        background: rgba(37,99,235,.12);
+        color: #2563eb;
+      }
+      .profile-loader-icon .spinner { width: 25px; height: 25px; border-width: 3px; border-color: rgba(37,99,235,.22); border-top-color: #2563eb; }
+      .profile-loader h2 { margin:0; color:var(--text-primary); font-size:1rem; }
+      .profile-loader p { margin:6px 0 0; color:var(--text-secondary); font-size:.86rem; }
 
       .profile-hero {
         background: linear-gradient(120deg, #08752a 0%, #118334 100%);
@@ -958,8 +981,12 @@
         <div class="topbar-actions"></div>
       </header>
       <main class="main-content" id="profile-content">
-        <div class="loading-state" style="height: 60vh">
-          <div class="spinner"></div>
+        <div class="profile-loader" role="status" aria-live="polite">
+          <div class="profile-loader-card">
+            <div class="profile-loader-icon"><div class="spinner"></div></div>
+            <h2>Opening staff profile</h2>
+            <p>Loading employee details and records…</p>
+          </div>
         </div>
       </main>
     </div>
