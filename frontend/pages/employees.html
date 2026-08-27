@@ -36,10 +36,11 @@
     }
 
     .emp-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 16px;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      padding: 16px 0;
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -49,22 +50,20 @@
       position: relative;
       overflow: hidden;
     }
-    .emp-card:hover { box-shadow: var(--shadow-md); border-color: var(--navy-200); transform: translateY(-2px); }
-    .emp-card::before { content: ''; position: absolute; top: 15px; left: 15px; width: 6px; height: 6px; border-radius: 50%; background: var(--type-accent); }
-    .emp-card-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: flex-start; gap: 10px; padding-left: 4px; }
+    .emp-card:hover { background: #f7faff; border-color: #cddcf5; box-shadow: none; transform: none; }
+    .emp-card::before { display: none; }
+    .emp-card-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: flex-start; gap: 10px; }
     .emp-person { display: flex; align-items: center; gap: 11px; min-width: 0; }
     .emp-person .avatar { flex: 0 0 auto; }
     .emp-person > div:last-child { min-width: 0; flex: 1; }
     .emp-card .emp-name { overflow: hidden; color: var(--text-primary); font-weight: 750; font-size: .92rem; text-overflow: ellipsis; white-space: nowrap; }
     .emp-card .emp-title { overflow: hidden; color: var(--text-secondary); font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
-    .emp-card .emp-dept  { margin-top: 16px; color: var(--text-muted); font-size: .73rem; }
+    .emp-card .emp-dept  { display: inline-flex; width: fit-content; margin-top: 13px; padding: 4px 8px; border-radius: 999px; background: var(--navy-50); color: var(--navy-800); font-size: .7rem; font-weight: 700; }
     .emp-card .emp-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
     .emp-meta-item { min-width: 0; }
     .emp-meta-label { display: block; color: var(--text-muted); font-size: .61rem; font-weight: 750; letter-spacing: .035em; text-transform: uppercase; }
     .emp-meta-value { display: block; overflow: hidden; margin-top: 2px; color: var(--text-secondary); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
-    .emp-contact { display: grid; gap: 5px; margin: 13px 0 14px; padding: 10px; border-radius: 8px; background: var(--navy-50); color: var(--text-secondary); font-size: .71rem; }
-    .emp-contact span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .emp-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+    .emp-card-actions { display: flex; gap: 8px; margin-top: 15px; }
     .emp-card-actions .btn { justify-content: center; min-height: 31px; padding: 6px 10px; font-size: .72rem; }
     .employment-summary {
       display: grid;
@@ -116,7 +115,7 @@
     .type-contractual { --type-accent: var(--amber-500); --type-bg: var(--amber-100); --type-fg: #92400e; }
     .type-national-service { --type-accent: var(--mint-500); --type-bg: var(--mint-100); --type-fg: var(--navy-950); }
     .type-internship { --type-accent: var(--rose-600); --type-bg: var(--rose-100); --type-fg: var(--rose-600); }
-    .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); column-gap: 28px; row-gap: 0; }
     .filters-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
     .filters-bar .form-control { max-width: 200px; }
     @media (max-width: 900px) {
@@ -351,10 +350,9 @@ async function loadEmployees() {
         <div class="emp-meta-item"><span class="emp-meta-label">Role</span><span class="emp-meta-value">${e.role || 'Employee'}</span></div>
         <div class="emp-meta-item"><span class="emp-meta-label">Joined</span><span class="emp-meta-value">${e.hire_date ? fmt.date(e.hire_date) : 'Not recorded'}</span></div>
       </div>
-      <div class="emp-contact"><span>${e.email || 'No email address'}</span><span>${e.phone || 'No phone number'}</span></div>
       <div class="emp-card-actions">
-        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}&v=${Date.now()}'">View</button>
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}&v=${Date.now()}'">Manage</button>
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}'">View profile</button>
+        ${user.role === 'admin' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}&edit=1'">Edit</button>` : ''}
       </div>
     </div>`;
   }).join('');

@@ -1474,6 +1474,12 @@
           window._emp = emp;
           window._promotions = promotions || [];
           setEmployeeProfileTab(window.location.hash.slice(1) || "personal");
+          if (canEdit && new URLSearchParams(window.location.search).get("edit") === "1") {
+            const cleanProfileUrl = new URL(window.location.href);
+            cleanProfileUrl.searchParams.delete("edit");
+            window.history.replaceState(null, "", `${cleanProfileUrl.pathname}${cleanProfileUrl.search}${cleanProfileUrl.hash}`);
+            showEditModal();
+          }
         } catch (e) {
           document.getElementById("profile-content").innerHTML =
             `<div class="empty-state"><h4>Profile not found</h4><p>${e.message}</p></div>`;
