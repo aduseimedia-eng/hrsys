@@ -762,12 +762,11 @@
         top: 274px;
         left: 30px;
         width: 224px;
-        padding: 18px;
-        border: 1px solid #d9e4f8;
-        border-top: 4px solid #2563d9;
-        border-radius: 14px;
-        background: #fff;
-        box-shadow: 0 8px 20px rgba(31, 60, 116, 0.08);
+        padding: 2px 18px 0 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
       }
       .profile-vitals .avatar,
       .profile-vitals h3,
@@ -798,16 +797,30 @@
       }
       .profile-overview {
         margin-top: 22px;
+        gap: 0;
       }
       .profile-overview-item {
         min-height: 70px;
-        padding: 14px;
-        border: 1px solid #e0e8f6;
-        border-radius: 12px;
+        padding: 10px 16px;
+        border: 0;
+        border-right: 1px solid #dfe7f5;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .profile-overview-item:first-child { padding-left: 0; }
+      .profile-overview-item:last-child { border-right: 0; }
+      .profile-grid .card {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
         box-shadow: none;
       }
       .profile-grid .card-header {
-        background: #fff;
+        padding: 0 0 11px;
+        border-bottom: 1px solid #dfe7f5;
+        background: transparent;
       }
       .profile-grid .card-header h3 {
         color: #183b8f;
@@ -838,8 +851,8 @@
       .profile-grid[data-profile-active="personal"]
         .profile-personal-wide
         .card-header {
-        padding: 20px 24px 12px;
-        border-bottom: 0;
+        padding: 2px 0 11px;
+        border-bottom: 1px solid #dfe7f5;
       }
       .profile-grid[data-profile-active="personal"]
         .profile-personal-card
@@ -863,7 +876,7 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 17px 16px;
-        padding: 14px 24px 24px;
+        padding: 15px 0 10px;
       }
       .profile-grid[data-profile-active="personal"]
         .profile-personal-card
@@ -873,7 +886,7 @@
         .info-row {
         display: block;
         min-width: 0;
-        padding: 0;
+        padding: 0 0 11px;
         border: 0;
       }
       .profile-grid[data-profile-active="personal"]
@@ -908,12 +921,12 @@
         .value {
         display: block;
         max-width: none;
-        min-height: 42px;
-        padding: 10px 12px;
+        min-height: 0;
+        padding: 0;
         overflow-wrap: anywhere;
-        border: 1px solid #dfe4eb;
-        border-radius: 9px;
-        background: #fff;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
         color: #26344e;
         font-size: 0.88rem;
         font-weight: 500;
