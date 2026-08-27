@@ -36,11 +36,10 @@
     }
 
     .emp-card {
-      background: transparent;
-      border: 0;
-      border-bottom: 1px solid var(--border);
-      border-radius: 0;
-      padding: 16px 0;
+      background: var(--bg-surface);
+      border: 1px solid #dfe7f5;
+      border-radius: 12px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -50,7 +49,7 @@
       position: relative;
       overflow: hidden;
     }
-    .emp-card:hover { background: #f7faff; border-color: #cddcf5; box-shadow: none; transform: none; }
+    .emp-card:hover { background: #fff; border-color: #bcd0f4; box-shadow: 0 8px 18px rgba(28, 62, 128, 0.08); transform: translateY(-1px); }
     .emp-card::before { display: none; }
     .emp-card-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: flex-start; gap: 10px; }
     .emp-person { display: flex; align-items: center; gap: 11px; min-width: 0; }
@@ -115,7 +114,7 @@
     .type-contractual { --type-accent: var(--amber-500); --type-bg: var(--amber-100); --type-fg: #92400e; }
     .type-national-service { --type-accent: var(--mint-500); --type-bg: var(--mint-100); --type-fg: var(--navy-950); }
     .type-internship { --type-accent: var(--rose-600); --type-bg: var(--rose-100); --type-fg: var(--rose-600); }
-    .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); column-gap: 28px; row-gap: 0; }
+    .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
     .filters-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
     .filters-bar .form-control { max-width: 200px; }
     @media (max-width: 900px) {
