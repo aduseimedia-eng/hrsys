@@ -1736,6 +1736,7 @@
           ${
             isAdmin
               ? `
+          <div class="form-section-title">Employment details</div>
           <div class="form-group"><label class="form-label">Department</label><select id="e-department" class="form-control form-select">${optionList(
             departments.map((department) => ({
               value: department.id,
@@ -1754,11 +1755,37 @@
         </div>
       </div>
       <div class="modal-footer">
+        ${inline ? '' : '<button class="btn btn-outline" type="button" onclick="toggleExtendedProfileFields(this)">More fields</button>'}
         <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
         <button class="btn btn-primary" onclick="saveEdit(${emp.id})">Save Changes</button>
       </div>
     </div>`;
         document.body.appendChild(overlay);
+        if (!inline) {
+          const extendedFieldIds = [
+            'e-linkedin-url', 'e-instagram-url', 'e-facebook-url', 'e-twitter-url',
+            'e-medical-conditions', 'e-education-level', 'e-education-institution',
+            'e-education-field', 'e-graduation-year', 'e-previous-company',
+            'e-previous-job-title', 'e-experience-years', 'e-experience-summary',
+            'e-license-number', 'e-license-class', 'e-license-expiry',
+            'e-emergency-name', 'e-emergency-relationship', 'e-emergency-phone',
+            'e-emergency-address', 'e-bank-name', 'e-bank-account-name',
+            'e-bank-account-number', 'e-pension-id', 'e-bank-branch'
+          ];
+          extendedFieldIds.forEach((fieldId) => {
+            const group = overlay.querySelector(`#${fieldId}`)?.closest('.form-group');
+            if (group) {
+              group.dataset.profileExtended = 'true';
+              group.hidden = true;
+            }
+          });
+          overlay.querySelectorAll('.form-section-title').forEach((section) => {
+            if (['Social profiles', 'Education and experience', 'Licensing and emergency contact', 'Bank and pension'].includes(section.textContent.trim())) {
+              section.dataset.profileExtended = 'true';
+              section.hidden = true;
+            }
+          });
+        }
         if (inline) {
           const editor = document.getElementById("profile-inline-editor");
           const modal = overlay.querySelector(".modal");
@@ -1777,6 +1804,14 @@
           editor.appendChild(modal);
           overlay.remove();
         }
+      }
+
+      function toggleExtendedProfileFields(button) {
+        const overlay = button.closest('.modal-overlay');
+        const extended = overlay?.querySelectorAll('[data-profile-extended]') || [];
+        const show = Array.from(extended).some((element) => element.hidden);
+        extended.forEach((element) => { element.hidden = !show; });
+        button.textContent = show ? 'Fewer fields' : 'More fields';
       }
 
       function showPromotionHistory() {
