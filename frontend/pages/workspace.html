@@ -557,7 +557,6 @@
     <nav class="recruitment-context-nav" id="recruitment-context-nav" aria-label="Recruitment navigation" hidden>
       <div class="recruitment-context-nav__links">
         <a data-recruitment-tab="dashboard" href="#recruitment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></a>
-        <a data-recruitment-tab="requests" href="#recruitment-requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6v3H9z"/><path d="m9 14 2 2 4-4"/></svg><span>Requests</span></a>
         <a data-recruitment-tab="requisitions" href="#recruitment-requisitions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16v12H4z"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M4 12h16M10 15h4"/></svg><span>Requisitions</span></a>
         <a data-recruitment-tab="postings" href="#recruitment-postings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 11h3l7-5v12l-7-5H4z"/><path d="M17 9.5a4 4 0 0 1 0 5M19.5 7a7 7 0 0 1 0 10"/></svg><span>Job postings</span></a>
         <a data-recruitment-tab="applications" href="#applications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><circle cx="10" cy="14" r="2"/><path d="M7 19a3 3 0 0 1 6 0"/></svg><span>Applications</span></a>
@@ -609,8 +608,6 @@ const WORKSPACE_PAGES = {
   contracts: { title: 'Contract Expiry Tracker', nav: 'records' },
   hiring: { title: 'Recruitment', nav: 'recruitment', src: '/pages/recruitment.html' },
   recruitment: { title: 'Recruitment', nav: 'recruitment' },
-  'recruitment-requests': { title: 'Recruitment Requests', nav: 'recruitment' },
-  'recruitment-request-form': { title: 'Recruitment Request', nav: 'recruitment' },
   'recruitment-requisitions': { title: 'Job Requisitions', nav: 'recruitment' },
   'recruitment-form': { title: 'Job Requisition', nav: 'recruitment' },
   'recruitment-postings': { title: 'Job Postings', nav: 'recruitment' },
@@ -658,7 +655,6 @@ const WORKSPACE_MODULE_MENUS = Object.freeze({
     label: 'Recruitment',
     items: [
       { route: 'recruitment', label: 'Dashboard', activeFor: ['hiring'] },
-      { route: 'recruitment-requests', label: 'Recruitment requests', activeFor: ['recruitment-request-form'] },
       { route: 'recruitment-requisitions', label: 'Job requisitions', activeFor: ['recruitment-form'] },
       { route: 'recruitment-postings', label: 'Job postings', activeFor: ['recruitment-posting-form'] },
       { route: 'applications', label: 'Applications', activeFor: ['candidate', 'recruitment-candidates'] },
@@ -729,8 +725,6 @@ const workspaceAttendanceElapsed = document.getElementById('workspace-attendance
 const RECRUITMENT_TAB_ROUTES = Object.freeze({
   hiring: 'dashboard',
   recruitment: 'dashboard',
-  'recruitment-requests': 'requests',
-  'recruitment-request-form': 'requests',
   'recruitment-requisitions': 'requisitions',
   'recruitment-form': 'requisitions',
   'recruitment-postings': 'postings',

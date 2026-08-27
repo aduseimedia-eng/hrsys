@@ -64,7 +64,9 @@ function fillRequisition(item) {
   document.getElementById('requisition-department').value = item.department_id || '';
   document.getElementById('requisition-manager').value = item.hiring_manager_id || '';
   document.getElementById('requisition-headcount').value = item.headcount || 1;
-  document.getElementById('requisition-type').value = item.employment_type || 'staff';
+  const employmentType = item.employment_type || 'full-time';
+  const employmentTypeField = document.getElementById('requisition-type');
+  employmentTypeField.value = Array.from(employmentTypeField.options).some(option => option.value === employmentType) ? employmentType : 'full-time';
   document.getElementById('requisition-location').value = item.location || '';
   document.getElementById('requisition-close-date').value = item.closes_at?.slice(0, 10) || '';
   document.getElementById('requisition-start-date').value = item.target_start_date?.slice(0, 10) || '';

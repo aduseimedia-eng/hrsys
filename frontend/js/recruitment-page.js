@@ -28,7 +28,6 @@ function dashboardStageIcon(stage) {
 }
 
 function dashboardQueueLink(item) {
-  if (item.type === 'request') return `recruitment-request-form.html?id=${item.id}`;
   if (item.type === 'requisition') return `recruitment-form.html?id=${item.id}`;
   return `candidate.html?id=${item.id}`;
 }
@@ -37,7 +36,7 @@ function renderQueue(queue) {
   const target = document.getElementById('work-queue');
   target.setAttribute('aria-busy', 'false');
   if (!queue.length) {
-    target.innerHTML = '<li class="recruitment-empty"><strong>Your queue is clear.</strong>Submitted requests and approval tasks will appear here.</li>';
+    target.innerHTML = '<li class="recruitment-empty"><strong>Your queue is clear.</strong>Requisition approvals and scheduled interviews will appear here.</li>';
     return;
   }
   target.innerHTML = queue.map(item => `<li><a class="recruitment-list__item recruitment-list__item--link" href="${dashboardQueueLink(item)}"><span class="recruitment-list__identity">${dashboardQueueIcon(item.type)}<span class="recruitment-list__identity-copy"><strong>${recruitmentEscape(item.title)}</strong><small>${item.type === 'interview' ? `Interview ${dashboardDate(item.scheduled_at)}` : `${recruitmentStatusLabel(item.status)} ${item.type}`}</small></span></span>${dashboardPill(item.status)}</a></li>`).join('');
@@ -69,11 +68,11 @@ async function loadRecruitmentDashboard() {
   const [overview, report, stages] = await Promise.all([
     api.get('/recruitment/overview'), api.get('/recruitment/report'), api.get('/recruitment/stages')
   ]);
-  document.getElementById('metric-requests').textContent = dashboardNumber(overview.requests?.awaiting_review);
+  document.getElementById('metric-requests').textContent = dashboardNumber(overview.requisitions?.open);
   document.getElementById('metric-requisitions').textContent = dashboardNumber(overview.requisitions?.awaiting_approval);
   document.getElementById('metric-postings').textContent = dashboardNumber(overview.postings?.published);
   document.getElementById('metric-candidates').textContent = dashboardNumber(overview.candidates?.active);
-  renderQueue(overview.queue || []);
+  renderQueue((overview.queue || []).filter(item => item.type !== 'request'));
   renderInterviews(report.upcoming_interviews || []);
   renderPipeline(stages, report);
 }

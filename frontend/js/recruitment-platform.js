@@ -4,8 +4,7 @@
 
   const recruitmentRoutes = [
     { id: 'dashboard', label: 'Dashboard', href: 'recruitment.html', group: 'overview', icon: 'dashboard' },
-    { id: 'requests', label: 'Requests', href: 'recruitment-requests.html', group: 'planning', icon: 'request' },
-    { id: 'requisitions', label: 'Requisitions', href: 'recruitment-requisitions.html', group: 'planning', icon: 'requisition' },
+    { id: 'requisitions', label: 'Job requisitions', href: 'recruitment-requisitions.html', group: 'planning', icon: 'requisition' },
     { id: 'postings', label: 'Job postings', href: 'recruitment-postings.html', group: 'planning', icon: 'posting' },
     { id: 'applications', label: 'Applications', href: 'applications.html', group: 'hiring', icon: 'application' },
     { id: 'pipeline', label: 'Pipeline', href: 'recruitment-pipeline.html', group: 'hiring', icon: 'pipeline' },
