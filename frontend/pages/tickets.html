@@ -65,6 +65,10 @@
               </select>
             </div>
             <div class="form-group">
+              <label class="form-label required" for="new-ticket-department">Send to department</label>
+              <select id="new-ticket-department" class="form-control form-select" required><option value="">Loading departments…</option></select>
+            </div>
+            <div class="form-group">
               <label class="form-label required" for="new-ticket-priority">Priority</label>
               <select id="new-ticket-priority" class="form-control form-select" required>
                 <option value="medium">Medium</option>
@@ -165,7 +169,15 @@ let myTickets = [];
 let profile = null;
 let canManageTickets = false;
 document.getElementById('hr-ticket-form').addEventListener('submit', submitHrTicket);
+loadTicketDepartments();
 initTicketsPage();
+
+async function loadTicketDepartments() {
+  try {
+    const rows = await api.get('/employees/departments');
+    document.getElementById('new-ticket-department').innerHTML = '<option value="">Select a department</option>' + rows.map((department) => `<option value="${department.id}">${escapeHtml(department.name)}</option>`).join('');
+  } catch (err) { toast(err.message || 'Could not load departments', 'error'); }
+}
 
 async function initTicketsPage() {
   try {
@@ -195,6 +207,7 @@ async function submitHrTicket(event) {
   try {
     await api.post('/tickets', {
       category: document.getElementById('new-ticket-category').value,
+      target_department_id: document.getElementById('new-ticket-department').value,
       priority: document.getElementById('new-ticket-priority').value,
       subject: document.getElementById('new-ticket-subject').value,
       description: document.getElementById('new-ticket-description').value

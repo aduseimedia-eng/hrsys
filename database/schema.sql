@@ -603,6 +603,7 @@ CREATE TABLE employee_schedule_assignments (
   id SERIAL PRIMARY KEY,
   company_id INT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   employee_id INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  target_department_id INT REFERENCES departments(id) ON DELETE SET NULL,
   schedule_id INT NOT NULL REFERENCES work_schedules(id) ON DELETE CASCADE,
   starts_on DATE NOT NULL DEFAULT CURRENT_DATE,
   ends_on DATE,
