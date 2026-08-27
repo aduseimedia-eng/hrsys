@@ -588,7 +588,7 @@ const WORKSPACE_PAGES = {
   leave: { title: 'Leave Management', nav: 'work' },
   calendar: { title: 'Company Calendar', nav: 'work' },
   payroll: { title: 'Payroll', nav: 'finance' },
-  people: { title: 'People', nav: 'people', src: '/pages/hub.html?hub=people' },
+  people: { title: 'Employees', nav: 'people', src: '/pages/employees.html' },
   work: { title: 'Work', nav: 'work', src: '/pages/hub.html?hub=work' },
   records: { title: 'People & Records', nav: 'records', src: '/pages/hub.html?hub=records' },
   finance: { title: 'Finance', nav: 'finance', src: '/pages/hub.html?hub=finance' },
@@ -637,7 +637,7 @@ const WORKSPACE_PAGES = {
 const WORKSPACE_MODULES = Object.freeze({
   dashboard: { label: 'Home', href: '#dashboard' },
   announcements: { label: 'Announcements', href: '#announcements' },
-  people: { label: 'People', href: '#people' },
+  people: { label: 'People', href: '#employees' },
   recruitment: { label: 'Recruitment', href: '#recruitment' },
   onboarding: { label: 'Onboarding', href: '#onboarding' },
   work: { label: 'Work', href: '#work' },
@@ -660,7 +660,6 @@ const WORKSPACE_MODULE_MENUS = Object.freeze({
   people: {
     label: 'People',
     items: [
-      { route: 'people', label: 'People overview' },
       { route: 'employees', label: 'Employees', activeFor: ['employee-profile'] },
       { route: 'departments', label: 'Departments' },
       { route: 'orgchart', label: 'Organization chart' },
