@@ -516,6 +516,8 @@
       <ol>
         <li><a id="workspace-module" href="#dashboard">Workspace</a></li>
         <li aria-hidden="true"><svg class="workspace-breadcrumb-separator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></li>
+        <li id="workspace-section" hidden></li>
+        <li id="workspace-section-separator" aria-hidden="true" hidden><svg class="workspace-breadcrumb-separator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></li>
         <li id="workspace-title" aria-current="page">Dashboard</li>
       </ol>
     </nav>
@@ -640,6 +642,16 @@ const WORKSPACE_MODULES = Object.freeze({
   administration: { label: 'Administration', href: '#administration' },
   settings: { label: 'Settings', href: '#settings' }
 });
+const WORKSPACE_SECTIONS = Object.freeze({
+  performance: 'Performance & Development',
+  training: 'Performance & Development',
+  probation: 'Performance & Development',
+  documents: 'Employee Records',
+  contracts: 'Employee Records',
+  assets: 'Employee Records',
+  disciplinary: 'Employee Relations',
+  operations: 'Operations Registers'
+});
 const WORKSPACE_MODULE_MENUS = Object.freeze({
   people: {
     label: 'People',
@@ -716,6 +728,8 @@ const workspaceContent = document.getElementById('workspace-content');
 const workspaceModuleMenu = document.getElementById('workspace-module-menu');
 const recruitmentContextNav = document.getElementById('recruitment-context-nav');
 const workspaceModule = document.getElementById('workspace-module');
+const workspaceSection = document.getElementById('workspace-section');
+const workspaceSectionSeparator = document.getElementById('workspace-section-separator');
 const workspaceTitle = document.getElementById('workspace-title');
 const recruitmentTabLinks = Array.from(document.querySelectorAll('[data-recruitment-tab]'));
 const workspaceAttendanceControl = document.getElementById('workspace-attendance-control');
@@ -1015,11 +1029,15 @@ function updateWorkspaceChrome(route, pageMeta) {
   const isRecruitmentDashboard = route.page === 'hiring' || route.page === 'recruitment';
   const currentTitle = isRecruitmentDashboard ? 'Dashboard' : pageMeta.title;
   const module = WORKSPACE_MODULES[pageMeta.nav] || WORKSPACE_MODULES.dashboard;
+  const section = WORKSPACE_SECTIONS[route.page] || '';
 
   workspaceModule.textContent = module.label;
   workspaceModule.href = module.href;
+  workspaceSection.textContent = section;
+  workspaceSection.hidden = !section;
+  workspaceSectionSeparator.hidden = !section;
   workspaceTitle.textContent = currentTitle;
-  document.title = `${module.label} / ${currentTitle} - KenadHR`;
+  document.title = `${[module.label, section, currentTitle].filter(Boolean).join(' / ')} - KenadHR`;
 
   workspaceContent.classList.toggle('is-recruitment-workspace', pageMeta.nav === 'recruitment');
   recruitmentContextNav.hidden = true;
