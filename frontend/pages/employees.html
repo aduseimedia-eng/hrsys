@@ -64,6 +64,8 @@
     .emp-meta-value { display: block; overflow: hidden; margin-top: 2px; color: var(--text-secondary); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
     .emp-card-actions { display: flex; gap: 8px; margin-top: 15px; }
     .emp-card-actions .btn { justify-content: center; min-height: 31px; padding: 6px 10px; font-size: .72rem; }
+    .employee-editor-dialog { max-width: 820px; }
+    .employee-editor-dialog .modal-body { max-height: min(60vh, 560px); }
     .employment-summary {
       display: grid;
       grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -351,7 +353,7 @@ async function loadEmployees() {
       </div>
       <div class="emp-card-actions">
         <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}'">View profile</button>
-        ${user.role === 'admin' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='employee-profile.html?id=${e.id}&edit=1'">Edit</button>` : ''}
+        ${user.role === 'admin' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openEmployeeEditor(${e.id})">Edit</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -365,6 +367,70 @@ async function loadEmployees() {
 }
 
 function gotoPage(p) { currentPage = p; loadEmployees(); }
+
+function employeeEditorOptions(items, selected, label) {
+  return `<option value="">${label}</option>` + items.map((item) =>
+    `<option value="${escapeHtml(item.value)}" ${String(item.value) === String(selected || '') ? 'selected' : ''}>${escapeHtml(item.label)}</option>`
+  ).join('');
+}
+
+async function openEmployeeEditor(id) {
+  try {
+    const employee = await api.get(`/employees/${id}`);
+    const prefix = String(api.getCompanyPreferences()?.employee_code_prefix || 'EMP-').trim().toUpperCase() || 'EMP-';
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal modal-lg employee-editor-dialog">
+        <div class="modal-header"><div><h3>Edit staff member</h3><p style="margin:4px 0 0;color:var(--text-secondary);font-size:.82rem">Update the essential staff record without leaving the directory.</p></div><button class="modal-close" type="button" onclick="this.closest('.modal-overlay').remove()">×</button></div>
+        <div class="modal-body"><div class="form-grid">
+          <div class="form-section-title">Personal details</div>
+          <div class="form-group"><label class="form-label required">First name</label><input id="edit-employee-first" class="form-control" value="${escapeHtml(employee.first_name || '')}"></div>
+          <div class="form-group"><label class="form-label required">Last name</label><input id="edit-employee-last" class="form-control" value="${escapeHtml(employee.last_name || '')}"></div>
+          <div class="form-group"><label class="form-label">Phone</label><input id="edit-employee-phone" class="form-control" value="${escapeHtml(employee.phone || '')}"></div>
+          <div class="form-group"><label class="form-label">Date of birth</label><input id="edit-employee-dob" type="date" class="form-control" value="${employee.date_of_birth ? String(employee.date_of_birth).slice(0, 10) : ''}"></div>
+          <div class="form-section-title">Employment details</div>
+          <div class="form-group"><label class="form-label required">Employee ID</label><input id="edit-employee-code" class="form-control" maxlength="50" value="${escapeHtml(employee.employee_code || '')}" placeholder="e.g. ${escapeHtml(`${prefix}0001`)}"><small class="form-hint">Company prefix: ${escapeHtml(prefix)}. It applies to automatically generated IDs for new staff.</small></div>
+          <div class="form-group"><label class="form-label">Department</label><select id="edit-employee-department" class="form-control form-select">${employeeEditorOptions(departments.map((department) => ({ value: department.id, label: department.name })), employee.department_id, 'No department')}</select></div>
+          <div class="form-group"><label class="form-label">Job title</label><select id="edit-employee-title" class="form-control form-select">${employeeEditorOptions(JOB_TITLES.map((title) => ({ value: title, label: title })), employee.job_title, 'No job title')}</select></div>
+          <div class="form-group"><label class="form-label">Employment type</label><select id="edit-employee-type" class="form-control form-select">${employeeEditorOptions(EMPLOYMENT_TYPES.map((type) => ({ value: type.value, label: type.label })), employee.employment_type, 'Select type')}</select></div>
+          <div class="form-group"><label class="form-label">Reports to</label><select id="edit-employee-manager" class="form-control form-select">${employeeEditorOptions(directory.filter((person) => Number(person.id) !== Number(employee.id)).map((person) => ({ value: person.id, label: `${person.first_name} ${person.last_name}` })), employee.manager_id, 'Top level')}</select></div>
+          <div class="form-group"><label class="form-label">Hire date</label><input id="edit-employee-hire-date" type="date" class="form-control" value="${employee.hire_date ? String(employee.hire_date).slice(0, 10) : ''}"></div>
+          <div class="form-group"><label class="form-label" data-currency-label="Salary">Salary</label><input id="edit-employee-salary" type="number" min="0" step="${fmt.currencyStep()}" class="form-control" value="${escapeHtml(employee.salary ?? '')}"></div>
+        </div></div>
+        <div class="modal-footer"><button class="btn btn-outline" type="button" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" type="button" onclick="saveEmployeeEditor(${employee.id})">Save changes</button></div>
+      </div>`;
+    document.body.appendChild(overlay);
+  } catch (error) {
+    toast(error.message || 'Could not open the staff editor', 'error');
+  }
+}
+
+async function saveEmployeeEditor(id) {
+  const body = {
+    first_name: document.getElementById('edit-employee-first').value,
+    last_name: document.getElementById('edit-employee-last').value,
+    phone: document.getElementById('edit-employee-phone').value,
+    date_of_birth: document.getElementById('edit-employee-dob').value,
+    employee_code: document.getElementById('edit-employee-code').value,
+    department_id: document.getElementById('edit-employee-department').value || null,
+    job_title: document.getElementById('edit-employee-title').value,
+    employment_type: document.getElementById('edit-employee-type').value,
+    manager_id: document.getElementById('edit-employee-manager').value || null,
+    hire_date: document.getElementById('edit-employee-hire-date').value,
+    salary: document.getElementById('edit-employee-salary').value
+  };
+  try {
+    await api.put(`/employees/${id}`, body);
+    document.querySelector('.modal-overlay')?.remove();
+    directory = await api.get('/employees/directory');
+    renderEmploymentSummary();
+    await loadEmployees();
+    toast('Staff record updated', 'success');
+  } catch (error) {
+    toast(error.message || 'Could not update the staff record', 'error');
+  }
+}
 
 let searchTimeout;
 document.getElementById('search-input').addEventListener('input', () => {
