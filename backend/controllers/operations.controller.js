@@ -1,11 +1,7 @@
 const db = require('../config/db');
 
-const registerTypes = [
-  'resignation_exit', 'quarterly_rent', 'ecg_bill', 'ghana_water_bill', 'internet_telephone',
-  'petty_cash', 'office_expense', 'asset', 'visitor', 'service_provider', 'contract',
-  'vehicle_fuel', 'vehicle_maintenance', 'office_maintenance'
-];
-const statuses = ['open', 'pending', 'paid', 'active', 'completed', 'closed'];
+const registerTypes = ['resignation_exit'];
+const statuses = ['pending', 'completed', 'closed'];
 const select = `SELECT o.*, CONCAT(e.first_name, ' ', e.last_name) AS created_by_name
   FROM operations_register_entries o LEFT JOIN employees e ON e.id=o.created_by`;
 
