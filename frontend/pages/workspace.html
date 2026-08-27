@@ -589,7 +589,7 @@ const WORKSPACE_PAGES = {
   payroll: { title: 'Payroll', nav: 'finance' },
   people: { title: 'People', nav: 'people', src: '/pages/hub.html?hub=people' },
   work: { title: 'Work', nav: 'work', src: '/pages/hub.html?hub=work' },
-  records: { title: 'Growth & Records', nav: 'records', src: '/pages/hub.html?hub=records' },
+  records: { title: 'People & Records', nav: 'records', src: '/pages/hub.html?hub=records' },
   finance: { title: 'Finance', nav: 'finance', src: '/pages/hub.html?hub=finance' },
   administration: { title: 'Administration', nav: 'administration', src: '/pages/hub.html?hub=administration' },
   financials: { title: 'Financials', nav: 'finance' },
@@ -639,7 +639,7 @@ const WORKSPACE_MODULES = Object.freeze({
   onboarding: { label: 'Onboarding', href: '#onboarding' },
   work: { label: 'Work', href: '#work' },
   finance: { label: 'Pay & Benefits', href: '#finance' },
-  records: { label: 'Growth & Records', href: '#records' },
+  records: { label: 'People & Records', href: '#records' },
   administration: { label: 'Administration', href: '#administration' },
   settings: { label: 'Settings', href: '#settings' }
 });
@@ -691,16 +691,16 @@ const WORKSPACE_MODULE_MENUS = Object.freeze({
     ]
   },
   records: {
-    label: 'Growth & Records',
+    label: 'People & Records',
     items: [
-      { route: 'records', label: 'Records overview' },
-      { route: 'documents', label: 'Documents' },
+      { route: 'records', label: 'People & records overview' },
       { route: 'performance', label: 'Performance reviews' },
-      { route: 'training', label: 'Training register' },
-      { route: 'probation', label: 'Probation tracker' },
-      { route: 'contracts', label: 'Contract expiry' },
+      { route: 'training', label: 'Training' },
+      { route: 'probation', label: 'Probation' },
+      { route: 'documents', label: 'Documents' },
+      { route: 'contracts', label: 'Contracts' },
       { route: 'assets', label: 'Company assets' },
-      { route: 'disciplinary', label: 'Disciplinary register' },
+      { route: 'disciplinary', label: 'Disciplinary cases' },
       { route: 'operations', label: 'Operations registers' }
     ]
   },

@@ -804,10 +804,19 @@ function buildSidebar(activePage, options = {}) {
     { page: 'payroll', icon: walletIcon(), label: 'Payroll', roles: ['admin', 'manager'] },
     { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },
     { page: 'loans', icon: walletIcon(), label: 'Employee Loans', roles: ['admin', 'manager'] },
-    { section: 'Records', icon: docIcon(), roles: ['admin', 'manager'] },
+    { section: 'People & Records', icon: docIcon(), roles: ['admin', 'manager'] },
+    { subsection: 'Performance & Development' },
+    { page: 'performance', icon: starIcon(), label: 'Performance reviews', roles: ['admin', 'manager'] },
+    { page: 'training', icon: checkIcon(), label: 'Training', roles: ['admin', 'manager'] },
+    { page: 'probation', icon: clockIcon(), label: 'Probation', roles: ['admin', 'manager'] },
+    { subsection: 'Employee Records' },
     { page: 'documents', icon: docIcon(), label: 'Documents', roles: ['admin', 'manager'] },
-    { page: 'performance', icon: starIcon(), label: 'Performance Review', roles: ['admin', 'manager'] },
-    { page: 'assets', icon: docIcon(), label: 'Company Assets', roles: ['admin', 'manager'] },
+    { page: 'contracts', icon: docIcon(), label: 'Contracts', roles: ['admin', 'manager'] },
+    { page: 'assets', icon: docIcon(), label: 'Company assets', roles: ['admin', 'manager'] },
+    { subsection: 'Employee Relations' },
+    { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary cases', roles: ['admin', 'manager'] },
+    { subsection: 'Operations Registers' },
+    { page: 'operations', icon: gridIcon(), label: 'Operations registers', roles: ['admin', 'manager'] },
     { page: 'financials', icon: walletIcon(), label: 'Expenses', roles: ['admin', 'manager'] },
     { section: 'Administration', icon: briefcaseIcon(), roles: ['admin', 'manager'] },
     { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
@@ -842,14 +851,18 @@ function buildSidebar(activePage, options = {}) {
     { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },
     { page: 'loans', icon: walletIcon(), label: 'Employee loans', roles: ['admin', 'manager'] },
     { page: 'financials', icon: walletIcon(), label: 'Financials', roles: ['admin', 'manager'] },
-    { section: 'Growth & Records', icon: docIcon(), roles: ['admin', 'manager'] },
-    { page: 'documents', icon: docIcon(), label: 'Documents', roles: ['admin', 'manager'], activeFor: ['records'] },
+    { section: 'People & Records', icon: docIcon(), roles: ['admin', 'manager'] },
+    { subsection: 'Performance & Development' },
     { page: 'performance', icon: starIcon(), label: 'Performance reviews', roles: ['admin', 'manager'] },
-    { page: 'training', icon: checkIcon(), label: 'Training register', roles: ['admin', 'manager'] },
-    { page: 'probation', icon: clockIcon(), label: 'Probation tracker', roles: ['admin', 'manager'] },
-    { page: 'contracts', icon: docIcon(), label: 'Contract expiry', roles: ['admin', 'manager'] },
+    { page: 'training', icon: checkIcon(), label: 'Training', roles: ['admin', 'manager'] },
+    { page: 'probation', icon: clockIcon(), label: 'Probation', roles: ['admin', 'manager'] },
+    { subsection: 'Employee Records' },
+    { page: 'documents', icon: docIcon(), label: 'Documents', roles: ['admin', 'manager'], activeFor: ['records'] },
+    { page: 'contracts', icon: docIcon(), label: 'Contracts', roles: ['admin', 'manager'] },
     { page: 'assets', icon: docIcon(), label: 'Company assets', roles: ['admin', 'manager'] },
-    { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary register', roles: ['admin', 'manager'] },
+    { subsection: 'Employee Relations' },
+    { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary cases', roles: ['admin', 'manager'] },
+    { subsection: 'Operations Registers' },
     { page: 'operations', icon: gridIcon(), label: 'Operations registers', roles: ['admin', 'manager'] },
     { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
     { page: 'audit', icon: docIcon(), label: 'Audit history', roles: ['admin'] },
@@ -865,11 +878,15 @@ function buildSidebar(activePage, options = {}) {
   const previousScrollTop = previousNav ? previousNav.scrollTop : getSidebarScrollTop();
 
   const visibleNavItems = navItems.filter(item =>
-    item.roles.includes(user.role) || (item.roles.includes('manager') && isManager)
+    !item.roles || item.roles.includes(user.role) || (item.roles.includes('manager') && isManager)
   );
   let currentGroup = null;
   let navHtml = '';
   visibleNavItems.forEach(item => {
+    if (item.subsection) {
+      if (currentGroup) navHtml += `<div class="nav-subsection">${item.subsection}</div>`;
+      return;
+    }
     if (item.standalone && currentGroup) {
       navHtml += '</div></div></div>';
       currentGroup = null;

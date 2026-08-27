@@ -1150,6 +1150,16 @@ tbody tr:hover { background: #f7faff; }
   transition: grid-template-rows 220ms var(--ease), opacity 160ms var(--ease);
 }
 .nav-group-items-inner { min-height: 0; }
+.nav-subsection {
+  margin: 13px 11px 4px 38px;
+  color: #7b7b80;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .075em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+.nav-subsection:first-child { margin-top: 7px; }
 .nav-group.is-open .nav-group-items { grid-template-rows: 1fr; opacity: 1; }
 .nav-group-items-inner > .nav-item { min-height: 0; overflow: hidden; }
 .nav-item-child {
