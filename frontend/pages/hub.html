@@ -342,18 +342,36 @@
         administration: {
           title: "Administration",
           description:
-            "Configure HR operations, reports, company resources, and settings.",
+            "Manage access, permissions, audit controls, notifications, integrations, and company settings.",
           cards: [
             [
-              "reports",
-              "Reports & workflows",
-              "Review HR reports and workflows.",
-              ["admin", "manager"],
+              "users-access",
+              "Users & access",
+              "Control who can sign in and assign their workspace role.",
+              ["admin"],
+            ],
+            [
+              "roles-permissions",
+              "Roles & permissions",
+              "Review what administrators, managers, and employees can access.",
+              ["admin"],
             ],
             [
               "audit",
               "Audit history",
               "Review sensitive HR and financial changes.",
+              ["admin"],
+            ],
+            [
+              "notification-settings",
+              "Notifications",
+              "Manage staff communication and company announcements.",
+              ["admin"],
+            ],
+            [
+              "integrations",
+              "Integrations",
+              "Review connected services and workspace capabilities.",
               ["admin"],
             ],
             [
@@ -394,6 +412,10 @@
         operations: briefcaseIcon,
         disciplinary: docIcon,
         settings: settingsIcon,
+        'users-access': usersIcon,
+        'roles-permissions': settingsIcon,
+        'notification-settings': chatIcon,
+        integrations: gridIcon,
       };
       const availableCards = config.cards.filter(([, , , roles]) =>
         roles.includes(user.role),

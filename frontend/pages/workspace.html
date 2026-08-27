@@ -595,6 +595,10 @@ const WORKSPACE_PAGES = {
   administration: { title: 'Administration', nav: 'administration', src: '/pages/hub.html?hub=administration' },
   financials: { title: 'Financials', nav: 'finance' },
   audit: { title: 'Audit History', nav: 'administration' },
+  'users-access': { title: 'Users & Access', nav: 'administration' },
+  'roles-permissions': { title: 'Roles & Permissions', nav: 'administration' },
+  'notification-settings': { title: 'Notifications', nav: 'administration' },
+  integrations: { title: 'Integrations', nav: 'administration' },
   assets: { title: 'Company Assets', nav: 'records' },
   benefits: { title: 'Benefits', nav: 'finance' },
   loans: { title: 'Employee Loans', nav: 'finance' },
@@ -716,7 +720,11 @@ const WORKSPACE_MODULE_MENUS = Object.freeze({
     label: 'Administration',
     items: [
       { route: 'administration', label: 'Administration overview' },
+      { route: 'users-access', label: 'Users & access', roles: ['admin'] },
+      { route: 'roles-permissions', label: 'Roles & permissions', roles: ['admin'] },
       { route: 'audit', label: 'Audit history', roles: ['admin'] },
+      { route: 'notification-settings', label: 'Notifications', roles: ['admin'] },
+      { route: 'integrations', label: 'Integrations', roles: ['admin'] },
       { route: 'settings', label: 'Settings', roles: ['admin'] }
     ]
   }

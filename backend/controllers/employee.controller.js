@@ -526,6 +526,13 @@ exports.update = async (req, res) => {
     );
     if (!rows.length)
       return res.status(404).json({ error: "Employee not found" });
+    if (isAdmin && Object.prototype.hasOwnProperty.call(req.body, "role")) {
+      await db.query(
+        `INSERT INTO audit_logs(company_id, actor_id, action, entity_type, entity_id, summary)
+         VALUES($1,$2,'update','employees',$3,$4)`,
+        [req.user.company_id, req.user.id, rows[0].id, `Updated access role for ${rows[0].first_name} ${rows[0].last_name} to ${rows[0].role}`],
+      );
+    }
     res.json(rows[0]);
   } catch (err) {
     if (
@@ -751,6 +758,11 @@ exports.deactivate = async (req, res) => {
       [id, req.user.company_id],
     );
     if (!rowCount) return res.status(404).json({ error: "Employee not found" });
+    await db.query(
+      `INSERT INTO audit_logs(company_id, actor_id, action, entity_type, entity_id, summary)
+       VALUES($1,$2,'deactivate','employees',$3,$4)`,
+      [req.user.company_id, req.user.id, id, `Deactivated user account ${id}`],
+    );
     res.json({ message: "Employee deactivated" });
   } catch (err) {
     res.status(500).json({ error: "Could not deactivate employee" });

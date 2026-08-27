@@ -819,7 +819,11 @@ function buildSidebar(activePage, options = {}) {
     { page: 'operations', icon: gridIcon(), label: 'Exit & Clearance', roles: ['admin', 'manager'] },
     { page: 'financials', icon: walletIcon(), label: 'Expenses', roles: ['admin', 'manager'] },
     { section: 'Administration', icon: briefcaseIcon(), roles: ['admin', 'manager'] },
+    { page: 'users-access', icon: usersIcon(), label: 'Users & Access', roles: ['admin'] },
+    { page: 'roles-permissions', icon: settingsIcon(), label: 'Roles & Permissions', roles: ['admin'] },
     { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
+    { page: 'notification-settings', icon: chatIcon(), label: 'Notifications', roles: ['admin'] },
+    { page: 'integrations', icon: gridIcon(), label: 'Integrations', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'], standalone: true },
   ];
   const workspaceNavItems = [
@@ -864,7 +868,11 @@ function buildSidebar(activePage, options = {}) {
     { subsection: 'Operations Registers' },
     { page: 'operations', icon: gridIcon(), label: 'Exit & Clearance', roles: ['admin', 'manager'] },
     { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
+    { page: 'users-access', icon: usersIcon(), label: 'Users & Access', roles: ['admin'] },
+    { page: 'roles-permissions', icon: settingsIcon(), label: 'Roles & Permissions', roles: ['admin'] },
     { page: 'audit', icon: docIcon(), label: 'Audit history', roles: ['admin'] },
+    { page: 'notification-settings', icon: chatIcon(), label: 'Notifications', roles: ['admin'] },
+    { page: 'integrations', icon: gridIcon(), label: 'Integrations', roles: ['admin'] },
     { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
   ];
   const navItems = isWorkspaceStatic
