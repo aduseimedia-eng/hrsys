@@ -58,10 +58,9 @@
     .ann-feed { display:grid; gap:10px; }
     .ann-card { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:16px; align-items:start; padding:16px; border:1px solid var(--border); border-radius:10px; background:#fff; transition:border-color var(--duration), box-shadow var(--duration); }
     .ann-card:hover { border-color:var(--navy-200); box-shadow:var(--shadow-sm); }
-    .ann-card.is-pinned { padding-left:0; }
-    /* Keep the composer light: it should not be presented as a boxed card. */
+    .ann-card.is-pinned { border-left:4px solid var(--navy-600); }
     .announcement-modal { max-width:620px; }
-    .announcement-modal .modal-body { overflow: visible; }
+    .announcement-modal .modal-body { flex:0 0 auto; min-height:0; overflow:visible; }
     .announcement-composer-note { margin:0 0 18px; padding:11px 12px; border-radius:8px; background:var(--navy-50); color:var(--text-secondary); font-size:.82rem; line-height:1.45; }
     .announcement-count { display:block; margin-top:6px; color:var(--text-muted); font-size:.73rem; text-align:right; }
     .ann-search { width:min(260px,100%); min-height:34px; }
@@ -109,6 +108,8 @@
       }
       .ann-card { grid-template-columns:1fr; }
       .ann-actions { justify-content:flex-start; }
+      .announcement-modal { max-height:90vh; }
+      .announcement-modal .modal-body { flex:1 1 auto; overflow:auto; }
     }
   </style>
 </head>
@@ -167,13 +168,13 @@
   <div class="modal announcement-modal">
     <div class="modal-header">
       <h3 id="announcement-modal-title">New Announcement</h3>
-      <button class="modal-close" type="button" onclick="closeAnnouncementModal()">x</button>
+      <button class="modal-close" type="button" aria-label="Close announcement composer" onclick="closeAnnouncementModal()">&times;</button>
     </div>
     <div class="modal-body">
       <p class="announcement-composer-note">Staff are notified as soon as you post. Announcements expire using the company expiry setting.</p>
       <div class="form-group">
         <label class="form-label required" for="announcement-title">Title</label>
-        <input type="text" id="announcement-title" class="form-control" placeholder="Announcement title">
+        <input type="text" id="announcement-title" class="form-control" maxlength="160" placeholder="Announcement title" autocomplete="off">
       </div>
       <div class="form-group">
         <label class="form-label required" for="announcement-body">Message</label>
@@ -186,7 +187,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" type="button" onclick="closeAnnouncementModal()">Cancel</button>
-      <button class="btn btn-primary" type="button" id="announcement-submit" onclick="saveAnnouncement()">Save</button>
+      <button class="btn btn-primary" type="button" id="announcement-submit" onclick="saveAnnouncement()">Post announcement</button>
     </div>
   </div>
 </div>
@@ -206,6 +207,12 @@ loadNotifCount();
 bindFilters();
 document.getElementById('announcement-search').addEventListener('input', (event) => { announcementSearch = event.target.value.trim().toLowerCase(); renderAnnouncements(); });
 document.getElementById('announcement-body').addEventListener('input', () => { document.getElementById('announcement-body-count').textContent = `${document.getElementById('announcement-body').value.length} / 2,000`; });
+document.getElementById('announcement-modal').addEventListener('mousedown', (event) => {
+  if (event.target === event.currentTarget) closeAnnouncementModal();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && document.getElementById('announcement-modal').style.display !== 'none') closeAnnouncementModal();
+});
 loadAnnouncements();
 
 function bindFilters() {
@@ -272,11 +279,15 @@ function renderAnnouncements() {
 function openAnnouncementModal(item = null) {
   editingAnnouncementId = item?.id || null;
   document.getElementById('announcement-modal-title').textContent = editingAnnouncementId ? 'Edit Announcement' : 'New Announcement';
+  const submit = document.getElementById('announcement-submit');
+  submit.textContent = editingAnnouncementId ? 'Save changes' : 'Post announcement';
+  submit.disabled = false;
   document.getElementById('announcement-title').value = item?.title || '';
   document.getElementById('announcement-body').value = item?.body || '';
   document.getElementById('announcement-body-count').textContent = `${document.getElementById('announcement-body').value.length} / 2,000`;
   document.getElementById('announcement-pinned').checked = !!item?.is_pinned;
   document.getElementById('announcement-modal').style.display = 'flex';
+  requestAnimationFrame(() => document.getElementById('announcement-title').focus());
   window.dispatchEvent(new Event('hrconnect:request-page-height'));
 }
 
@@ -302,6 +313,10 @@ async function saveAnnouncement() {
     return;
   }
 
+  const submit = document.getElementById('announcement-submit');
+  submit.disabled = true;
+  submit.textContent = editingAnnouncementId ? 'Saving…' : 'Posting…';
+
   try {
     if (editingAnnouncementId) {
       await api.put(`/notifications/announcements/${editingAnnouncementId}`, payload);
@@ -314,6 +329,8 @@ async function saveAnnouncement() {
     await loadAnnouncements();
   } catch (err) {
     toast(err.message || 'Could not save announcement', 'error');
+    submit.disabled = false;
+    submit.textContent = editingAnnouncementId ? 'Save changes' : 'Post announcement';
   }
 }
 
