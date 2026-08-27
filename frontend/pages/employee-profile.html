@@ -617,7 +617,7 @@
         }
       }
 
-      /* BambooHR-inspired profile composition: banner, portrait, vitals, then live sections. */
+      /* Employee record composition: a focused header, compact summary, then live sections. */
       .profile-workspace {
         display: block;
         position: relative;
@@ -626,23 +626,23 @@
         min-width: 0;
       }
       .profile-hero {
-        min-height: 272px;
+        min-height: 248px;
         align-items: flex-start;
-        padding: 30px 34px 0;
-        background: linear-gradient(120deg, #08752a, #118334) !important;
+        padding: 28px 30px 0;
+        background: linear-gradient(120deg, #123a8c, #2563d9 58%, #4f86e8) !important;
         border: 0 !important;
-        border-radius: 0 0 28px 28px !important;
-        box-shadow: none !important;
+        border-radius: 18px !important;
+        box-shadow: 0 14px 30px rgba(24, 59, 143, 0.16) !important;
       }
       .profile-hero .avatar-wrap {
         display: block !important;
       }
       .profile-hero .avatar-wrap .avatar {
-        width: 230px !important;
-        height: 230px !important;
-        border-radius: 28px !important;
-        border: 0;
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+        width: 128px !important;
+        height: 128px !important;
+        border-radius: 50% !important;
+        border: 4px solid rgba(255, 255, 255, 0.82);
+        box-shadow: 0 10px 24px rgba(12, 38, 98, 0.28);
       }
       .profile-workspace,
       .profile-workspace button,
@@ -652,10 +652,10 @@
         font-family: var(--font-body);
       }
       .profile-hero h2 {
-        margin-top: 9px;
+        margin-top: 4px;
         color: #fff !important;
         font-family: var(--font-display);
-        font-size: 2.15rem;
+        font-size: 2rem;
         white-space: nowrap;
       }
       .profile-hero p {
@@ -670,23 +670,23 @@
       }
       .profile-tabs {
         width: 100%;
-        margin-top: 28px;
+        margin-top: 20px;
         padding: 0;
         border: 0;
-        gap: 22px;
+        gap: 8px;
         flex-wrap: nowrap;
       }
       .profile-tabs button {
         flex: 0 0 auto;
-        padding: 17px 12px 18px;
+        padding: 13px 12px 14px;
         border: 0;
-        border-radius: 13px 13px 0 0;
+        border-radius: 9px 9px 0 0;
         color: #fff;
         font-size: 0.88rem;
       }
       .profile-tabs button.active {
         background: #fff;
-        color: #08752a;
+        color: #183b8f;
       }
       .profile-tabs button:hover {
         color: #fff;
@@ -694,7 +694,7 @@
         border: 0;
       }
       .profile-tabs button.active:hover {
-        color: #08752a;
+        color: #183b8f;
         background: #fff;
       }
       .profile-actions {
@@ -702,7 +702,7 @@
       }
       .profile-actions .profile-change-btn {
         background: #fff;
-        color: #08752a;
+        color: #183b8f;
         border: 0;
         border-radius: 999px;
         font-weight: 750;
@@ -720,7 +720,7 @@
         border: 0;
         border-radius: 50%;
         background: #fff;
-        color: #08752a;
+        color: #183b8f;
       }
       .profile-actions .profile-more-btn svg {
         width: 20px;
@@ -750,8 +750,8 @@
         font-size: 0.82rem;
       }
       .profile-action-menu button:hover {
-        background: #f1f6f2;
-        color: #08752a;
+        background: #eef4ff;
+        color: #183b8f;
       }
       .profile-action-menu .danger {
         color: #c43c55;
@@ -759,14 +759,15 @@
       .profile-vitals {
         position: absolute;
         z-index: 3;
-        top: 288px;
-        left: 34px;
-        width: 230px;
-        padding: 14px 10px;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-        box-shadow: none;
+        top: 274px;
+        left: 30px;
+        width: 224px;
+        padding: 18px;
+        border: 1px solid #d9e4f8;
+        border-top: 4px solid #2563d9;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 8px 20px rgba(31, 60, 116, 0.08);
       }
       .profile-vitals .avatar,
       .profile-vitals h3,
@@ -775,10 +776,10 @@
         display: none !important;
       }
       .profile-vitals::before {
-        content: "Vitals";
+        content: "Employee summary";
         display: block;
         margin: 0 0 12px;
-        color: #536078;
+        color: #183b8f;
         font-size: 0.88rem;
         font-weight: 800;
       }
@@ -789,39 +790,45 @@
         padding: 8px 0;
       }
       .vital-mark {
-        color: #08752a;
+        color: #2563d9;
       }
       .profile-overview,
       .profile-grid {
-        margin-left: 272px;
+        margin-left: 270px;
       }
       .profile-overview {
         margin-top: 22px;
       }
       .profile-overview-item {
-        min-height: 76px;
-        padding: 15px;
-        border-radius: 10px;
+        min-height: 70px;
+        padding: 14px;
+        border: 1px solid #e0e8f6;
+        border-radius: 12px;
+        box-shadow: none;
       }
       .profile-grid .card-header {
         background: #fff;
       }
       .profile-grid .card-header h3 {
-        color: #08752a;
+        color: #183b8f;
       }
       .profile-grid[data-profile-active="personal"] {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: start;
         gap: 18px;
       }
       .profile-grid[data-profile-active="personal"]::before {
         content: "Personal";
         display: block;
-        color: #08752a;
-        font: 700 1.7rem var(--font-display);
+        grid-column: 1 / -1;
+        color: #183b8f;
+        font: 700 1.45rem var(--font-display);
         margin: 2px 0 0;
       }
       .profile-grid[data-profile-active="personal"] .profile-personal-card,
+      .profile-grid[data-profile-active="personal"] .profile-personal-wide {
+        grid-column: auto;
+      }
       .profile-grid[data-profile-active="personal"] .profile-personal-wide {
         grid-column: 1 / -1;
       }
