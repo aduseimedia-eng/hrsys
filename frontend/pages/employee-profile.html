@@ -59,7 +59,7 @@
       .profile-loader p { margin:6px 0 0; color:var(--text-secondary); font-size:.86rem; }
 
       .profile-hero {
-        background: linear-gradient(120deg, #08752a 0%, #118334 100%);
+        background: linear-gradient(120deg, #102c6a 0%, #1d5fc1 58%, #4d82e8 100%);
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 18px;
         padding: 28px 30px 18px;
@@ -70,7 +70,7 @@
         margin-bottom: 16px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 18px 44px rgba(35, 70, 150, 0.18);
+        box-shadow: 0 18px 44px rgba(29, 95, 193, 0.22);
       }
       .profile-hero::after {
         content: "";
@@ -89,7 +89,7 @@
       }
       .profile-hero .avatar {
         border: 4px solid rgba(255, 255, 255, 0.22);
-        box-shadow: 0 12px 28px rgba(9, 67, 27, 0.28);
+        box-shadow: 0 12px 28px rgba(12, 48, 116, 0.3);
       }
       .profile-hero .avatar-wrap .edit-photo-btn {
         position: absolute;
@@ -97,17 +97,18 @@
         right: 0;
         width: 28px;
         height: 28px;
-        background: var(--amber-500);
+        background: #dbeafe;
+        color: #174ea6;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        border: 2px solid #075b22;
+        border: 2px solid #174ea6;
         transition: background var(--duration);
       }
       .profile-hero .avatar-wrap .edit-photo-btn:hover {
-        background: var(--amber-400);
+        background: #fff;
       }
       .profile-hero h2 {
         font-size: 1.72rem;
@@ -253,7 +254,8 @@
         position: sticky;
         top: 18px;
         padding: 20px;
-        border: 1px solid var(--border);
+        border: 1px solid #cfe0ff;
+        border-top: 4px solid #2563eb;
         border-radius: 16px;
         background: var(--bg-surface);
         box-shadow: var(--shadow-sm);
@@ -288,7 +290,7 @@
         line-height: 1.35;
       }
       .vital-mark {
-        color: #08752a;
+        color: #2563eb;
         font-weight: 900;
       }
       .profile-main .profile-hero .avatar-wrap {
