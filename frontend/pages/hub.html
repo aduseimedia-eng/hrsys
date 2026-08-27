@@ -172,45 +172,16 @@
     <script>
       const user = requireAuth();
       if (!user) throw Error("redirect");
-      const hub = new URLSearchParams(location.search).get("hub") || "people";
+      const requestedHub = new URLSearchParams(location.search).get("hub") || "work";
+      const hub = requestedHub === "people" ? "work" : requestedHub;
+      if (requestedHub === "people") {
+        const destination = window.top !== window.self
+          ? adminWorkspaceUrl("employees")
+          : "employees.html";
+        if (window.top !== window.self) window.top.location.replace(destination);
+        else window.location.replace(destination);
+      }
       const hubs = {
-        people: {
-          title: "People",
-          description:
-            "Manage your people structure, recruitment, and onboarding.",
-          cards: [
-            [
-              "employees",
-              "Employees",
-              "Manage employee records and profiles.",
-              ["admin", "manager"],
-            ],
-            [
-              "departments",
-              "Departments",
-              "Set up departments and teams.",
-              ["admin", "manager"],
-            ],
-            [
-              "orgchart",
-              "Organization chart",
-              "View reporting relationships.",
-              ["admin", "manager"],
-            ],
-            [
-              "recruitment",
-              "Recruitment",
-              "Manage requisitions, candidates, offers, and onboarding handoffs.",
-              ["admin", "manager"],
-            ],
-            [
-              "onboarding",
-              "Onboarding",
-              "Guide new hires through onboarding.",
-              ["admin", "manager"],
-            ],
-          ],
-        },
         work: {
           title: "Work",
           description: "Manage daily work, schedules, time, and requests.",
@@ -383,7 +354,7 @@
           ],
         },
       };
-      const config = hubs[hub] || hubs.people;
+      const config = hubs[hub] || hubs.work;
       const iconFor = {
         employees: usersIcon,
         departments: orgIcon,
