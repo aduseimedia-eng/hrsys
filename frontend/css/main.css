@@ -1210,7 +1210,8 @@ tbody tr:hover { background: #f7faff; }
 .nav-group-toggle, .nav-item { min-height: 44px; margin: 1px 0; padding: 8px 11px; border-radius: 10px; color: #4d4d50; font-size: .92rem; font-weight: 550; }
 .nav-group-toggle:hover, .nav-item:hover { background: #f0f0f1; color: #242426; }
 .nav-group-heading { gap: 10px; }
-.nav-item > .nav-icon, .nav-group-heading > .nav-icon { width: 34px; height: 34px; padding: 8px; border-radius: 8px; background: #eeeeef; color: #626266; opacity: 1; }
+.nav-item > .nav-icon, .nav-group-heading > .nav-icon { width: 34px; height: 34px; padding: 8px; border-radius: 8px; background: rgba(37,99,235,.10); color: #2563eb; opacity: 1; }
+.nav-group-toggle:hover > .nav-group-heading > .nav-icon, .nav-item:hover > .nav-icon, .nav-item.active > .nav-icon { background: rgba(37,99,235,.16); color: #174ea6; }
 .nav-group-chevron { color: #777; }
 .nav-item.active { color: #202023; background: #ececee; box-shadow: none; font-weight: 650; }
 .nav-item.active::before { display: none; }
