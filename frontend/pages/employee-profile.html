@@ -1462,10 +1462,9 @@
       </div>
     `;
 
-          // Store emp for edit modal
+          // Store the latest employee data for profile actions.
           window._emp = emp;
           window._promotions = promotions || [];
-          if (canEdit) showEditModal(true);
           setEmployeeProfileTab(window.location.hash.slice(1) || "personal");
         } catch (e) {
           document.getElementById("profile-content").innerHTML =
@@ -1890,10 +1889,11 @@
             body.employee_code =
               document.getElementById("e-employee-code")?.value;
           }
-          await api.put(`/employees/${id}`, body);
+          const savedEmployee = await api.put(`/employees/${id}`, body);
+          window._emp = { ...window._emp, ...savedEmployee };
           document.querySelector(".modal-overlay")?.remove();
           toast("Profile updated!", "success");
-          loadProfile();
+          await loadProfile();
         } catch (e) {
           toast(e.message, "error");
         }
