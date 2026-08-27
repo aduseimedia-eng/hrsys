@@ -60,26 +60,11 @@
     .ann-card:hover { border-color:var(--navy-200); box-shadow:var(--shadow-sm); }
     .ann-card.is-pinned { padding-left:0; }
     /* Keep the composer light: it should not be presented as a boxed card. */
-    .announcement-modal {
-      max-height: none;
-      overflow: visible;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
-    }
-    .announcement-modal .modal-header,
-    .announcement-modal .modal-body,
-    .announcement-modal .modal-footer {
-      background: transparent;
-      border: 0;
-    }
-    .announcement-modal .modal-header::after { display: none; }
+    .announcement-modal { max-width:620px; }
     .announcement-modal .modal-body { overflow: visible; }
-    @media (max-width:640px) {
-      .announcement-modal { max-height:90vh; overflow:hidden; }
-      .announcement-modal .modal-body { overflow:auto; }
-    }
+    .announcement-composer-note { margin:0 0 18px; padding:11px 12px; border-radius:8px; background:var(--navy-50); color:var(--text-secondary); font-size:.82rem; line-height:1.45; }
+    .announcement-count { display:block; margin-top:6px; color:var(--text-muted); font-size:.73rem; text-align:right; }
+    .ann-search { width:min(260px,100%); min-height:34px; }
     .ann-card-title { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
     .ann-card strong { color:var(--text-primary); font-size:.96rem; }
     .ann-card p { margin-top:5px; color:var(--text-secondary); font-size:.86rem; line-height:1.55; max-width:760px; white-space:pre-wrap; }
@@ -168,6 +153,7 @@
             <button class="ann-filter" type="button" data-filter="recent">Recent</button>
             <button class="ann-filter" type="button" data-filter="older">Older</button>
           </div>
+          <input id="announcement-search" class="form-control ann-search" type="search" placeholder="Search announcements" aria-label="Search announcements">
         </div>
         <div class="announcement-table" id="announcement-list">
           <div class="loading-state"><div class="spinner"></div><span>Loading announcements...</span></div>
@@ -184,13 +170,14 @@
       <button class="modal-close" type="button" onclick="closeAnnouncementModal()">x</button>
     </div>
     <div class="modal-body">
+      <p class="announcement-composer-note">Staff are notified as soon as you post. Announcements expire using the company expiry setting.</p>
       <div class="form-group">
         <label class="form-label required" for="announcement-title">Title</label>
         <input type="text" id="announcement-title" class="form-control" placeholder="Announcement title">
       </div>
       <div class="form-group">
         <label class="form-label required" for="announcement-body">Message</label>
-        <textarea id="announcement-body" class="form-control" rows="5" placeholder="What should staff know?"></textarea>
+        <textarea id="announcement-body" class="form-control" rows="5" maxlength="2000" placeholder="What should staff know?"></textarea><small id="announcement-body-count" class="announcement-count">0 / 2,000</small>
       </div>
       <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:.86rem;font-weight:700">
         <input type="checkbox" id="announcement-pinned">
@@ -212,10 +199,13 @@ if (!user) throw new Error('redirect');
 let announcements = [];
 let announcementFilter = 'all';
 let editingAnnouncementId = null;
+let announcementSearch = '';
 
 buildSidebar('announcements');
 loadNotifCount();
 bindFilters();
+document.getElementById('announcement-search').addEventListener('input', (event) => { announcementSearch = event.target.value.trim().toLowerCase(); renderAnnouncements(); });
+document.getElementById('announcement-body').addEventListener('input', () => { document.getElementById('announcement-body-count').textContent = `${document.getElementById('announcement-body').value.length} / 2,000`; });
 loadAnnouncements();
 
 function bindFilters() {
@@ -253,10 +243,10 @@ function renderKpis() {
 
 function renderAnnouncements() {
   const rows = announcements.filter((item) => {
-    if (announcementFilter === 'pinned') return item.is_pinned;
-    if (announcementFilter === 'recent') return daysSince(item.created_at) <= 7;
-    if (announcementFilter === 'older') return daysSince(item.created_at) > 7;
-    return true;
+    const filterMatch = announcementFilter === 'pinned' ? item.is_pinned
+      : announcementFilter === 'recent' ? daysSince(item.created_at) <= 7
+      : announcementFilter === 'older' ? daysSince(item.created_at) > 7 : true;
+    return filterMatch && (!announcementSearch || `${item.title} ${item.body} ${item.author_name || ''}`.toLowerCase().includes(announcementSearch));
   });
   const target = document.getElementById('announcement-list');
   if (!rows.length) {
@@ -269,7 +259,7 @@ function renderAnnouncements() {
       <div>
         <div class="ann-card-title"><strong>${escapeHtml(item.title)}</strong><span class="badge badge-info">${item.is_pinned ? 'Pinned' : 'Published'}</span></div>
         <p>${escapeHtml(item.body)}</p>
-        <div class="ann-card-meta"><span>${escapeHtml(item.author_name || 'HR')}</span><span>${escapeHtml(fmt.datetime(item.created_at))}</span></div>
+        <div class="ann-card-meta"><span>${escapeHtml(item.author_name || 'HR')}</span><span>${escapeHtml(fmt.datetime(item.created_at))}</span>${item.expires_at ? `<span>Expires ${escapeHtml(fmt.date(item.expires_at))}</span>` : ''}</div>
       </div>
       <div class="ann-actions">
         <button class="btn btn-outline btn-sm" type="button" onclick="editAnnouncement(${item.id})">Edit</button>
@@ -284,6 +274,7 @@ function openAnnouncementModal(item = null) {
   document.getElementById('announcement-modal-title').textContent = editingAnnouncementId ? 'Edit Announcement' : 'New Announcement';
   document.getElementById('announcement-title').value = item?.title || '';
   document.getElementById('announcement-body').value = item?.body || '';
+  document.getElementById('announcement-body-count').textContent = `${document.getElementById('announcement-body').value.length} / 2,000`;
   document.getElementById('announcement-pinned').checked = !!item?.is_pinned;
   document.getElementById('announcement-modal').style.display = 'flex';
   window.dispatchEvent(new Event('hrconnect:request-page-height'));
