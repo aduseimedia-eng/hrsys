@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tickets - KenadHR</title>
+  <title>Requests &amp; Support - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/suite.css">
   <link rel="stylesheet" href="../css/workspace.css">
@@ -28,7 +28,7 @@
 <div class="app-shell">
   <aside class="sidebar" id="sidebar"></aside>
   <header class="topbar">
-    <div class="topbar-title">Tickets</div>
+    <div class="topbar-title">Requests &amp; Support</div>
     <div class="topbar-actions">
       <button class="icon-btn" id="notif-btn" title="Notifications">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -39,15 +39,15 @@
   <main class="main-content">
     <section class="ticket-head">
       <div>
-        <span class="suite-eyebrow">Tickets</span>
-        <h1 id="ticket-page-title">Tickets Submitted by Staff</h1>
-        <p id="ticket-page-subtitle">Review staff-submitted support tickets and mark completed issues.</p>
+        <span class="suite-eyebrow">Requests &amp; Support</span>
+        <h1 id="ticket-page-title">Support Requests from Staff</h1>
+        <p id="ticket-page-subtitle">Review staff support requests and mark completed issues.</p>
       </div>
     </section>
     <section class="suite-kpis" id="ticket-kpis"></section>
     <article class="suite-panel" id="ticket-submit-panel" style="display:none;margin-bottom:18px">
       <div class="suite-panel-header">
-        <div><h3>Submit Ticket</h3><span>Requests are sent to the support queue</span></div>
+        <div><h3>Submit support request</h3><span>Requests are sent to the support queue</span></div>
       </div>
       <div class="suite-panel-body">
         <form id="hr-ticket-form">
@@ -81,7 +81,7 @@
               <textarea id="new-ticket-description" class="form-control" rows="3" required></textarea>
             </div>
             <div class="form-group" style="grid-column:1/-1">
-              <button class="btn btn-primary" type="submit">Submit Ticket</button>
+              <button class="btn btn-primary" type="submit">Submit request</button>
             </div>
           </div>
         </form>
@@ -89,17 +89,17 @@
     </article>
     <article class="suite-panel" id="my-ticket-history-panel" style="display:none;margin-bottom:18px">
       <div class="suite-panel-header">
-        <div><h3>My Ticket History</h3><span>Track tickets you submitted to the IT Department</span></div>
+        <div><h3>My request history</h3><span>Track support requests sent to the IT Department</span></div>
       </div>
       <div class="suite-panel-body">
         <div class="ticket-table" id="my-ticket-list">
-          <div class="loading-state"><div class="spinner"></div><span>Loading ticket history...</span></div>
+          <div class="loading-state"><div class="spinner"></div><span>Loading request history...</span></div>
         </div>
       </div>
     </article>
     <article class="suite-panel" id="ticket-queue-panel">
       <div class="suite-panel-header">
-        <div><h3>Tickets Submitted by Staff</h3><span>Filter staff support requests and mark completed issues</span></div>
+        <div><h3>Support requests from staff</h3><span>Filter staff support requests and mark completed issues</span></div>
       </div>
       <div class="suite-panel-body">
         <div class="ticket-toolbar">
@@ -118,7 +118,7 @@
           </select>
         </div>
         <div class="ticket-table" id="ticket-list">
-          <div class="loading-state"><div class="spinner"></div><span>Loading tickets...</span></div>
+          <div class="loading-state"><div class="spinner"></div><span>Loading support requests...</span></div>
         </div>
       </div>
     </article>
@@ -128,7 +128,7 @@
 <div id="ticket-modal" class="modal-overlay" style="display:none">
   <div class="modal">
     <div class="modal-header">
-      <h3>Update Ticket</h3>
+      <h3>Update support request</h3>
       <button class="modal-close" type="button" onclick="closeTicketModal()">x</button>
     </div>
     <div class="modal-body">
@@ -177,8 +177,8 @@ async function initTicketsPage() {
     if (!canManageTickets) {
       document.getElementById('ticket-submit-panel').style.display = '';
       document.getElementById('my-ticket-history-panel').style.display = '';
-      document.getElementById('ticket-page-title').textContent = 'Submit Ticket';
-      document.getElementById('ticket-page-subtitle').textContent = 'Create a support ticket for the IT Department to review.';
+      document.getElementById('ticket-page-title').textContent = 'Submit a support request';
+      document.getElementById('ticket-page-subtitle').textContent = 'Create a request for the IT Department to review.';
       document.getElementById('ticket-kpis').style.display = 'none';
       document.getElementById('ticket-queue-panel').style.display = 'none';
       await loadMyTickets();
@@ -201,7 +201,7 @@ async function submitHrTicket(event) {
     });
     event.target.reset();
     document.getElementById('new-ticket-priority').value = 'medium';
-    toast('Ticket submitted', 'success');
+    toast('Support request submitted', 'success');
     await loadMyTickets();
     if (canManageTickets) await loadTickets();
   } catch (err) {
@@ -237,10 +237,10 @@ function renderMyTickets() {
   const target = document.getElementById('my-ticket-list');
   if (!target) return;
   if (!myTickets.length) {
-    target.innerHTML = '<div class="suite-empty">No tickets submitted yet.</div>';
+    target.innerHTML = '<div class="suite-empty">No support requests submitted yet.</div>';
     return;
   }
-  target.innerHTML = `<table><thead><tr><th>Ticket</th><th>Category</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead><tbody>
+  target.innerHTML = `<table><thead><tr><th>Request</th><th>Category</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead><tbody>
     ${myTickets.map((ticket) => `<tr>
       <td><strong>${escapeHtml(ticket.ticket_number || `IT-${ticket.id}`)}</strong><p><strong>${escapeHtml(ticket.subject)}</strong>${escapeHtml(ticket.description)}</p>${ticket.response ? `<p><strong>Completion note</strong>${escapeHtml(ticket.response)}</p>` : ''}</td>
       <td>${escapeHtml(categoryLabel(ticket.category))}</td>
@@ -260,17 +260,17 @@ function renderKpis() {
     ['Open', open, 'waiting for IT'],
     ['High priority', high, 'active escalations'],
     ['In progress', progress, 'being handled'],
-    ['Completed', resolved, 'completed tickets']
+    ['Completed', resolved, 'completed requests']
   ].map(([label, value, note]) => `<article class="suite-kpi"><span>${escapeHtml(label)}</span><div><strong>${value}</strong><small>${escapeHtml(note)}</small></div></article>`).join('');
 }
 
 function renderTickets() {
   const target = document.getElementById('ticket-list');
   if (!tickets.length) {
-    target.innerHTML = '<div class="suite-empty">No tickets match this filter.</div>';
+    target.innerHTML = '<div class="suite-empty">No support requests match this filter.</div>';
     return;
   }
-  target.innerHTML = `<table><thead><tr><th>Ticket</th><th>Staff</th><th>Category</th><th>Priority</th><th>Status</th><th>Date</th><th style="text-align:right">Action</th></tr></thead><tbody>
+  target.innerHTML = `<table><thead><tr><th>Request</th><th>Staff</th><th>Category</th><th>Priority</th><th>Status</th><th>Date</th><th style="text-align:right">Action</th></tr></thead><tbody>
     ${tickets.map((ticket) => `<tr>
       <td><strong>${escapeHtml(ticket.ticket_number || `IT-${ticket.id}`)}</strong><p><strong>${escapeHtml(ticket.subject)}</strong>${escapeHtml(ticket.description)}</p>${ticket.response ? `<p><strong>Completion note</strong>${escapeHtml(ticket.response)}</p>` : ''}</td>
       <td>${escapeHtml(ticket.employee_name || '')}<br><span style="color:var(--text-muted)">${escapeHtml(ticket.job_title || '')}</span></td>
@@ -303,7 +303,7 @@ async function saveTicketUpdate() {
       response: document.getElementById('ticket-response').value
     });
     closeTicketModal();
-    toast('Ticket updated', 'success');
+    toast('Support request updated', 'success');
     await loadTickets();
   } catch (err) {
     toast(err.message || 'Could not update ticket', 'error');

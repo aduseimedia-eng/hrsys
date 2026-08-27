@@ -1239,7 +1239,7 @@
 
     if (method === 'POST' && route === '/tickets') {
       if (isItDepartmentMember(db, user)) {
-        throw new Error('IT Department users can view and complete staff tickets, but cannot submit tickets');
+        throw new Error('IT Department users can view and complete staff support requests, but cannot submit them');
       }
       if (!body?.subject?.trim() || !body?.description?.trim()) throw new Error('Subject and description are required');
       const row = {
@@ -1258,7 +1258,7 @@
       };
       db.it_tickets.push(row);
       itDepartmentRecipients(db).forEach((e) => {
-        db.notifications.push({ id: nextId(db.notifications), employee_id: e.id, type: 'it_ticket', message: `${user.first_name} ${user.last_name} submitted a ticket.`, link: '/pages/workspace.html#tickets', is_read: false, created_at: new Date().toISOString() });
+        db.notifications.push({ id: nextId(db.notifications), employee_id: e.id, type: 'it_ticket', message: `${user.first_name} ${user.last_name} submitted a support request.`, link: '/pages/workspace.html#tickets', is_read: false, created_at: new Date().toISOString() });
       });
       saveDb(db);
       return enrichTicket(db, row);
@@ -1272,7 +1272,7 @@
     }
 
     if (method === 'GET' && route === '/tickets') {
-      if (!isItDepartmentUser(db, user)) throw new Error('Only the IT Department can view submitted tickets');
+      if (!isItDepartmentUser(db, user)) throw new Error('Only the IT Department can view submitted support requests');
       let rows = db.it_tickets.slice();
       const status = url.searchParams.get('status');
       const priority = url.searchParams.get('priority');
@@ -1285,7 +1285,7 @@
 
     const ticketMatch = route.match(/^\/tickets\/(\d+)$/);
     if (ticketMatch && method === 'PATCH') {
-      if (!isItDepartmentUser(db, user)) throw new Error('Only the IT Department can update tickets');
+      if (!isItDepartmentUser(db, user)) throw new Error('Only the IT Department can update support requests');
       const row = db.it_tickets.find((ticket) => ticket.id === Number(ticketMatch[1]));
       if (!row) throw new Error('Ticket not found');
       if (!['open', 'in_progress', 'resolved', 'closed'].includes(body?.status)) throw new Error('Invalid status');
@@ -1293,7 +1293,7 @@
       row.response = body.response || '';
       row.updated_at = new Date().toISOString();
       row.resolved_at = ['resolved', 'closed'].includes(row.status) ? (row.resolved_at || row.updated_at) : null;
-      db.notifications.push({ id: nextId(db.notifications), employee_id: row.employee_id, type: 'it_ticket', message: `Your ticket "${row.subject}" is now ${row.status === 'resolved' ? 'completed' : row.status.replace('_', ' ')}.`, link: '/pages/staff-portal.html#tickets', is_read: false, created_at: new Date().toISOString() });
+      db.notifications.push({ id: nextId(db.notifications), employee_id: row.employee_id, type: 'it_ticket', message: `Your support request "${row.subject}" is now ${row.status === 'resolved' ? 'completed' : row.status.replace('_', ' ')}.`, link: '/pages/staff-portal.html#tickets', is_read: false, created_at: new Date().toISOString() });
       saveDb(db);
       return enrichTicket(db, row);
     }

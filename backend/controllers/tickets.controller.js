@@ -73,7 +73,7 @@ async function isItDepartmentMember(userId, companyId) {
 exports.createTicket = async (req, res) => {
   try {
     if (await isItDepartmentMember(req.user.id, req.user.company_id)) {
-      return res.status(403).json({ error: 'IT Department users can view and complete staff tickets, but cannot submit tickets' });
+      return res.status(403).json({ error: 'IT Department users can view and complete staff support requests, but cannot submit them' });
     }
     const validation = validateTicket(req.body);
     if (validation) return res.status(400).json({ error: validation });
@@ -101,7 +101,7 @@ exports.createTicket = async (req, res) => {
       companyId: req.user.company_id,
       employeeId: manager.id,
       type: 'it_ticket',
-      message: `${staffName} submitted a ticket.`,
+      message: `${staffName} submitted a support request.`,
       link: '/pages/workspace.html#tickets'
     })));
     res.status(201).json(rows[0]);
@@ -128,7 +128,7 @@ exports.getMine = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
-    if (!await isItDepartmentUser(req.user.id, req.user.company_id)) return res.status(403).json({ error: 'Only the IT Department can view submitted tickets' });
+    if (!await isItDepartmentUser(req.user.id, req.user.company_id)) return res.status(403).json({ error: 'Only the IT Department can view submitted support requests' });
     const status = req.query.status;
     const priority = req.query.priority;
     const params = [];
@@ -163,7 +163,7 @@ exports.getAll = async (req, res) => {
 
 exports.updateTicket = async (req, res) => {
   try {
-    if (!await isItDepartmentUser(req.user.id, req.user.company_id)) return res.status(403).json({ error: 'Only the IT Department can update tickets' });
+    if (!await isItDepartmentUser(req.user.id, req.user.company_id)) return res.status(403).json({ error: 'Only the IT Department can update support requests' });
     const status = req.body.status;
     if (!STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
     const { rows } = await db.query(
@@ -178,7 +178,7 @@ exports.updateTicket = async (req, res) => {
       companyId: req.user.company_id,
       employeeId: rows[0].employee_id,
       type: 'it_ticket',
-      message: `Your ticket "${rows[0].subject}" is now ${status === 'resolved' ? 'completed' : status.replace('_', ' ')}.`,
+      message: `Your support request "${rows[0].subject}" is now ${status === 'resolved' ? 'completed' : status.replace('_', ' ')}.`,
       link: '/pages/staff-portal.html#tickets'
     });
     res.json(rows[0]);

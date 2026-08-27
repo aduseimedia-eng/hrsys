@@ -845,7 +845,7 @@ function buildSidebar(activePage, options = {}) {
     { page: 'calendar', icon: calendarIcon(), label: 'Company calendar', roles: ['admin', 'manager'] },
     { page: 'todos', icon: checkIcon(), label: 'To do list', roles: ['admin', 'manager'] },
     { page: 'messages', icon: chatIcon(), label: 'Messages', roles: ['admin', 'manager'] },
-    { page: 'tickets', icon: docIcon(), label: 'Tickets', roles: ['admin', 'manager'] },
+    { page: 'tickets', icon: docIcon(), label: 'Requests & Support', roles: ['admin', 'manager'] },
     { section: 'Pay & Benefits', icon: walletIcon(), roles: ['admin', 'manager'] },
     { page: 'payroll', icon: walletIcon(), label: 'Payroll', roles: ['admin', 'manager'], activeFor: ['finance'] },
     { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },
@@ -1431,7 +1431,7 @@ function notificationMeta(type) {
   const meta = {
     message: ['Message', '✉'], announcement: ['Announcement', '📣'], leave_request: ['Leave request', '◷'],
     leave_approved: ['Leave approved', '✓'], leave_rejected: ['Leave update', '!'], payroll: ['Payroll', fmt.currencySymbol()],
-    review: ['Performance review', '★'], it_ticket: ['IT ticket', '⌁'], welcome: ['Welcome', '✦']
+    review: ['Performance review', '★'], it_ticket: ['Support request', '⌁'], welcome: ['Welcome', '✦']
   };
   return meta[type] || ['KenadHR update', '•'];
 }
