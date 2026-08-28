@@ -22,7 +22,8 @@
     .summary { min-height:45px; margin:0; color:var(--muted); font-size:.82rem; line-height:1.55; }.divider { height:1px; margin:22px 0 18px; background:#e7e9f1; }.featured .divider { background:rgba(255,255,255,.3); }
     .features { display:grid; gap:11px; padding:0; margin:0; list-style:none; color:#3b4660; font-size:.8rem; }.features li { display:flex; gap:9px; align-items:center; }.tick { width:18px; height:18px; display:grid; place-items:center; flex:0 0 auto; border-radius:5px; color:#fff; background:var(--blue); font-size:.68rem; font-weight:900; }.featured .tick { color:var(--blue); background:#fff; }
     .plan .btn { width:100%; min-height:43px; margin-top:auto; border:0; border-radius:22px; color:#fff; background:var(--blue); font-size:.82rem; font-weight:800; }.featured .btn { color:var(--blue); background:#fff; }.note { margin:13px 0 0; color:#9ba3b5; text-align:center; font-size:.72rem; }.featured .note { color:rgba(255,255,255,.72); }
-    .comparison { display:block; width:max-content; margin:30px auto 0; padding:11px 20px; border-radius:22px; color:var(--blue); background:#f0f2ff; font-size:.79rem; font-weight:750; }
+    .plans, .comparison { display:none; }
+    .intro::after { content:'Online payments are temporarily unavailable.'; display:block; margin-top:14px; color:var(--muted); font-size:.9rem; }
     @media(max-width:760px) { body{background:var(--lavender)}.pricing-shell{padding-bottom:34px}.intro{margin:45px auto 28px}.plans{grid-template-columns:1fr;max-width:400px;margin:auto}.plan,.plan.featured{min-height:0}.plan.featured{order:-1}.topbar .brand img{width:130px}.comparison{margin-bottom:18px} }
   </style>
 </head>
