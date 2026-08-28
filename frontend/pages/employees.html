@@ -348,7 +348,7 @@ async function loadEmployees() {
       </div>
       <div class="emp-dept">${e.department_name || 'No department assigned'}</div>
       <div class="emp-meta">
-        <div class="emp-meta-item"><span class="emp-meta-label">Role</span><span class="emp-meta-value">${e.role || 'Employee'}</span></div>
+        <div class="emp-meta-item"><span class="emp-meta-label">System access</span><span class="emp-meta-value">${e.role || 'Employee'}</span></div>
         <div class="emp-meta-item"><span class="emp-meta-label">Joined</span><span class="emp-meta-value">${e.hire_date ? fmt.date(e.hire_date) : 'Not recorded'}</span></div>
       </div>
       <div class="emp-card-actions">

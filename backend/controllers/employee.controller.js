@@ -261,6 +261,9 @@ exports.create = async (req, res) => {
     if (employment_type && !EMPLOYMENT_TYPES.includes(employment_type)) {
       return res.status(400).json({ error: "Invalid employment type" });
     }
+    if (role && !["admin", "manager", "employee"].includes(role)) {
+      return res.status(400).json({ error: "Invalid access role" });
+    }
     let employeeCode = String(employee_code || "")
       .trim()
       .toUpperCase();
