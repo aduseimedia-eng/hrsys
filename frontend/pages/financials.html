@@ -1169,9 +1169,9 @@
                 <label class="form-label" id="partyLabel" for="party">Payee / income source</label
                 ><input id="party" class="form-control" placeholder="Name or organization" />
               </div>
-              <div class="form-group">
-                <label class="form-label required" for="payment-method">Payment method</label
-                ><select id="payment-method" class="form-control form-select" required>
+              <div class="form-group" hidden aria-hidden="true">
+                <label class="form-label" for="payment-method">Payment method</label
+                ><select id="payment-method" class="form-control form-select">
                   <option value="cash">Cash / petty cash</option>
                   <option value="bank">Bank transfer</option>
                   <option value="mobile_money">Mobile money</option>
