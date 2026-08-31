@@ -204,6 +204,20 @@ function initialiseModalController() {
   sync();
 }
 
+// Salary Management originally used a compact history preview for View. Route
+// that action to the full compensation detail workspace instead.
+if (/\/pages\/compensation\.html$/i.test(window.location.pathname)) {
+  document.addEventListener('click', event => {
+    const button = event.target.closest?.('button');
+    const match = button?.getAttribute('onclick')?.match(/^history\((\d+)\)$/);
+    if (!match || button.textContent.trim() !== 'View') return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    const route = `compensation-detail?employee_id=${match[1]}`;
+    if (isEmbeddedWorkspacePage()) window.parent.postMessage({ type: 'hrconnect:navigate', route }, window.location.origin);
+    else location.href = appUrl(`/pages/workspace.html#${route}`);
+  }, true);
+}
+
 // Pages loaded in the workspace iframe include this file at the end of body.
 // Apply the embedded layout before their page scripts build their UI, rather than
 // waiting for DOMContentLoaded and visibly reflowing a full app shell.
