@@ -831,6 +831,11 @@ window.addEventListener('message', (event) => {
     }
     return;
   }
+  if (data.type === 'hrconnect:modal-state') {
+    document.documentElement.classList.toggle('workspace-modal-open', Boolean(data.open));
+    document.body.classList.toggle('workspace-modal-open', Boolean(data.open));
+    return;
+  }
   if (data.type === 'hrconnect:attendance-updated') {
     loadWorkspaceAttendance();
     return;
@@ -840,6 +845,8 @@ window.addEventListener('message', (event) => {
 });
 
 workspaceFrame.addEventListener('load', () => {
+  document.documentElement.classList.remove('workspace-modal-open');
+  document.body.classList.remove('workspace-modal-open');
   workspaceLoading.classList.add('hidden');
   workspaceFrame.classList.remove('hidden');
   workspaceFrame.contentWindow?.scrollTo(0, 0);

@@ -122,12 +122,84 @@ function activateEmbeddedWorkspacePage() {
   document.body.classList.add('embedded-page');
 }
 
+// Keep every existing modal implementation consistent. Pages may still open a
+// modal by changing its display style, but the shared controller owns focus,
+// keyboard navigation, backdrop clicks, and scroll locking.
+function initialiseModalController() {
+  const overlaySelector = '.modal-overlay, .success-popup-overlay';
+  const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  const previousFocus = new WeakMap();
+  let activeOverlay = null;
+
+  const visibleOverlays = () => Array.from(document.querySelectorAll(overlaySelector))
+    .filter(overlay => overlay.isConnected && getComputedStyle(overlay).display !== 'none' && overlay.getAttribute('aria-hidden') !== 'true');
+
+  const notifyWorkspace = open => {
+    if (isEmbeddedWorkspacePage()) window.parent.postMessage({ type: 'hrconnect:modal-state', open }, window.location.origin);
+  };
+
+  const focusModal = overlay => {
+    const modal = overlay.querySelector('.modal, .success-popup-card') || overlay;
+    modal.setAttribute('role', modal.getAttribute('role') || 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    if (!modal.hasAttribute('tabindex')) modal.setAttribute('tabindex', '-1');
+    const target = modal.querySelector('[autofocus], .modal-close, input, select, textarea, button') || modal;
+    requestAnimationFrame(() => target.focus({ preventScroll: true }));
+  };
+
+  const sync = () => {
+    const overlays = visibleOverlays();
+    const nextActive = overlays.at(-1) || null;
+    const isOpen = Boolean(nextActive);
+    document.documentElement.classList.toggle('modal-open', isOpen);
+    document.body.classList.toggle('modal-open', isOpen);
+
+    if (nextActive && nextActive !== activeOverlay) {
+      previousFocus.set(nextActive, document.activeElement);
+      focusModal(nextActive);
+    }
+    if (!nextActive && activeOverlay) previousFocus.get(activeOverlay)?.focus?.({ preventScroll: true });
+    if (activeOverlay !== nextActive) notifyWorkspace(isOpen);
+    activeOverlay = nextActive;
+  };
+
+  const closeOverlay = overlay => {
+    const closeButton = overlay.querySelector('.modal-close, .success-popup-dismiss');
+    if (closeButton) closeButton.click();
+    else overlay.style.display = 'none';
+    requestAnimationFrame(sync);
+  };
+
+  document.addEventListener('click', event => {
+    const overlay = event.target.closest?.(overlaySelector);
+    if (overlay && event.target === overlay) closeOverlay(overlay);
+  });
+
+  document.addEventListener('keydown', event => {
+    const overlay = activeOverlay;
+    if (!overlay) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeOverlay(overlay); return; }
+    if (event.key !== 'Tab') return;
+    const modal = overlay.querySelector('.modal, .success-popup-card') || overlay;
+    const focusable = Array.from(modal.querySelectorAll(focusableSelector)).filter(element => element.offsetParent !== null);
+    if (!focusable.length) { event.preventDefault(); modal.focus(); return; }
+    const first = focusable[0], last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+
+  new MutationObserver(sync).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'aria-hidden'] });
+  sync();
+}
+
 // Pages loaded in the workspace iframe include this file at the end of body.
 // Apply the embedded layout before their page scripts build their UI, rather than
 // waiting for DOMContentLoaded and visibly reflowing a full app shell.
 activateEmbeddedWorkspacePage();
 if (!document.body && document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', activateEmbeddedWorkspacePage);
+  document.addEventListener('DOMContentLoaded', () => { activateEmbeddedWorkspacePage(); initialiseModalController(); }, { once: true });
+} else {
+  initialiseModalController();
 }
 
 // Let the workspace shell size its frame to the page instead of making each

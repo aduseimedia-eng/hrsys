@@ -1302,6 +1302,13 @@ tbody tr:hover { background: #f7faff; }
 .modal .form-group { margin-bottom: 20px; }
 .modal .form-control { min-height: 42px; border-color: #e3e8f0; border-radius: 6px; }
 .modal .form-label { color: #647189; font-size: .76rem; font-weight: 700; letter-spacing: .02em; }
+html.modal-open,
+body.modal-open,
+html.workspace-modal-open,
+body.workspace-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
 .department-delete-dialog { padding: 28px; }
 @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 
