@@ -940,6 +940,7 @@ function buildSidebar(activePage, options = {}) {
     { page: 'employee-requests', icon: docIcon(), label: 'Employee Requests', roles: ['admin', 'manager'] },
     { section: 'Pay & Benefits', icon: walletIcon(), roles: ['admin', 'manager'] },
     { page: 'payroll', icon: walletIcon(), label: 'Payroll', roles: ['admin', 'manager'], activeFor: ['finance'] },
+    { page: 'compensation', icon: walletIcon(), label: 'Salary Management', roles: ['admin'] },
     { page: 'process-payroll', icon: walletIcon(), label: 'Process Payroll', roles: ['admin'] },
     { page: 'pensions', icon: walletIcon(), label: 'Pension Contributions', roles: ['admin'] },
     { page: 'benefits', icon: docIcon(), label: 'Benefits', roles: ['admin', 'manager'] },

@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const auth = require('../middleware/auth');
+const rbac = require('../middleware/rbac');
+const controller = require('../controllers/compensation.controller');
+router.use(auth, rbac('admin'));
+router.get('/', controller.list);
+router.get('/:employeeId', controller.detail);
+router.post('/preview', controller.preview);
+router.post('/', controller.set);
+module.exports = router;
