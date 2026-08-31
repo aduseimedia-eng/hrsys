@@ -207,6 +207,34 @@ function initialiseModalController() {
 // Salary Management originally used a compact history preview for View. Route
 // that action to the full compensation detail workspace instead.
 if (/\/pages\/compensation\.html$/i.test(window.location.pathname)) {
+  window.addEventListener('load', () => {
+    const preview = document.getElementById('preview');
+    if (!preview || document.getElementById('salary-exemptions')) return;
+    const controls = document.createElement('div'); controls.id = 'salary-exemptions'; controls.style.cssText = 'display:flex;gap:18px;margin:12px 0;font-size:.86rem;color:var(--text-secondary)';
+    controls.innerHTML = '<label><input id="ssnit-exempt" type="checkbox"> SSNIT exempt</label><label><input id="paye-exempt" type="checkbox"> PAYE exempt</label>';
+    preview.before(controls);
+    const refreshPreview = async () => {
+      const basic = document.getElementById('basic'), allowance = document.getElementById('allow'), other = document.getElementById('other');
+      if (!basic || !allowance || !other) return;
+      try {
+        const result = await api.post('/compensation/preview', {
+          basic_salary: Number(basic.value || 0), allowances: Number(allowance.value || 0), other_deductions: Number(other.value || 0),
+          ssnit_exempt: document.getElementById('ssnit-exempt').checked, paye_exempt: document.getElementById('paye-exempt').checked
+        });
+        preview.innerHTML = `<b>Estimated net: ${fmt.currency(result.net)}</b><span>Gross ${fmt.currency(result.gross)} · Employee SSNIT ${fmt.currency(result.ssnitEmployee)} · PAYE ${fmt.currency(result.payeTax)}</span>`;
+      } catch (_) { /* The page's built-in preview remains available until all values are valid. */ }
+    };
+    controls.addEventListener('change', refreshPreview);
+    ['basic', 'allow', 'other'].forEach(id => document.getElementById(id)?.addEventListener('input', refreshPreview));
+    document.getElementById('set')?.addEventListener('click', () => {
+      document.getElementById('ssnit-exempt').checked = false;
+      document.getElementById('paye-exempt').checked = false;
+    });
+    document.getElementById('save')?.addEventListener('click', async event => {
+      event.preventDefault(); event.stopImmediatePropagation();
+      try { await api.post('/compensation', { employee_id:Number(document.getElementById('emp').value), basic_salary:Number(document.getElementById('basic').value), allowances:Number(document.getElementById('allow').value), other_deductions:Number(document.getElementById('other').value), effective_from:document.getElementById('from').value, ssnit_exempt:document.getElementById('ssnit-exempt').checked, paye_exempt:document.getElementById('paye-exempt').checked }); document.getElementById('modal').style.display='none'; toast('Salary record saved', 'success'); location.reload(); } catch (error) { toast(error.message || 'Could not save salary record', 'error'); }
+    }, true);
+  });
   document.addEventListener('click', event => {
     const button = event.target.closest?.('button');
     const match = button?.getAttribute('onclick')?.match(/^history\((\d+)\)$/);

@@ -3,10 +3,11 @@ const { calculateMonthlyPayroll, calculatePaye } = require('../config/ghana-payr
 
 const number = value => Number(value || 0);
 const validMoney = value => Number.isFinite(number(value)) && number(value) >= 0;
-const calculation = ({ basic_salary, allowances, other_deductions, ssnit_insurable_salary }) => {
+const calculation = ({ basic_salary, allowances, other_deductions, ssnit_insurable_salary, ssnit_exempt = false, paye_exempt = false }) => {
   const basic = number(basic_salary), allowance = number(allowances), other = number(other_deductions);
   const result = calculateMonthlyPayroll({ basicSalary: ssnit_insurable_salary == null ? basic : number(ssnit_insurable_salary), allowances: allowance, otherDeductions: other });
-  const payeTax = calculatePaye(basic + allowance - result.ssnitEmployee);
+  if (ssnit_exempt) { result.ssnitEmployee = 0; result.ssnitEmployer = 0; result.pensionTier1 = 0; result.pensionTier2 = 0; }
+  const payeTax = paye_exempt ? 0 : calculatePaye(basic + allowance - result.ssnitEmployee);
   return { basic, allowance, other, insurable: number(ssnit_insurable_salary == null ? basic : ssnit_insurable_salary), ...result,
     payeTax, gross: basic + allowance, net: basic + allowance - result.ssnitEmployee - payeTax - other };
 };
@@ -34,9 +35,9 @@ exports.detail = async (req, res) => {
   } catch (error) { res.status(500).json({ error: 'Could not load salary history' }); }
 };
 exports.set = async (req, res) => {
-  const { employee_id, basic_salary, allowances = 0, other_deductions = 0, ssnit_insurable_salary, effective_from } = req.body;
+  const { employee_id, basic_salary, allowances = 0, other_deductions = 0, ssnit_insurable_salary, effective_from, ssnit_exempt = false, paye_exempt = false } = req.body;
   if (!Number.isInteger(Number(employee_id)) || !effective_from || !/^\d{4}-\d{2}-\d{2}$/.test(effective_from) || ![basic_salary, allowances, other_deductions, ssnit_insurable_salary == null ? basic_salary : ssnit_insurable_salary].every(validMoney)) return res.status(400).json({ error: 'Provide an employee, effective date, and valid non-negative salary amounts' });
-  const values = calculation({ basic_salary, allowances, other_deductions, ssnit_insurable_salary }); let client;
+  const values = calculation({ basic_salary, allowances, other_deductions, ssnit_insurable_salary, ssnit_exempt, paye_exempt }); let client;
   try {
     client = await db.getClient(); await client.query('BEGIN');
     const employee = await client.query('SELECT id FROM employees WHERE id=$1 AND company_id=$2 AND is_active=true FOR UPDATE', [employee_id, req.user.company_id]);
@@ -44,14 +45,14 @@ exports.set = async (req, res) => {
     const current = await client.query("SELECT id,effective_from FROM salary_records WHERE employee_id=$1 AND company_id=$2 AND status='current' FOR UPDATE", [employee_id, req.user.company_id]);
     if (current.rows[0] && effective_from <= String(current.rows[0].effective_from).slice(0, 10)) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'Effective date must be after the current salary start date' }); }
     if (current.rows[0]) await client.query("UPDATE salary_records SET status='previous',effective_to=$1::date-1,updated_at=NOW() WHERE id=$2", [effective_from, current.rows[0].id]);
-    const saved = await client.query(`INSERT INTO salary_records(company_id,employee_id,basic_salary,allowances,ssnit_insurable_salary,gross_salary,employee_ssnit,employer_ssnit,tier1_contribution,tier2_contribution,paye,other_deductions,estimated_net_salary,effective_from,status,created_by)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'current',$15) RETURNING *`, [req.user.company_id, employee_id, values.basic, values.allowance, values.insurable, values.gross, values.ssnitEmployee, values.ssnitEmployer, values.pensionTier1, values.pensionTier2, values.payeTax, values.other, values.net, effective_from, req.user.id]);
+    const saved = await client.query(`INSERT INTO salary_records(company_id,employee_id,basic_salary,allowances,ssnit_insurable_salary,gross_salary,employee_ssnit,employer_ssnit,tier1_contribution,tier2_contribution,paye,other_deductions,estimated_net_salary,effective_from,status,created_by,ssnit_exempt,paye_exempt)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'current',$15,$16,$17) RETURNING *`, [req.user.company_id, employee_id, values.basic, values.allowance, values.insurable, values.gross, values.ssnitEmployee, values.ssnitEmployer, values.pensionTier1, values.pensionTier2, values.payeTax, values.other, values.net, effective_from, req.user.id, Boolean(ssnit_exempt), Boolean(paye_exempt)]);
     await client.query('UPDATE employees SET salary=$1 WHERE id=$2 AND company_id=$3', [values.basic, employee_id, req.user.company_id]);
     await client.query('COMMIT'); res.status(201).json(saved.rows[0]);
   } catch (error) { if (client) await client.query('ROLLBACK').catch(() => {}); console.error(error); res.status(500).json({ error: 'Could not save salary record' }); } finally { if (client) client.release(); }
 };
 exports.preview = (req, res) => {
-  const { basic_salary = 0, allowances = 0, other_deductions = 0, ssnit_insurable_salary } = req.body;
+  const { basic_salary = 0, allowances = 0, other_deductions = 0, ssnit_insurable_salary, ssnit_exempt = false, paye_exempt = false } = req.body;
   if (![basic_salary, allowances, other_deductions, ssnit_insurable_salary == null ? basic_salary : ssnit_insurable_salary].every(validMoney)) return res.status(400).json({ error: 'Provide valid non-negative salary amounts' });
-  res.json(calculation({ basic_salary, allowances, other_deductions, ssnit_insurable_salary }));
+  res.json(calculation({ basic_salary, allowances, other_deductions, ssnit_insurable_salary, ssnit_exempt, paye_exempt }));
 };
