@@ -230,10 +230,10 @@ if (isEmbeddedWorkspacePage()) {
       const contentHeight = content
         ? Math.max(1, Math.ceil(content.offsetTop + content.scrollHeight))
         : Math.max(1, Math.ceil(document.body?.scrollHeight || 1));
-      const openModal = Array.from(document.querySelectorAll('.modal-overlay')).find((overlay) => getComputedStyle(overlay).display !== 'none');
-      const modalHeight = openModal?.querySelector('.modal')?.scrollHeight || 0;
-      const height = Math.max(contentHeight, modalHeight ? Math.ceil(modalHeight + 80) : 0);
-      window.parent.postMessage({ type: 'hrconnect:page-height', height }, window.location.origin);
+      // Modal dimensions are intentionally excluded. A dialog is an overlay,
+      // not page content, and including it makes the workspace frame jump or
+      // collapse while a popup is open.
+      window.parent.postMessage({ type: 'hrconnect:page-height', height: contentHeight }, window.location.origin);
     });
   };
   window.addEventListener('load', publishEmbeddedHeight);

@@ -749,6 +749,7 @@ const workspaceAttendanceControl = document.getElementById('workspace-attendance
 const workspaceAttendanceIcon = document.getElementById('workspace-attendance-icon');
 const workspaceAttendanceLabel = document.getElementById('workspace-attendance-label');
 const workspaceAttendanceElapsed = document.getElementById('workspace-attendance-elapsed');
+const workspaceMinimumFrameHeight = () => Math.max(1, Math.ceil(window.innerHeight - Math.max(0, workspaceFrame.getBoundingClientRect().top)));
 const RECRUITMENT_TAB_ROUTES = Object.freeze({
   hiring: 'dashboard',
   recruitment: 'dashboard',
@@ -825,7 +826,7 @@ window.addEventListener('message', (event) => {
   if (event.origin !== window.location.origin || event.source !== workspaceFrame.contentWindow) return;
   const data = event.data || {};
   if (data.type === 'hrconnect:page-height' && Number.isFinite(data.height)) {
-    const nextHeight = Math.max(1, Math.ceil(data.height));
+    const nextHeight = Math.max(workspaceMinimumFrameHeight(), Math.ceil(data.height));
     if (Math.abs(workspaceFrame.getBoundingClientRect().height - nextHeight) > 1) {
       workspaceFrame.style.height = `${nextHeight}px`;
     }
@@ -842,6 +843,11 @@ window.addEventListener('message', (event) => {
   }
   if (data.type !== 'hrconnect:navigate') return;
   navigateWorkspace(data.route);
+});
+
+window.addEventListener('resize', () => {
+  const minimumHeight = workspaceMinimumFrameHeight();
+  if (workspaceFrame.getBoundingClientRect().height < minimumHeight) workspaceFrame.style.height = `${minimumHeight}px`;
 });
 
 workspaceFrame.addEventListener('load', () => {
