@@ -1329,6 +1329,19 @@ body.embedded-page .benefit-modal {
 body.embedded-page .benefit-modal .modal-body {
   overflow: auto;
 }
+/* Some older page modules opted their forms out of the shared dialog layout.
+   Keep every popup contained in its overlay: the header/footer stay visible
+   and only a long form body becomes scrollable. */
+.modal-overlay > .modal {
+  max-height: min(82vh, 780px) !important;
+  overflow: hidden !important;
+}
+.modal-overlay > .modal > .modal-body {
+  overflow: auto !important;
+}
+body.embedded-page .modal-overlay > .modal {
+  max-height: min(780px, calc(var(--embedded-modal-height, 100vh) - 40px)) !important;
+}
 .department-delete-dialog { padding: 28px; }
 @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 
