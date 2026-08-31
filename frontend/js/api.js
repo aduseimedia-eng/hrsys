@@ -138,6 +138,16 @@ function initialiseModalController() {
     if (isEmbeddedWorkspacePage()) window.parent.postMessage({ type: 'hrconnect:modal-state', open }, window.location.origin);
   };
 
+  const sizeEmbeddedOverlay = overlay => {
+    if (!isEmbeddedWorkspacePage() || !window.frameElement) return;
+    const frame = window.frameElement.getBoundingClientRect();
+    const visibleTop = Math.max(0, -frame.top);
+    const visibleBottom = Math.min(frame.height, window.parent.innerHeight - frame.top);
+    const visibleHeight = Math.max(1, visibleBottom - visibleTop);
+    overlay.style.setProperty('--embedded-modal-top', `${Math.round(visibleTop)}px`);
+    overlay.style.setProperty('--embedded-modal-height', `${Math.round(visibleHeight)}px`);
+  };
+
   const focusModal = overlay => {
     const modal = overlay.querySelector('.modal, .success-popup-card') || overlay;
     modal.setAttribute('role', modal.getAttribute('role') || 'dialog');
@@ -156,6 +166,7 @@ function initialiseModalController() {
 
     if (nextActive && nextActive !== activeOverlay) {
       previousFocus.set(nextActive, document.activeElement);
+      sizeEmbeddedOverlay(nextActive);
       focusModal(nextActive);
     }
     if (!nextActive && activeOverlay) previousFocus.get(activeOverlay)?.focus?.({ preventScroll: true });
@@ -189,6 +200,7 @@ function initialiseModalController() {
   });
 
   new MutationObserver(sync).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'aria-hidden'] });
+  window.addEventListener('resize', () => { if (activeOverlay) sizeEmbeddedOverlay(activeOverlay); });
   sync();
 }
 

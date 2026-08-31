@@ -1309,6 +1309,15 @@ body.workspace-modal-open {
   overflow: hidden !important;
   overscroll-behavior: none;
 }
+/* Workspace pages are rendered in a frame sized to their content. A fixed
+   overlay would therefore centre against the whole frame, not the visible
+   browser area. The shared controller supplies these dimensions on open. */
+body.embedded-page .modal-overlay,
+body.embedded-page .success-popup-overlay {
+  position: absolute;
+  inset: var(--embedded-modal-top, 0) 0 auto;
+  height: var(--embedded-modal-height, 100vh);
+}
 .department-delete-dialog { padding: 28px; }
 @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 
