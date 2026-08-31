@@ -1318,6 +1318,9 @@ body.embedded-page .success-popup-overlay {
   inset: var(--embedded-modal-top, 0) 0 auto;
   height: var(--embedded-modal-height, 100vh);
 }
+body.embedded-page .modal {
+  max-height: min(780px, calc(var(--embedded-modal-height, 100vh) - 40px));
+}
 .department-delete-dialog { padding: 28px; }
 @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 
