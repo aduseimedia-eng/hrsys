@@ -1264,6 +1264,8 @@ tbody tr:hover { background: #f7faff; }
   animation: modal-panel-in .22s cubic-bezier(.2, .8, .2, 1);
 }
 .modal-lg { max-width: 900px; }
+.loan-modal-card { width: min(620px, 100%); max-width: 620px; }
+#loan-modal .modal { width: min(620px, 100%); max-width: 620px; }
 .modal-header {
   position: relative;
   flex: 0 0 auto;
