@@ -206,13 +206,19 @@ function pensionBreakdownHtml(s) {
   const tier2 = Number(s.pension_tier2 || 0);
   if (!tier1 && !tier2) return '';
   const pensionable = Number(s.pensionable_earnings || s.base_salary || 0);
+  const employeeTier1 = Number(s.ssnit_employee || 0);
+  const employerTier1 = Math.max(0, tier1 - employeeTier1);
+  const employerPension = Number(s.ssnit_employer || employerTier1 + tier2);
+  const totalStatutoryPension = tier1 + tier2;
   return `
     <div class="detail-section">
       <h4>Pension Contributions</h4>
       <div class="detail-row"><span>Pensionable earnings</span><span>${fmt.currency(pensionable)}</span></div>
-      <div class="detail-row"><span>Tier 1 — SSNIT (13.5%)</span><span>${fmt.currency(tier1)}</span></div>
-      <div class="detail-row"><span>Tier 2 — Occupational pension (5%)</span><span>${fmt.currency(tier2)}</span></div>
-      <div class="detail-row total"><span>Total employer pension cost</span><span>${fmt.currency(Number(s.ssnit_employer || 0))}</span></div>
+      <div class="detail-row"><span>Tier 1 — SSNIT, employee (5.5%)</span><span class="negative">-${fmt.currency(employeeTier1)}</span></div>
+      <div class="detail-row"><span>Tier 1 — SSNIT, employer (8%)</span><span>${fmt.currency(employerTier1)}</span></div>
+      <div class="detail-row"><span>Tier 2 — Occupational pension, employer (5%)</span><span>${fmt.currency(tier2)}</span></div>
+      <div class="detail-row"><span>Total statutory pension contribution</span><span>${fmt.currency(totalStatutoryPension)}</span></div>
+      <div class="detail-row total"><span>Total employer pension cost</span><span>${fmt.currency(employerPension)}</span></div>
     </div>`;
 }
 
