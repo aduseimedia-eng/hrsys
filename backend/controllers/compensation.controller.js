@@ -18,8 +18,8 @@ exports.list = async (req, res) => {
     if (department_id) { params.push(department_id); where += ` AND e.department_id=$${params.length}`; }
     if (search) { params.push(`%${search}%`); where += ` AND (e.first_name ILIKE $${params.length} OR e.last_name ILIKE $${params.length} OR e.employee_code ILIKE $${params.length})`; }
     const recordWhere = status === 'all' ? '' : ` AND sr.status='${status === 'previous' ? 'previous' : 'current'}'`;
-    const { rows } = await db.query(`SELECT e.id AS employee_id,e.employee_code,e.first_name,e.last_name,e.job_title,d.name AS department_name,
-      sr.* FROM employees e LEFT JOIN LATERAL (SELECT * FROM salary_records sr WHERE sr.employee_id=e.id${recordWhere} ORDER BY sr.effective_from DESC LIMIT 1) sr ON true
+    const { rows } = await db.query(`SELECT e.employee_code,e.first_name,e.last_name,e.job_title,d.name AS department_name,
+      sr.*, COALESCE(sr.employee_id,e.id) AS employee_id FROM employees e LEFT JOIN LATERAL (SELECT * FROM salary_records sr WHERE sr.employee_id=e.id${recordWhere} ORDER BY sr.effective_from DESC LIMIT 1) sr ON true
       LEFT JOIN departments d ON d.id=e.department_id ${where} ORDER BY e.first_name,e.last_name`, params);
     res.json(rows);
   } catch (error) { console.error(error); res.status(500).json({ error: 'Could not load salary records' }); }
