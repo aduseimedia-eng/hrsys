@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pension Contributions - KenadHR</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .pension-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:18px 0 22px; }
+    .pension-stat { background:var(--bg-surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-sm); padding:17px; }
+    .pension-stat span { display:block; color:var(--text-muted); font-size:.73rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+    .pension-stat strong { display:block; margin-top:7px; color:var(--text-primary); font-family:var(--font-display); font-size:1.35rem; }
+    .pension-stat small { display:block; margin-top:5px; color:var(--text-muted); font-size:.78rem; }
+    .pension-panel { border:1px solid var(--border); border-radius:14px; background:var(--bg-surface); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .pension-panel-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; border-bottom:1px solid var(--border); }
+    .pension-panel-header h2 { margin:0; color:var(--text-primary); font-size:1rem; }
+    .pension-panel-header p { margin:3px 0 0; color:var(--text-muted); font-size:.79rem; }
+    .pension-amount { color:var(--brand); font-weight:650; white-space:nowrap; }
+    .pension-subtle { color:var(--text-muted); font-size:.79rem; }
+    .pension-filter { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .pension-filter .form-control { max-width:160px; }
+    @media (max-width:900px) { .pension-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:560px) { .pension-summary { grid-template-columns:1fr; } .pension-filter .form-control { max-width:none; flex:1; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <header class="topbar"><div class="topbar-title">Pension Contributions</div></header>
+    <main class="main-content">
+      <div class="page-header">
+        <div><h1>Pension Contributions</h1><p>Review employee and employer SSNIT and occupational pension contributions.</p></div>
+      </div>
+      <div class="pension-filter" aria-label="Pension period filter">
+        <select id="pension-month" class="form-control form-select" aria-label="Month"></select>
+        <select id="pension-year" class="form-control form-select" aria-label="Year"></select>
+        <button class="btn btn-primary" type="button" onclick="loadPensions()">View period</button>
+      </div>
+      <section class="pension-summary" id="pension-summary" aria-live="polite">
+        <article class="pension-stat"><span>Loading contributions</span><strong>—</strong></article>
+      </section>
+      <section class="pension-panel">
+        <div class="pension-panel-header"><div><h2>Employee contribution register</h2><p>Amounts are based on the processed payroll for the selected period.</p></div><span class="pension-subtle" id="pension-count"></span></div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Employee</th><th>Department</th><th>Pensionable earnings</th><th>Tier 1 employee (5.5%)</th><th>Tier 1 employer (8%)</th><th>Tier 2 employer (5%)</th><th>Total employer cost</th></tr></thead>
+            <tbody id="pension-body"><tr><td colspan="7"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="../js/api.js"></script>
+  <script>
+    const user = requireAuth();
+    if (!user) throw new Error('redirect');
+    if (user.role !== 'admin') { location.href = appUrl('/pages/workspace.html#payroll'); throw new Error('restricted'); }
+    buildSidebar('pensions'); loadNotifCount();
+
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const today = new Date();
+    const monthInput = document.getElementById('pension-month');
+    const yearInput = document.getElementById('pension-year');
+    months.forEach((month, index) => monthInput.innerHTML += `<option value="${index + 1}"${index === today.getMonth() ? ' selected' : ''}>${month}</option>`);
+    for (let year = today.getFullYear(); year >= today.getFullYear() - 3; year--) yearInput.innerHTML += `<option value="${year}">${year}</option>`;
+
+    const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
+    const amount = value => Number(value || 0);
+    const total = (rows, field) => rows.reduce((sum, row) => sum + amount(row[field]), 0);
+
+    function stat(label, value, note) { return `<article class="pension-stat"><span>${label}</span><strong>${fmt.currency(value)}</strong><small>${note}</small></article>`; }
+
+    async function loadPensions() {
+      const body = document.getElementById('pension-body');
+      body.innerHTML = '<tr><td colspan="7"><div class="loading-state"><div class="spinner"></div></div></td></tr>';
+      try {
+        const rows = await api.get(`/payroll?month=${monthInput.value}&year=${yearInput.value}`);
+        const entries = rows.filter(row => amount(row.pension_tier1) || amount(row.pension_tier2) || amount(row.ssnit_employee));
+        const employeeTotal = total(entries, 'ssnit_employee');
+        const tierOneTotal = total(entries, 'pension_tier1');
+        const tierTwoTotal = total(entries, 'pension_tier2');
+        const employerTotal = total(entries, 'ssnit_employer');
+        document.getElementById('pension-summary').innerHTML = [
+          stat('Pensionable earnings', total(entries, 'pensionable_earnings'), 'Eligible pay for this period'),
+          stat('Employee contribution', employeeTotal, 'Tier 1 SSNIT at 5.5%'),
+          stat('Employer pension cost', employerTotal, 'Tier 1 and Tier 2 employer portions'),
+          stat('Total statutory pension', tierOneTotal + tierTwoTotal, 'Employee and employer contributions combined')
+        ].join('');
+        document.getElementById('pension-count').textContent = `${entries.length} employee${entries.length === 1 ? '' : 's'}`;
+        body.innerHTML = entries.length ? entries.map(row => {
+          const employeeTier1 = amount(row.ssnit_employee);
+          const employerTier1 = Math.max(0, amount(row.pension_tier1) - employeeTier1);
+          return `<tr><td><strong>${safe(row.employee_name || 'Employee')}</strong><br><span class="pension-subtle">${safe(row.job_title || '')}</span></td><td>${safe(row.department_name || 'Unassigned')}</td><td>${fmt.currency(row.pensionable_earnings)}</td><td class="pension-amount">${fmt.currency(employeeTier1)}</td><td class="pension-amount">${fmt.currency(employerTier1)}</td><td class="pension-amount">${fmt.currency(row.pension_tier2)}</td><td><strong>${fmt.currency(row.ssnit_employer)}</strong></td></tr>`;
+        }).join('') : '<tr><td colspan="7"><div class="empty-state"><p>No pension contributions were recorded for this period.</p></div></td></tr>';
+      } catch (error) {
+        body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>${safe(error.message || 'Could not load pension contributions.')}</p></div></td></tr>`;
+        document.getElementById('pension-summary').innerHTML = '<article class="pension-stat"><span>Contributions unavailable</span><strong>—</strong><small>Please try again.</small></article>';
+        document.getElementById('pension-count').textContent = '';
+      }
+    }
+    loadPensions();
+  </script>
+</body>
+</html>
