@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Process Payroll - KenadHR</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    .process-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; align-items:start; }
+    .process-card { border:1px solid var(--border); border-radius:16px; background:var(--bg-surface); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .process-card-header { padding:19px 20px; border-bottom:1px solid var(--border); }
+    .process-card-header h2 { margin:0; color:var(--text-primary); font-size:1.05rem; }
+    .process-card-header p { margin:5px 0 0; color:var(--text-muted); font-size:.84rem; line-height:1.45; }
+    .process-card-body { padding:20px; }
+    .process-period { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .process-preview { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0; }
+    .process-stat { padding:14px; border:1px solid var(--border); border-radius:11px; background:var(--bg-subtle); }
+    .process-stat span { display:block; color:var(--text-muted); font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+    .process-stat strong { display:block; margin-top:5px; color:var(--text-primary); font-size:1.2rem; }
+    .process-note { display:flex; gap:11px; padding:14px; border:1px solid #cfe0ff; border-radius:11px; background:#f4f8ff; color:var(--text-secondary); font-size:.83rem; line-height:1.5; }
+    .process-note strong { color:var(--text-primary); }
+    .process-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .process-checklist { padding:5px 20px 15px; list-style:none; margin:0; }
+    .process-checklist li { display:flex; gap:10px; padding:12px 0; border-bottom:1px solid var(--border); color:var(--text-secondary); font-size:.84rem; line-height:1.4; }
+    .process-checklist li:last-child { border-bottom:0; }.process-check { color:var(--success-fg); font-weight:800; }
+    @media (max-width:850px) { .process-layout { grid-template-columns:1fr; } }
+    @media (max-width:520px) { .process-period,.process-preview { grid-template-columns:1fr; } .process-actions .btn { flex:1; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell"><aside class="sidebar" id="sidebar"></aside><header class="topbar"><div class="topbar-title">Process Payroll</div></header>
+    <main class="main-content">
+      <div class="page-header"><div><h1>Process Payroll</h1><p>Create payslips for employees who have not yet been processed for the selected pay period.</p></div></div>
+      <div class="process-layout">
+        <section class="process-card">
+          <div class="process-card-header"><h2>Select pay period</h2><p>Review the current processing status before generating payroll.</p></div>
+          <div class="process-card-body">
+            <div class="process-period">
+              <div class="form-group"><label class="form-label" for="process-month">Pay month</label><select id="process-month" class="form-control form-select"></select></div>
+              <div class="form-group"><label class="form-label" for="process-year">Pay year</label><select id="process-year" class="form-control form-select"></select></div>
+            </div>
+            <div class="process-preview" id="process-preview" aria-live="polite"><div class="process-stat"><span>Loading</span><strong>—</strong></div></div>
+            <div class="process-note"><span aria-hidden="true">ℹ</span><div><strong>What happens next</strong><br>Payroll calculates Ghana PAYE and SSNIT, applies benefit and loan deductions, and creates payslips only for staff without one for this period.</div></div>
+            <div class="process-actions"><button class="btn btn-outline" type="button" onclick="refreshPreview()">Refresh preview</button><button class="btn btn-primary" id="process-button" type="button" onclick="processPayroll()">Process payroll</button></div>
+          </div>
+        </section>
+        <aside class="process-card"><div class="process-card-header"><h2>Before you process</h2><p>Confirm these payroll inputs are current.</p></div><ul class="process-checklist"><li><span class="process-check">✓</span><span>Employee salaries and employment status are up to date.</span></li><li><span class="process-check">✓</span><span>Approved overtime is included for the selected period.</span></li><li><span class="process-check">✓</span><span>Benefit and loan deductions are ready to apply.</span></li><li><span class="process-check">✓</span><span>Your company currency is configured in Settings.</span></li></ul></aside>
+      </div>
+    </main>
+  </div>
+  <script src="../js/api.js"></script>
+  <script>
+    const user = requireAuth();
+    if (!user) throw new Error('redirect');
+    if (user.role !== 'admin') { location.href = appUrl('/pages/workspace.html#payroll'); throw new Error('restricted'); }
+    buildSidebar('process-payroll'); loadNotifCount();
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const today = new Date(), monthInput = document.getElementById('process-month'), yearInput = document.getElementById('process-year');
+    months.forEach((month, index) => monthInput.innerHTML += `<option value="${index + 1}"${index === today.getMonth() ? ' selected' : ''}>${month}</option>`);
+    for (let year = today.getFullYear(); year >= today.getFullYear() - 3; year--) yearInput.innerHTML += `<option value="${year}">${year}</option>`;
+    const amount = value => Number(value || 0);
+    const period = () => `${months[Number(monthInput.value) - 1]} ${yearInput.value}`;
+    function renderPreview(rows) {
+      const processed = rows.filter(row => row.status === 'processed').length;
+      const paid = rows.filter(row => row.status === 'paid').length;
+      const gross = rows.reduce((total, row) => total + amount(row.base_salary) + amount(row.allowances) + amount(row.overtime_pay), 0);
+      document.getElementById('process-preview').innerHTML = [
+        ['Existing payslips', rows.length, `${period()} payroll records`],
+        ['Ready for review', processed, 'Processed, not yet paid'],
+        ['Paid payslips', paid, `Gross processed: ${fmt.currency(gross)}`]
+      ].map(([label, value, note]) => `<article class="process-stat"><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`).join('');
+    }
+    async function refreshPreview() {
+      document.getElementById('process-preview').innerHTML = '<div class="process-stat"><span>Loading period</span><strong>…</strong></div>';
+      try { renderPreview(await api.get(`/payroll?month=${monthInput.value}&year=${yearInput.value}`)); }
+      catch (error) { document.getElementById('process-preview').innerHTML = `<div class="process-stat"><span>Preview unavailable</span><strong>—</strong><small>${error.message || 'Try again.'}</small></div>`; }
+    }
+    async function processPayroll() {
+      if (!confirm(`Process payroll for ${period()}? Payslips will be created for eligible employees without an existing record.`)) return;
+      const button = document.getElementById('process-button'); button.disabled = true; button.textContent = 'Processing…';
+      try { const result = await api.post('/payroll/process', { month:Number(monthInput.value), year:Number(yearInput.value) }); toast(`Payroll processed for ${result.count} employee${result.count === 1 ? '' : 's'}.`, 'success'); await refreshPreview(); }
+      catch (error) { toast(error.message || 'Could not process payroll.', 'error'); }
+      finally { button.disabled = false; button.textContent = 'Process payroll'; }
+    }
+    monthInput.addEventListener('change', refreshPreview); yearInput.addEventListener('change', refreshPreview); refreshPreview();
+  </script>
+</body>
+</html>

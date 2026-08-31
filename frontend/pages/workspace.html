@@ -588,6 +588,7 @@ const WORKSPACE_PAGES = {
   leave: { title: 'Leave Management', nav: 'work' },
   calendar: { title: 'Company Calendar', nav: 'work' },
   payroll: { title: 'Payroll', nav: 'finance' },
+  'process-payroll': { title: 'Process Payroll', nav: 'finance' },
   pensions: { title: 'Pension Contributions', nav: 'finance' },
   people: { title: 'Employees', nav: 'people', src: '/pages/employees.html' },
   work: { title: 'Work', nav: 'work', src: '/pages/hub.html?hub=work' },
@@ -699,6 +700,7 @@ const WORKSPACE_MODULE_MENUS = Object.freeze({
     items: [
       { route: 'finance', label: 'Pay & benefits overview' },
       { route: 'payroll', label: 'Payroll' },
+      { route: 'process-payroll', label: 'Process payroll', roles: ['admin'] },
       { route: 'pensions', label: 'Pension contributions', roles: ['admin'] },
       { route: 'benefits', label: 'Benefits' },
       { route: 'loans', label: 'Employee loans' },

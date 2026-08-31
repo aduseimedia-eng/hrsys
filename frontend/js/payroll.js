@@ -15,7 +15,7 @@ if (user.role === 'admin') {
     `<button class="btn btn-outline" onclick="downloadAllPayslips()">Download All PDF</button>
      <button class="btn btn-outline" onclick="showOvertimeRateModal()">Overtime Rate</button>
      <button class="btn btn-outline" onclick="location.href=appUrl('/pages/payroll-runs.html')">Payroll Runs</button>
-     <button class="btn btn-primary" onclick="showProcessModal()">Process Payroll</button>`;
+     <button class="btn btn-primary" onclick="navigateToPayrollProcessing()">Process Payroll</button>`;
 
   const mSel = document.getElementById('pr-month');
   const ySel = document.getElementById('pr-year');
@@ -118,6 +118,14 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
   if (tab==='all') loadAllPayroll();
   if (tab==='summary') loadSummary();
+}
+
+function navigateToPayrollProcessing() {
+  if (isEmbeddedWorkspacePage()) {
+    window.parent.postMessage({ type: 'hrconnect:navigate', route: 'process-payroll' }, window.location.origin);
+    return;
+  }
+  location.href = appUrl('/pages/workspace.html#process-payroll');
 }
 
 const payrollRunActions = {
