@@ -30,6 +30,18 @@
         padding: 28px 0 0;
         position: relative;
       }
+      /* Top-level people have no parent. Do not draw the sibling branch above
+         them; connectors belong only to nested reporting rows. */
+      .org-tree-root > ul {
+        padding-top: 0;
+      }
+      .org-tree-root > ul > li {
+        padding-top: 0;
+      }
+      .org-tree-root > ul > li::before,
+      .org-tree-root > ul > li::after {
+        display: none;
+      }
       .org-tree-root li {
         list-style: none;
         position: relative;
