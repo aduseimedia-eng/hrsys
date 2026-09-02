@@ -171,6 +171,9 @@
           >
             Team Summary
           </button>
+          <button class="tab-btn" data-tab="feedback" onclick="switchTab('feedback')">
+            Feedback Reviews
+          </button>
           <button
             class="tab-btn"
             data-tab="queries"
@@ -217,6 +220,15 @@
           >
             <div class="loading-state"><div class="spinner"></div></div>
           </div>
+        </div>
+        <div id="tab-feedback" style="display: none">
+          <section class="card">
+            <div class="card-header">
+              <div><h3 id="feedback-title">Open feedback reviews</h3><p id="feedback-intro" style="margin-top:3px">Share feedback about your assigned supervisor or department head.</p></div>
+              <button id="open-feedback-button" class="btn btn-primary btn-sm" type="button" style="display:none" onclick="openFeedbackCycleModal()">Open review</button>
+            </div>
+            <div class="card-body" id="feedback-list"><div class="loading-state"><div class="spinner"></div></div></div>
+          </section>
         </div>
         <div id="tab-queries" style="display: none">
           <section class="card" id="query-submit-panel">
@@ -532,6 +544,31 @@
       </div>
     </div>
 
+    <div id="feedback-cycle-modal" class="modal-overlay" style="display:none">
+      <div class="modal review-modal">
+        <div class="modal-header"><h3>Open staff feedback review</h3><button class="modal-close" type="button" onclick="closeFeedbackCycleModal()">×</button></div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label required">Review title</label><input id="feedback-cycle-title" class="form-control" maxlength="160" placeholder="e.g. Mid-year leadership feedback"></div>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Review period</label><input id="feedback-cycle-period" class="form-control" maxlength="40" placeholder="e.g. Q3 2026"></div>
+            <div class="form-group"><label class="form-label">Staff review</label><select id="feedback-cycle-target" class="form-control form-select"><option value="supervisors">Their direct supervisor</option><option value="department_heads">Their department head</option></select></div>
+            <div class="form-group"><label class="form-label">Close date</label><input id="feedback-cycle-closes" type="date" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Response identity</label><select id="feedback-cycle-anonymous" class="form-control form-select"><option value="false">Identified</option><option value="true">Anonymous</option></select></div>
+          </div>
+          <p class="form-hint">Anonymous feedback never shows the staff member’s identity in the review results.</p>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline" type="button" onclick="closeFeedbackCycleModal()">Cancel</button><button class="btn btn-primary" type="button" onclick="createFeedbackCycle()">Open review</button></div>
+      </div>
+    </div>
+
+    <div id="feedback-response-modal" class="modal-overlay" style="display:none">
+      <div class="modal review-modal">
+        <div class="modal-header"><h3 id="feedback-response-title">Review your supervisor</h3><button class="modal-close" type="button" onclick="closeFeedbackResponseModal()">×</button></div>
+        <div class="modal-body"><input id="feedback-response-cycle" type="hidden"><div class="form-group"><label class="form-label required">Rating</label><select id="feedback-response-rating" class="form-control form-select"><option value="">Select a rating</option><option value="5">5 — Outstanding</option><option value="4">4 — Exceeds expectations</option><option value="3">3 — Meets expectations</option><option value="2">2 — Needs improvement</option><option value="1">1 — Poor</option></select></div><div class="form-group"><label class="form-label">Feedback</label><textarea id="feedback-response-comments" class="form-control" rows="5" placeholder="Share constructive feedback…"></textarea></div><p class="form-hint" id="feedback-response-privacy"></p></div>
+        <div class="modal-footer"><button class="btn btn-outline" type="button" onclick="closeFeedbackResponseModal()">Cancel</button><button class="btn btn-primary" type="button" onclick="submitFeedbackResponse()">Submit feedback</button></div>
+      </div>
+    </div>
+
     <script src="../js/api.js"></script>
     <script src="../js/charts.js"></script>
     <script>
@@ -545,6 +582,7 @@
         employeeQueries = [];
       let disciplinaryCases = [],
         disciplinaryEmployees = [];
+      let feedbackCycles = [];
       const ratingLabels = [
         "",
         "Poor",
@@ -562,10 +600,11 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Write Review
     </button>`;
+        document.getElementById("open-feedback-button").style.display = "";
       }
 
       function switchTab(tab) {
-        ["mine", "team", "queries", "disciplinary"].forEach(
+        ["mine", "team", "feedback", "queries", "disciplinary"].forEach(
           (t) =>
             (document.getElementById(`tab-${t}`).style.display =
               t === tab ? "" : "none"),
@@ -574,6 +613,7 @@
           .querySelectorAll(".tab-btn")
           .forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
         if (tab === "team") loadTeam();
+        if (tab === "feedback") loadFeedbackReviews();
         if (tab === "queries") loadQueries();
         if (tab === "disciplinary") loadDisciplinary();
       }
@@ -587,6 +627,71 @@
     </svg>`,
           )
           .join("")}</div>`;
+      }
+
+      const feedbackSafe = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+
+      async function loadFeedbackReviews() {
+        const admin = user.role === "admin";
+        feedbackCycles = await api.get(admin ? "/performance/cycles" : "/performance/feedback/mine");
+        const list = document.getElementById("feedback-list");
+        document.getElementById("feedback-title").textContent = admin ? "Staff feedback reviews" : "Open feedback reviews";
+        document.getElementById("feedback-intro").textContent = admin ? "Open, monitor, and close staff feedback about supervisors or department heads." : "Share feedback about your assigned supervisor or department head.";
+        if (!feedbackCycles.length) {
+          list.innerHTML = `<div class="empty-state"><p>${admin ? "No staff feedback reviews have been opened." : "There are no open feedback reviews assigned to you."}</p></div>`;
+          return;
+        }
+        list.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${feedbackCycles.map((cycle) => {
+          const target = cycle.target_type === "supervisors" ? "direct supervisors" : "department heads";
+          const status = cycle.response_id ? "Submitted" : (cycle.is_open ? "Open" : "Closed");
+          const action = admin
+            ? `<button class="btn btn-outline btn-sm" onclick="viewFeedbackResponses(${cycle.id}, '${feedbackSafe(cycle.title).replace(/'/g, "\\'")}')">Responses (${cycle.response_count || 0})</button>${cycle.is_open ? `<button class="btn btn-outline btn-sm" onclick="closeFeedbackCycle(${cycle.id})">Close</button>` : ""}`
+            : cycle.response_id ? `<span class="badge badge-success">Submitted</span>` : `<button class="btn btn-primary btn-sm" onclick="openFeedbackResponseModal(${cycle.id})">Give feedback</button>`;
+          return `<article class="review-card"><div class="review-header"><div><div class="review-period">${feedbackSafe(cycle.period || "Staff feedback")}</div><h4>${feedbackSafe(cycle.title)}</h4></div><span class="badge ${status === "Open" ? "badge-info" : status === "Submitted" ? "badge-success" : "badge-neutral"}">${status}</span></div><p style="font-size:.86rem;color:var(--text-secondary)">Staff review their ${target}. ${cycle.is_anonymous ? "Responses are anonymous." : "Responses are identified."}${cycle.closes_at ? ` Closes ${fmt.date(cycle.closes_at)}.` : ""}</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">${action}</div></article>`;
+        }).join("")}</div>`;
+      }
+
+      function openFeedbackCycleModal() {
+        document.getElementById("feedback-cycle-title").value = "";
+        document.getElementById("feedback-cycle-period").value = "";
+        document.getElementById("feedback-cycle-target").value = "supervisors";
+        document.getElementById("feedback-cycle-closes").value = "";
+        document.getElementById("feedback-cycle-anonymous").value = "false";
+        document.getElementById("feedback-cycle-modal").style.display = "flex";
+      }
+      function closeFeedbackCycleModal() { document.getElementById("feedback-cycle-modal").style.display = "none"; }
+      async function createFeedbackCycle() {
+        try {
+          await api.post("/performance/cycles", { title: document.getElementById("feedback-cycle-title").value, period: document.getElementById("feedback-cycle-period").value, target_type: document.getElementById("feedback-cycle-target").value, closes_at: document.getElementById("feedback-cycle-closes").value || null, is_anonymous: document.getElementById("feedback-cycle-anonymous").value === "true" });
+          closeFeedbackCycleModal(); toast("Staff feedback review opened", "success"); loadFeedbackReviews();
+        } catch (error) { toast(error.message || "Could not open feedback review", "error"); }
+      }
+      function openFeedbackResponseModal(id) {
+        const cycle = feedbackCycles.find((item) => Number(item.id) === Number(id));
+        document.getElementById("feedback-response-cycle").value = id;
+        document.getElementById("feedback-response-rating").value = "";
+        document.getElementById("feedback-response-comments").value = "";
+        document.getElementById("feedback-response-title").textContent = `Review your ${cycle.target_type === "supervisors" ? "supervisor" : "department head"}`;
+        document.getElementById("feedback-response-privacy").textContent = cycle.is_anonymous ? "Your identity will not appear in the review results." : "Your name will appear with this feedback.";
+        document.getElementById("feedback-response-modal").style.display = "flex";
+      }
+      function closeFeedbackResponseModal() { document.getElementById("feedback-response-modal").style.display = "none"; }
+      async function submitFeedbackResponse() {
+        try {
+          const rating = Number(document.getElementById("feedback-response-rating").value);
+          if (!rating) throw Error("Select a rating");
+          await api.post(`/performance/cycles/${document.getElementById("feedback-response-cycle").value}/responses`, { rating, comments: document.getElementById("feedback-response-comments").value });
+          closeFeedbackResponseModal(); toast("Feedback submitted", "success"); loadFeedbackReviews();
+        } catch (error) { toast(error.message || "Could not submit feedback", "error"); }
+      }
+      async function closeFeedbackCycle(id) { try { await api.patch(`/performance/cycles/${id}/close`, {}); toast("Feedback review closed", "success"); loadFeedbackReviews(); } catch (error) { toast(error.message || "Could not close feedback review", "error"); } }
+      async function viewFeedbackResponses(id, title) {
+        try {
+          const rows = await api.get(`/performance/cycles/${id}/responses`);
+          const overlay = document.createElement("div"); overlay.className = "modal-overlay";
+          overlay.innerHTML = `<div class="modal modal-lg"><div class="modal-header"><h3>${feedbackSafe(title)} — responses</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div><div class="modal-body">${rows.length ? `<div style="display:flex;flex-direction:column;gap:12px">${rows.map((row) => `<div class="review-card"><div class="review-header"><div><strong>${feedbackSafe(row.subject_name)}</strong><div class="review-by">${row.reviewer_name ? `By ${feedbackSafe(row.reviewer_name)}` : "Anonymous respondent"}</div></div><div class="avg-rating-badge">${row.rating}/5</div></div><div class="review-comment">${feedbackSafe(row.comments || "No written feedback")}</div></div>`).join("")}</div>` : `<div class="empty-state"><p>No responses yet.</p></div>`}</div></div>`;
+          document.body.appendChild(overlay);
+        } catch (error) { toast(error.message || "Could not load responses", "error"); }
       }
 
       async function loadMyReviews() {

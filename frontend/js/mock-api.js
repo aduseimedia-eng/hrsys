@@ -166,6 +166,8 @@
         { id: 2, employee_id: 4, reviewer_id: 2, rating: 4, comments: 'Strong frontend skills and good collaboration. Documentation can improve.', review_date: addDays(-30), period: 'Q1 2026', created_at: minutesAgo(2900) },
         { id: 3, employee_id: 5, reviewer_id: 1, rating: 4, comments: 'Solid analytical skills and very reliable.', review_date: addDays(-30), period: 'Q1 2026', created_at: minutesAgo(2800) }
       ],
+      performance_review_cycles: [],
+      performance_review_responses: [],
       notifications: [
         { id: 1, employee_id: 3, type: 'leave_approved', message: 'Your annual leave request has been approved.', link: null, is_read: false, created_at: minutesAgo(700) },
         { id: 2, employee_id: 4, type: 'leave_approved', message: 'Your sick leave has been approved.', link: null, is_read: true, created_at: minutesAgo(1700) },
@@ -283,6 +285,8 @@
     if (raw) {
       const db = JSON.parse(raw);
       if (!Array.isArray(db.team_messages)) db.team_messages = seedDb().team_messages;
+      if (!Array.isArray(db.performance_review_cycles)) db.performance_review_cycles = [];
+      if (!Array.isArray(db.performance_review_responses)) db.performance_review_responses = [];
       const departmentNames = (db.departments || []).map((dept) => dept.name).join('|');
       if (!departmentNames.includes('HR/ Admin') || !departmentNames.includes('Member Management')) {
         const oldDepartmentById = Object.fromEntries((db.departments || []).map((dept) => [dept.id, dept.name]));
@@ -1345,6 +1349,57 @@
       db.documents.splice(idx, 1);
       saveDb(db);
       return { message: 'Document deleted' };
+    }
+
+    if (method === 'POST' && route === '/performance/cycles') {
+      requireRole(user, ['admin']);
+      if (!body?.title?.trim()) throw new Error('A review title is required');
+      if (!['supervisors', 'department_heads'].includes(body.target_type)) throw new Error('Choose supervisors or department heads');
+      const row = { id: nextId(db.performance_review_cycles), title: body.title.trim(), period: body.period?.trim() || '', target_type: body.target_type, is_anonymous: Boolean(body.is_anonymous), is_open: true, closes_at: body.closes_at || null, created_by_id: user.id, created_at: new Date().toISOString() };
+      db.performance_review_cycles.push(row); saveDb(db); return clone(row);
+    }
+
+    if (method === 'GET' && route === '/performance/cycles') {
+      requireRole(user, ['admin']);
+      return db.performance_review_cycles.map((cycle) => ({ ...clone(cycle), response_count: db.performance_review_responses.filter((response) => response.cycle_id === cycle.id).length }));
+    }
+
+    const cycleCloseMatch = route.match(/^\/performance\/cycles\/(\d+)\/close$/);
+    if (cycleCloseMatch && method === 'PATCH') {
+      requireRole(user, ['admin']);
+      const cycle = db.performance_review_cycles.find((item) => item.id === Number(cycleCloseMatch[1]));
+      if (!cycle) throw new Error('Feedback review not found');
+      cycle.is_open = false; saveDb(db); return clone(cycle);
+    }
+
+    if (method === 'GET' && route === '/performance/feedback/mine') {
+      const employee = db.employees.find((item) => item.id === user.id);
+      return db.performance_review_cycles.filter((cycle) => cycle.is_open && (!cycle.closes_at || cycle.closes_at >= today())).map((cycle) => {
+        const subjectId = cycle.target_type === 'supervisors' ? employee?.manager_id : db.departments.find((dept) => dept.id === employee?.department_id)?.manager_id;
+        if (!subjectId || subjectId === user.id) return null;
+        const response = db.performance_review_responses.find((item) => item.cycle_id === cycle.id && item.reviewer_id === user.id);
+        return { ...clone(cycle), response_id: response?.id || null, subject_employee_id: subjectId };
+      }).filter(Boolean);
+    }
+
+    const cycleResponseMatch = route.match(/^\/performance\/cycles\/(\d+)\/responses$/);
+    if (cycleResponseMatch && method === 'POST') {
+      const cycle = db.performance_review_cycles.find((item) => item.id === Number(cycleResponseMatch[1]) && item.is_open && (!item.closes_at || item.closes_at >= today()));
+      if (!cycle) throw new Error('This feedback review is closed or unavailable');
+      const employee = db.employees.find((item) => item.id === user.id);
+      const subjectId = cycle.target_type === 'supervisors' ? employee?.manager_id : db.departments.find((dept) => dept.id === employee?.department_id)?.manager_id;
+      if (!subjectId || subjectId === user.id) throw new Error('No eligible supervisor or department head is assigned to you');
+      if (db.performance_review_responses.some((item) => item.cycle_id === cycle.id && item.reviewer_id === user.id)) throw new Error('You have already submitted feedback for this review');
+      if (!Number(body?.rating) || Number(body.rating) < 1 || Number(body.rating) > 5) throw new Error('Rating must be 1-5');
+      const row = { id: nextId(db.performance_review_responses), cycle_id: cycle.id, reviewer_id: user.id, subject_employee_id: subjectId, rating: Number(body.rating), comments: body.comments || '', submitted_at: new Date().toISOString() };
+      db.performance_review_responses.push(row); saveDb(db); return clone(row);
+    }
+
+    if (cycleResponseMatch && method === 'GET') {
+      requireRole(user, ['admin']);
+      const cycle = db.performance_review_cycles.find((item) => item.id === Number(cycleResponseMatch[1]));
+      if (!cycle) throw new Error('Feedback review not found');
+      return db.performance_review_responses.filter((item) => item.cycle_id === cycle.id).map((response) => ({ ...clone(response), subject_name: employeeName(db, response.subject_employee_id), reviewer_name: cycle.is_anonymous ? null : employeeName(db, response.reviewer_id), is_anonymous: cycle.is_anonymous }));
     }
 
     if (method === 'POST' && route === '/performance') {
