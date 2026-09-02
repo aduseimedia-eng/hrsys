@@ -32,15 +32,15 @@
       }
       /* Top-level people have no parent. Do not draw the sibling branch above
          them; connectors belong only to nested reporting rows. */
-      .org-tree-root > ul {
+      .org-tree-root > .org-root-list {
         padding-top: 0;
       }
-      .org-tree-root > ul > li {
+      .org-tree-root > .org-root-list > li {
         padding-top: 0;
       }
-      .org-tree-root > ul > li::before,
-      .org-tree-root > ul > li::after {
-        display: none;
+      .org-tree-root > .org-root-list > li::before,
+      .org-tree-root > .org-root-list > li::after {
+        display: none !important;
       }
       .org-tree-root li {
         list-style: none;
@@ -417,7 +417,7 @@
               : "";
         const reports = node.children?.length || 0;
         const childrenHtml = reports
-          ? `<ul>${node.children.map((child) => buildNodeHtml(child)).join("")}</ul>`
+          ? `<ul class="org-children">${node.children.map((child) => buildNodeHtml(child)).join("")}</ul>`
           : "";
         return `<li><button type="button" class="org-person-card ${roleClass}" onclick="showEmpModal(${JSON.stringify(node).replace(/"/g, "&quot;")})">
     <div class="org-person-top">${node.photo_url ? `<img src="${assetUrl(node.photo_url)}" class="avatar avatar-md" alt="">` : `<div class="avatar avatar-md">${fmt.initials(node.first_name, node.last_name)}</div>`}
@@ -462,7 +462,7 @@
           container.innerHTML = `<div class="org-empty-canvas">No employees match this view.</div>`;
           return;
         }
-        container.innerHTML = `<ul>${visibleRoots.map((node) => buildNodeHtml(node)).join("")}</ul>`;
+        container.innerHTML = `<ul class="org-root-list">${visibleRoots.map((node) => buildNodeHtml(node)).join("")}</ul>`;
       }
 
       function filterOrgChart() {
