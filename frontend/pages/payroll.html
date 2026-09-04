@@ -6,198 +6,231 @@
   <title>Payroll - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
-  <style>
-    .payslip-card {
-      background: var(--bg-surface);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      transition: all var(--duration);
-      cursor: pointer;
-    }
-    .payslip-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-    .payslip-header {
-      background: linear-gradient(135deg, var(--navy-800), var(--navy-950));
-      padding: 18px 20px;
-      color: #fff;
-    }
-    .payslip-month { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
-    .payslip-body { padding: 16px 20px; }
-    .payslip-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: .875rem; }
-    .payslip-row:last-child { border-bottom: none; }
-    .payslip-net { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--navy-800); }
-
-    .payslip-detail {
-      background: var(--bg-surface);
-      border-radius: var(--radius-xl);
-      padding: 40px;
-      max-width: 680px;
-      margin: 0 auto;
-    }
-    .payslip-modal { max-height:none; overflow:visible; }
-    .payslip-modal .modal-body { overflow:visible; }
-    @media (max-width:640px) { .payslip-modal { max-height:90vh; overflow:hidden; } .payslip-modal .modal-body { overflow:auto; } }
-    .payslip-detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 32px;
-      padding-bottom: 24px;
-      border-bottom: 2px solid var(--border);
-    }
-    .payslip-detail .company-logo {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .payslip-detail .company-logo .mark {
-      width: 40px; height: 40px;
-      background: var(--navy-800);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-display);
-      font-weight: 700; color: #fff; font-size: .95rem;
-    }
-    .detail-section { margin-bottom: 24px; }
-    .detail-section h4 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 12px; }
-    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: .9rem; }
-    .detail-row.total { font-weight: 600; font-size: 1rem; border-top: 2px solid var(--border); border-bottom: none; margin-top: 4px; }
-    .detail-row .positive { color: var(--success-fg); }
-    .detail-row .negative { color: var(--danger-fg); }
-    .net-salary-box {
-      background: var(--navy-50);
-      border-radius: var(--radius-lg);
-      padding: 20px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-    }
-    .net-amount { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--navy-800); }
-    .process-payroll-period { display:flex; align-items:center; gap:12px; padding:15px; border:1px solid #cfe0ff; border-radius:12px; background:#f4f8ff; margin-bottom:18px; }
-    .process-payroll-period-icon { width:40px; height:40px; flex:0 0 auto; display:grid; place-items:center; border-radius:10px; background:var(--navy-800); color:#fff; font-weight:800; }
-    .process-payroll-note { margin:14px 0 0; padding:11px 12px; border-radius:9px; background:#fff8e8; color:#76541a; font-size:.82rem; line-height:1.45; }
-    .process-confirm { display:flex; gap:9px; align-items:flex-start; margin-top:18px; color:var(--text-secondary); font-size:.85rem; line-height:1.4; cursor:pointer; }
-    .process-confirm input { margin-top:3px; accent-color:var(--navy-800); }
-    .payroll-dashboard { display:none; grid-template-columns:minmax(0,1fr) 280px; gap:16px; margin-bottom:22px; }
-    .payroll-dashboard-main { min-width:0; display:grid; gap:16px; }
-    .payroll-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-    .payroll-kpi, .payroll-dash-card { border:1px solid var(--border); border-radius:14px; background:var(--bg-surface); box-shadow:var(--shadow-sm); }
-    .payroll-kpi { padding:15px; }.payroll-kpi span { color:var(--text-muted); display:block; font-size:.7rem; font-weight:700; text-transform:uppercase; }.payroll-kpi strong { display:block; margin-top:6px; font-size:1.22rem; color:var(--text-primary); }.payroll-kpi small { display:block; margin-top:5px; color:var(--text-muted); font-size:.72rem; }
-    .payroll-dash-card { overflow:hidden; }.payroll-dash-header { padding:14px 16px; border-bottom:1px solid var(--border); }.payroll-dash-header h3 { margin:0; font-size:.88rem; }.payroll-dash-header p { margin:3px 0 0; color:var(--text-muted); font-size:.71rem; }
-    .payroll-pipeline { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:15px; }.payroll-stage { padding:12px; text-align:center; border-radius:10px; background:var(--navy-50); }.payroll-stage strong { display:block; color:var(--brand); font-size:1.15rem; }.payroll-stage span { color:var(--text-muted); font-size:.66rem; font-weight:700; text-transform:uppercase; }.payroll-stage.paid { background:#e9f8ef; }.payroll-stage.paid strong { color:#178047; }
-    .payroll-trend { height:255px; padding:12px 16px 16px; }.payroll-bottom-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }.payroll-donut { height:240px; padding:10px 14px 14px; }.payroll-side { display:grid; gap:16px; align-content:start; }.payroll-list { padding:4px 14px 12px; }.payroll-person { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:.78rem; }.payroll-person:last-child { border-bottom:0; }.payroll-person strong { display:block; color:var(--text-primary); }.payroll-person small { color:var(--text-muted); }.payroll-person b { color:var(--brand); white-space:nowrap; align-self:center; }.payroll-run-meta { color:var(--text-muted); font-size:.78rem; }.payroll-run-actions { display:flex; gap:7px; justify-content:flex-end; }.payroll-run-actions .btn { white-space:nowrap; }
-    @media(max-width:1180px){.payroll-dashboard{grid-template-columns:1fr}.payroll-side{grid-template-columns:repeat(2,minmax(0,1fr)}}@media(max-width:760px){.payroll-kpis,.payroll-bottom-grid,.payroll-side{grid-template-columns:1fr}.payroll-pipeline{grid-template-columns:1fr}}
-  </style>
+  <link rel="stylesheet" href="../css/payroll.css?v=20260904b">
 </head>
-<body>
+<body class="payroll-page">
 <div class="app-shell">
   <aside class="sidebar" id="sidebar"></aside>
   <header class="topbar">
     <div class="topbar-title">Payroll</div>
     <div class="topbar-actions">
-      <button class="icon-btn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <button class="icon-btn" id="notif-btn" type="button" aria-label="Notifications">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         <span class="dot hidden" id="notif-badge"></span>
       </button>
     </div>
   </header>
   <main class="main-content">
-    <div class="page-header">
-      <div><h1>Payroll</h1><p>View and manage salary and payslips</p></div>
-      <div id="admin-payroll-actions" style="display:flex;gap:10px"></div>
-    </div>
-
-    <section id="payroll-dashboard" class="payroll-dashboard" aria-label="Payroll dashboard">
-      <div class="payroll-dashboard-main">
-        <div class="payroll-kpis" id="payroll-kpis"><div class="payroll-kpi"><span>Loading payroll</span><strong>—</strong></div></div>
-        <article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Payslip pipeline</h3><p>Current month status distribution</p></div><div class="payroll-pipeline" id="payroll-pipeline"></div></article>
-        <article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Payroll cost trend</h3><p>Net payroll over the last 12 processed periods</p></div><div id="payroll-dashboard-trend" class="payroll-trend"></div></article>
-        <div class="payroll-bottom-grid"><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Cost by department</h3><p>Current month net pay</p></div><div id="payroll-department-chart" class="payroll-donut"></div></article><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Deduction mix</h3><p>Current month deductions</p></div><div id="payroll-deduction-chart" class="payroll-donut"></div></article></div>
+    <header class="page-header payroll-hero">
+      <div class="payroll-title-group">
+        <div class="payroll-title-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="5" width="18" height="14" rx="3"/>
+            <path d="M3 10h18M7 15h3"/>
+          </svg>
+        </div>
+        <div>
+          <div class="payroll-eyebrow" id="payroll-eyebrow">Finance workspace</div>
+          <h1 id="payroll-page-title">Payroll command centre</h1>
+          <p id="payroll-hero-description">Review pay, track every payslip, and keep each payroll period moving.</p>
+          <div class="payroll-hero-meta">
+            <span class="payroll-hero-chip" id="payroll-period-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+              <span id="payroll-current-period">Current period</span>
+            </span>
+            <span class="payroll-hero-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              Secure payroll access
+            </span>
+          </div>
+        </div>
       </div>
-      <aside class="payroll-side"><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Top earners</h3><p>Current month</p></div><div id="payroll-top-earners" class="payroll-list"></div></article><article class="payroll-dash-card"><div class="payroll-dash-header"><h3>Payroll at a glance</h3><p>Current processing status</p></div><div id="payroll-glance" class="payroll-list"></div></article></aside>
+      <div id="admin-payroll-actions" class="payroll-admin-actions"></div>
+    </header>
+
+    <nav class="tabs payroll-view-nav" id="payroll-tabs" role="tablist" aria-label="Payroll views">
+      <button class="tab-btn" id="overview-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-overview" data-payroll-tab="overview" style="display:none" onclick="switchTab('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </button>
+      <button class="tab-btn" id="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-all" data-payroll-tab="all" style="display:none" onclick="switchTab('all')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/><circle cx="8" cy="5" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="11" cy="19" r="1"/></svg>
+        Payroll register
+      </button>
+      <button class="tab-btn active" id="mine-tab" type="button" role="tab" aria-selected="true" aria-controls="tab-mine" data-payroll-tab="mine" onclick="switchTab('mine')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>
+        My payslips
+      </button>
+      <button class="tab-btn" id="summary-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-summary" data-payroll-tab="summary" style="display:none" onclick="switchTab('summary')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+        Reports
+      </button>
+    </nav>
+
+    <section id="payroll-period-toolbar" class="payroll-period-toolbar" aria-label="Payroll period" style="display:none">
+      <div class="payroll-period-intro">
+        <div class="payroll-period-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+        </div>
+        <div>
+          <strong>Reporting period</strong>
+          <span id="payroll-period-label">Choose the payroll month to review</span>
+        </div>
+      </div>
+      <div class="payroll-period-field">
+        <label for="pr-month">Month</label>
+        <select id="pr-month" class="form-control form-select" onchange="refreshPayrollPeriod()"></select>
+      </div>
+      <div class="payroll-period-field year">
+        <label for="pr-year">Year</label>
+        <select id="pr-year" class="form-control form-select" onchange="refreshPayrollPeriod()"></select>
+      </div>
+      <button class="btn btn-outline payroll-toolbar-action" type="button" onclick="downloadAllPayslips()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+        Print payslips
+      </button>
     </section>
 
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('mine')">My Payslips</button>
-      <button class="tab-btn" id="admin-tab" style="display:none" onclick="switchTab('all')">All Payroll</button>
-      <button class="tab-btn" id="summary-tab" style="display:none" onclick="switchTab('summary')">Summary</button>
+    <div id="tab-overview" role="tabpanel" aria-labelledby="overview-tab" style="display:none">
+      <section id="payroll-dashboard" class="payroll-dashboard" aria-label="Payroll overview">
+        <div id="payroll-dashboard-error" class="payroll-dashboard-error" role="alert" hidden></div>
+        <div class="payroll-kpis" id="payroll-kpis" aria-live="polite">
+          <article class="payroll-kpi payroll-loading-card"><div class="payroll-skeleton label"></div><div class="payroll-skeleton value"></div><div class="payroll-skeleton note"></div></article>
+          <article class="payroll-kpi payroll-loading-card"><div class="payroll-skeleton label"></div><div class="payroll-skeleton value"></div><div class="payroll-skeleton note"></div></article>
+          <article class="payroll-kpi payroll-loading-card"><div class="payroll-skeleton label"></div><div class="payroll-skeleton value"></div><div class="payroll-skeleton note"></div></article>
+          <article class="payroll-kpi payroll-loading-card"><div class="payroll-skeleton label"></div><div class="payroll-skeleton value"></div><div class="payroll-skeleton note"></div></article>
+        </div>
+
+        <div class="payroll-insights-grid">
+          <article class="payroll-dash-card">
+            <div class="payroll-dash-header">
+              <div><h3>Payroll cost trend</h3><p>Gross pay, deductions, and net payroll across recent periods</p></div>
+              <span class="payroll-card-kicker">12 periods</span>
+            </div>
+            <div id="payroll-dashboard-trend" class="payroll-trend"></div>
+          </article>
+          <div class="payroll-insights-side">
+            <article class="payroll-dash-card">
+              <div class="payroll-dash-header"><div><h3>Payslip pipeline</h3><p id="payroll-pipeline-period">Selected period</p></div></div>
+              <div class="payroll-pipeline" id="payroll-pipeline"></div>
+            </article>
+            <article class="payroll-dash-card">
+              <div class="payroll-dash-header"><div><h3>Period at a glance</h3><p>Progress and average take-home pay</p></div></div>
+              <div id="payroll-glance" class="payroll-list"></div>
+            </article>
+          </div>
+        </div>
+
+        <div class="payroll-analytics-grid">
+          <article class="payroll-dash-card">
+            <div class="payroll-dash-header"><div><h3>Cost by department</h3><p>Net pay for the selected period</p></div></div>
+            <div id="payroll-department-chart" class="payroll-donut"></div>
+          </article>
+          <article class="payroll-dash-card">
+            <div class="payroll-dash-header"><div><h3>Deduction mix</h3><p>Tax, pension, and other deductions</p></div></div>
+            <div id="payroll-deduction-chart" class="payroll-donut"></div>
+          </article>
+          <article class="payroll-dash-card">
+            <div class="payroll-dash-header"><div><h3>Highest net payments</h3><p>Selected period, highest to lowest</p></div></div>
+            <div id="payroll-top-earners" class="payroll-list"></div>
+          </article>
+        </div>
+      </section>
     </div>
 
-    <!-- My payslips -->
-    <div id="tab-mine">
-      <div id="my-payslips-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+    <div id="tab-mine" role="tabpanel" aria-labelledby="mine-tab">
+      <div class="payroll-section-heading">
+        <div><h2>Your payslips</h2><p>A secure history of your earnings, deductions, and take-home pay.</p></div>
+      </div>
+      <div id="my-payslips-grid" class="payslip-grid">
         <div class="loading-state"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <!-- All payroll (admin) -->
-    <div id="tab-all" style="display:none">
-      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <select id="pr-month" class="form-control form-select" style="max-width:140px"></select>
-        <select id="pr-year"  class="form-control form-select" style="max-width:110px"></select>
-        <select id="pr-status" class="form-control form-select" style="max-width:140px">
-          <option value="">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="processed">Processed</option>
-          <option value="paid">Paid</option>
-        </select>
-        <button class="btn btn-outline" onclick="loadAllPayroll()">Filter</button>
+    <div id="tab-all" role="tabpanel" aria-labelledby="admin-tab" style="display:none">
+      <div class="payroll-section-heading">
+        <div><h2>Payroll register</h2><p>Review earnings, deductions, status, and employee payslips.</p></div>
+        <span class="payroll-count" id="payroll-register-count" aria-live="polite">0 records</span>
       </div>
-      <div class="table-container">
-        <table>
-          <thead><tr><th>Employee</th><th>Type</th><th>Department</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="all-payroll-tbody"></tbody>
-        </table>
-      </div>
+      <section class="payroll-panel">
+        <div class="payroll-filter-bar">
+          <div class="payroll-filter-field">
+            <label for="pr-search">Find an employee</label>
+            <div class="payroll-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="pr-search" class="form-control" type="search" placeholder="Search by name or department" oninput="filterPayrollRegister()">
+            </div>
+          </div>
+          <div class="payroll-filter-field">
+            <label for="pr-status">Payment status</label>
+            <select id="pr-status" class="form-control form-select" onchange="loadAllPayroll()">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="processed">Processed</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+          <button class="btn btn-outline payroll-clear-filter" type="button" onclick="clearPayrollFilters()">Clear filters</button>
+        </div>
+        <div class="payroll-table-wrap">
+          <table>
+            <caption class="sr-only">Payroll register for the selected period</caption>
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Type</th>
+                <th>Department</th>
+                <th class="payroll-number">Gross</th>
+                <th class="payroll-number">Deductions</th>
+                <th class="payroll-number">Net pay</th>
+                <th>Status</th>
+                <th class="payroll-number">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="all-payroll-tbody"><tr><td colspan="8"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
-    <!-- Summary -->
-    <div id="tab-summary" style="display:none">
-      <section class="card" style="margin-bottom:16px"><div class="card-header"><h3>Net payroll trend</h3></div><div class="card-body"><div id="payroll-chart" style="height:250px"></div></div></section>
-      <div class="table-container">
-        <table>
-          <thead><tr><th>Period</th><th>Employees</th><th>Base Total</th><th>Deductions</th><th>Net Total</th><th>Paid</th></tr></thead>
-          <tbody id="summary-tbody"></tbody>
-        </table>
+    <div id="tab-summary" role="tabpanel" aria-labelledby="summary-tab" style="display:none">
+      <div class="payroll-section-heading">
+        <div><h2>Payroll reports</h2><p>Track payroll movement and completion across every processed period.</p></div>
+      </div>
+      <div class="payroll-insights-grid payroll-reports-grid">
+        <article class="payroll-dash-card">
+          <div class="payroll-dash-header"><div><h3>Payroll trend</h3><p>Gross pay, deductions, and net pay over time</p></div></div>
+          <div id="payroll-chart" class="payroll-trend"></div>
+        </article>
+        <article class="payroll-dash-card">
+          <div class="payroll-dash-header"><div><h3>Period history</h3><p>Processed employees and payment completion</p></div></div>
+          <div class="payroll-table-wrap">
+            <table>
+              <caption class="sr-only">Payroll totals by period</caption>
+              <thead><tr><th>Period</th><th class="payroll-number">Employees</th><th class="payroll-number">Base total</th><th class="payroll-number">Deductions</th><th class="payroll-number">Net total</th><th>Paid</th></tr></thead>
+              <tbody id="summary-tbody"><tr><td colspan="6"><div class="loading-state"><div class="spinner"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </article>
       </div>
     </div>
 
   </main>
 </div>
 
-<!-- Process Payroll Modal -->
-<div id="process-payroll-modal" class="modal-overlay" style="display:none">
-  <div class="modal" style="max-width:530px">
-    <div class="modal-header">
-      <h3>Process payroll</h3>
-      <button class="modal-close" type="button" onclick="closeProcessPayrollModal()">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="process-payroll-period">
-        <div class="process-payroll-period-icon" data-currency-symbol>¤</div>
-        <div><strong style="display:block;color:var(--text-primary)">Create payroll for a selected period</strong><span style="font-size:.8rem;color:var(--text-muted)">Only staff without an existing payslip for that period will be included.</span></div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group"><label class="form-label" for="process-payroll-month">Pay month</label><select id="process-payroll-month" class="form-control form-select"></select></div>
-        <div class="form-group"><label class="form-label" for="process-payroll-year">Pay year</label><select id="process-payroll-year" class="form-control form-select"></select></div>
-      </div>
-      <p class="process-payroll-note">This creates draft payslips using each employee’s current salary. You can use <strong>Edit payroll</strong> afterwards to set allowances, tax, and other deductions before payment.</p>
-      <label class="process-confirm"><input id="process-payroll-confirm" type="checkbox" onchange="toggleProcessPayrollButton()"><span>I have reviewed the period and want to create payroll records.</span></label>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" type="button" onclick="closeProcessPayrollModal()">Cancel</button>
-      <button id="process-payroll-submit" class="btn btn-primary" type="button" onclick="submitPayrollProcess()" disabled>Process payroll</button>
-    </div>
-  </div>
-</div>
-
-<!-- Payslip Detail Modal -->
 <div id="payslip-modal" class="modal-overlay" style="display:none">
-  <div class="modal modal-lg payslip-modal">
+  <div class="modal modal-lg payslip-modal" role="dialog" aria-modal="true" aria-labelledby="payslip-modal-title">
     <div class="modal-header">
-      <h3>Payslip</h3>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm" onclick="printPayslip()">Download PDF</button>
-        <button class="modal-close" aria-label="Close" onclick="closePayslipModal()">×</button>
+      <div>
+        <h3 id="payslip-modal-title">Payslip details</h3>
+        <p style="margin-top:2px;font-size:.75rem;color:var(--text-muted)">Review the breakdown or print a copy for your records.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-outline btn-sm" type="button" onclick="printPayslip()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+          Print / Save PDF
+        </button>
+        <button class="modal-close" type="button" aria-label="Close payslip" onclick="closePayslipModal()">&times;</button>
       </div>
     </div>
     <div class="modal-body" id="payslip-detail"></div>
@@ -205,220 +238,8 @@
 </div>
 
 <script src="../js/api.js"></script>
-<script type="application/json" id="payroll-inline-legacy">
-const user = requireRole('admin');
-if (!user) throw new Error('redirect');
-buildSidebar('payroll');
-loadNotifCount();
-
-const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const now = new Date();
-
-if (user.role === 'admin') {
-  // Show admin tabs
-  document.getElementById('admin-tab').style.display = '';
-  document.getElementById('summary-tab').style.display = '';
-
-  // Process payroll button
-  document.getElementById('admin-payroll-actions').innerHTML =
-    `<button class="btn btn-primary" onclick="showProcessModal()">Process Payroll</button>`;
-
-  // Populate month/year selects
-  const mSel = document.getElementById('pr-month');
-  const ySel = document.getElementById('pr-year');
-  months.forEach((m, i) => mSel.innerHTML += `<option value="${i+1}" ${i===now.getMonth()?'selected':''}>${m}</option>`);
-  for (let y = now.getFullYear(); y >= now.getFullYear()-3; y--) {
-    ySel.innerHTML += `<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`;
-  }
-}
-
-function switchTab(tab) {
-  ['mine','all','summary'].forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'':'none');
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['mine','all','summary'][i]===tab));
-  if (tab==='all') loadAllPayroll();
-  if (tab==='summary') loadSummary();
-}
-
-async function loadMyPayslips() {
-  const slips = await api.get('/payroll/mine');
-  const grid = document.getElementById('my-payslips-grid');
-  if (!slips.length) { grid.innerHTML = `<div class="empty-state"><p>No payslips available yet</p></div>`; return; }
-
-  grid.innerHTML = slips.map(s => {
-    const monthName = months[s.month - 1];
-    return `<div class="payslip-card" onclick="viewPayslip(${s.id})">
-      <div class="payslip-header">
-        <div class="payslip-month">${monthName} ${s.year}</div>
-        <div style="margin-top:4px">${fmt.statusBadge(s.status)}</div>
-      </div>
-      <div class="payslip-body">
-        <div class="payslip-row"><span style="color:var(--text-muted)">Base Salary</span><span>${fmt.currency(s.base_salary)}</span></div>
-        <div class="payslip-row"><span style="color:var(--text-muted)">Allowances</span><span style="color:var(--success-fg)">+${fmt.currency(s.allowances)}</span></div>
-        <div class="payslip-row"><span style="color:var(--text-muted)">Deductions</span><span style="color:var(--danger-fg)">-${fmt.currency(s.deductions)}</span></div>
-        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:.8rem;color:var(--text-muted)">Net Pay</span>
-          <span class="payslip-net">${fmt.currency(s.net_salary)}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function viewPayslip(id) {
-  const s = await api.get(`/payroll/${id}`);
-  const monthName = months[s.month - 1];
-  document.getElementById('payslip-detail').innerHTML = `
-    <div class="payslip-detail" id="printable-payslip">
-      <div class="payslip-detail-header">
-        <div class="company-logo">
-          <div class="mark">HR</div>
-          <div>
-            <div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem">KenadHR</div>
-            <div style="font-size:.8rem;color:var(--text-muted)">Payroll Department</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-weight:600">${monthName} ${s.year}</div>
-          <div style="font-size:.8rem;color:var(--text-muted)">Payslip</div>
-          ${fmt.statusBadge(s.status)}
-        </div>
-      </div>
-
-      <div class="detail-section">
-        <h4>Employee Details</h4>
-        <div class="detail-row"><span>Name</span><span>${s.first_name} ${s.last_name}</span></div>
-        <div class="detail-row"><span>Job Title</span><span>${s.job_title || '-'}</span></div>
-        <div class="detail-row"><span>Department</span><span>${s.department_name || '-'}</span></div>
-        <div class="detail-row"><span>Email</span><span>${s.email}</span></div>
-      </div>
-
-      <div class="detail-section">
-        <h4>Earnings</h4>
-        <div class="detail-row"><span>Base Salary</span><span class="positive">${fmt.currency(s.base_salary)}</span></div>
-        <div class="detail-row"><span>Allowances</span><span class="positive">+${fmt.currency(s.allowances)}</span></div>
-        <div class="detail-row total"><span>Gross Pay</span><span>${fmt.currency(parseFloat(s.base_salary)+parseFloat(s.allowances))}</span></div>
-      </div>
-
-      <div class="detail-section">
-        <h4>Deductions</h4>
-        <div class="detail-row"><span>Total Deductions</span><span class="negative">-${fmt.currency(s.deductions)}</span></div>
-      </div>
-
-      <div class="net-salary-box">
-        <div>
-          <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:4px">NET PAY</div>
-          <div class="net-amount">${fmt.currency(s.net_salary)}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:.8rem;color:var(--text-muted)">Payment Status</div>
-          <div style="margin-top:4px">${fmt.statusBadge(s.status)}</div>
-          ${s.paid_at ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:4px">Paid ${fmt.date(s.paid_at)}</div>` : ''}
-        </div>
-      </div>
-    </div>`;
-  document.getElementById('payslip-modal').style.display = 'flex';
-}
-
-function printPayslip() {
-  const printable = document.getElementById('printable-payslip');
-  if (!printable) {
-    toast('Open a payslip before printing.', 'warning');
-    return;
-  }
-
-  const w = window.open('', '_blank');
-  if (!w) {
-    toast('Allow popups to print this payslip.', 'warning');
-    return;
-  }
-
-  const doc = w.document;
-  doc.title = 'Payslip';
-
-  const link = doc.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = '../css/main.css';
-  doc.head.appendChild(link);
-
-  const style = doc.createElement('style');
-  style.textContent = 'body{padding:40px;background:#fff}.payslip-detail{max-width:100%;padding:0}@media print{body{padding:0}}';
-  doc.head.appendChild(style);
-
-  doc.body.innerHTML = printable.innerHTML;
-  w.focus();
-  setTimeout(() => w.print(), 250);
-}
-
-async function loadAllPayroll() {
-  const month  = document.getElementById('pr-month').value;
-  const year   = document.getElementById('pr-year').value;
-  const status = document.getElementById('pr-status').value;
-  let qs = `?month=${month}&year=${year}`;
-  if (status) qs += `&status=${status}`;
-  const rows = await api.get(`/payroll${qs}`);
-  const tbody = document.getElementById('all-payroll-tbody');
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><p>No payroll records</p></div></td></tr>`; return; }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td><div style="display:flex;align-items:center;gap:10px">${payrollEmployeeAvatar(r)}<span style="font-weight:500">${r.employee_name}</span></div></td>
-      <td>${r.department_name || '-'}</td>
-      <td>${fmt.currency(r.base_salary)}</td>
-      <td style="color:var(--success-fg)">+${fmt.currency(r.allowances)}</td>
-      <td style="color:var(--danger-fg)">-${fmt.currency(r.deductions)}</td>
-      <td style="font-weight:600">${fmt.currency(r.net_salary)}</td>
-      <td>${fmt.statusBadge(r.status)}</td>
-      <td style="display:flex;gap:6px">
-        <button class="btn btn-outline btn-sm" onclick="viewPayslip(${r.id})">View</button>
-        ${r.status === 'processed' ? `<button class="btn btn-success btn-sm" onclick="markPaid(${r.id})">Mark Paid</button>` : ''}
-      </td>
-    </tr>`).join('');
-}
-
-function payrollEmployeeAvatar(row) {
-  const parts = String(row.employee_name || '').trim().split(/\s+/);
-  return avatarEl({
-    first_name: parts[0] || '?',
-    last_name: parts.slice(1).join(' '),
-    photo_url: row.photo_url || null
-  }, 'sm');
-}
-
-async function markPaid(id) {
-  try {
-    await api.patch(`/payroll/${id}/paid`);
-    toast('Marked as paid!', 'success');
-    loadAllPayroll();
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-async function loadSummary() {
-  const rows = await api.get('/payroll/summary');
-  const tbody = document.getElementById('summary-tbody');
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>No data</p></div></td></tr>`; return; }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td style="font-weight:500">${months[r.month-1]} ${r.year}</td>
-      <td>${r.employee_count}</td>
-      <td>${fmt.currency(r.total_base)}</td>
-      <td style="color:var(--danger-fg)">-${fmt.currency(r.total_deductions)}</td>
-      <td style="font-weight:600">${fmt.currency(r.total_net)}</td>
-      <td>${r.paid_count}/${r.employee_count} paid</td>
-    </tr>`).join('');
-}
-
-function showProcessModal() {
-  const m = now.getMonth() + 1;
-  const y = now.getFullYear();
-  if (!confirm(`Process payroll for ${months[m-1]} ${y}? This will generate payslips for all active employees.`)) return;
-  api.post('/payroll/process', { month: m, year: y })
-    .then(r => { toast(`Payroll processed for ${r.count} employees`, 'success'); switchTab('all'); })
-    .catch(e => toast(e.message, 'error'));
-}
-
-loadMyPayslips();
-</script>
 <script src="/vendor/chartjs/chart.umd.min.js"></script>
 <script src="../js/charts.js"></script>
-<script src="../js/payroll.js?v=20260825a"></script>
+<script src="../js/payroll.js?v=20260904b"></script>
 </body>
 </html>
