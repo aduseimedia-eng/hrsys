@@ -14,7 +14,11 @@ const transitions = {
 exports.list = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT pr.*, pg.name AS pay_group_name, le.name AS legal_entity_name, c.iso_code AS country_code
+      `SELECT pr.*,
+              to_char(pr.period_start, 'YYYY-MM-DD') AS period_start_iso,
+              to_char(pr.period_end, 'YYYY-MM-DD') AS period_end_iso,
+              to_char(pr.payment_date, 'YYYY-MM-DD') AS payment_date_iso,
+              pg.name AS pay_group_name, le.name AS legal_entity_name, c.iso_code AS country_code
        FROM payroll_runs pr
        JOIN legal_entities le ON le.id=pr.legal_entity_id
        LEFT JOIN pay_groups pg ON pg.id=pr.pay_group_id
@@ -22,7 +26,17 @@ exports.list = async (req, res) => {
        WHERE pr.company_id=$1 ORDER BY pr.period_end DESC, pr.created_at DESC`,
       [req.user.company_id]
     );
-    res.json(rows);
+    res.json(rows.map(({
+      period_start_iso: periodStart,
+      period_end_iso: periodEnd,
+      payment_date_iso: paymentDate,
+      ...run
+    }) => ({
+      ...run,
+      period_start: periodStart,
+      period_end: periodEnd,
+      payment_date: paymentDate
+    })));
   } catch (error) {
     res.status(500).json({ error: 'Could not fetch payroll runs' });
   }
