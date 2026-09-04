@@ -6,7 +6,7 @@
   <title>Payroll - KenadHR</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
-  <link rel="stylesheet" href="../css/payroll.css?v=20260904b">
+  <link rel="stylesheet" href="../css/payroll.css?v=20260904c">
 </head>
 <body class="payroll-page">
 <div class="app-shell">
@@ -54,7 +54,7 @@
         Overview
       </button>
       <button class="tab-btn" id="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-all" data-payroll-tab="all" style="display:none" onclick="switchTab('all')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/><circle cx="8" cy="5" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="11" cy="19" r="1"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/><path d="M7 4h2v2H7zM15 11h2v2h-2zM10 18h2v2h-2z"/></svg>
         Payroll register
       </button>
       <button class="tab-btn active" id="mine-tab" type="button" role="tab" aria-selected="true" aria-controls="tab-mine" data-payroll-tab="mine" onclick="switchTab('mine')">
@@ -124,11 +124,11 @@
         <div class="payroll-analytics-grid">
           <article class="payroll-dash-card">
             <div class="payroll-dash-header"><div><h3>Cost by department</h3><p>Net pay for the selected period</p></div></div>
-            <div id="payroll-department-chart" class="payroll-donut"></div>
+            <div id="payroll-department-chart" class="payroll-breakdown-chart"></div>
           </article>
           <article class="payroll-dash-card">
             <div class="payroll-dash-header"><div><h3>Deduction mix</h3><p>Tax, pension, and other deductions</p></div></div>
-            <div id="payroll-deduction-chart" class="payroll-donut"></div>
+            <div id="payroll-deduction-chart" class="payroll-breakdown-chart"></div>
           </article>
           <article class="payroll-dash-card">
             <div class="payroll-dash-header"><div><h3>Highest net payments</h3><p>Selected period, highest to lowest</p></div></div>
@@ -240,6 +240,6 @@
 <script src="../js/api.js"></script>
 <script src="/vendor/chartjs/chart.umd.min.js"></script>
 <script src="../js/charts.js"></script>
-<script src="../js/payroll.js?v=20260904b"></script>
+<script src="../js/payroll.js?v=20260904c"></script>
 </body>
 </html>

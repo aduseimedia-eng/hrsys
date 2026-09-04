@@ -124,13 +124,13 @@ async function loadPayrollDashboard() {
       grouped[name] = (grouped[name] || 0) + Number(row.net_salary || 0);
       return grouped;
     }, {});
-    renderPayrollDoughnut('payroll-department-chart', Object.keys(departments), Object.values(departments));
+    renderPayrollBreakdown('payroll-department-chart', Object.keys(departments), Object.values(departments));
     const deductionParts = {
       Tax: rows.reduce((total, row) => total + Number(row.tax || 0), 0),
       SSNIT: rows.reduce((total, row) => total + Number(row.ssnit_employee || 0), 0),
       Other: rows.reduce((total, row) => total + Number(row.other_deductions || 0) + Number(row.loan_deductions || 0) + Number(row.benefit_deductions || 0), 0)
     };
-    renderPayrollDoughnut('payroll-deduction-chart', Object.keys(deductionParts), Object.values(deductionParts));
+    renderPayrollBreakdown('payroll-deduction-chart', Object.keys(deductionParts), Object.values(deductionParts));
     const topEarners = rows.slice().sort((a, b) => Number(b.net_salary || 0) - Number(a.net_salary || 0)).slice(0, 6);
     document.getElementById('payroll-top-earners').innerHTML = topEarners.length ? topEarners.map((row) => `<div class="payroll-person"><div><strong>${safe(row.employee_name || 'Employee')}</strong><small>${safe(row.department_name || 'No department')}</small></div><b>${fmt.currency(row.net_salary)}</b></div>`).join('') : '<div class="payroll-chart-empty"><span>No payments</span><small>Run payroll to see this period.</small></div>';
     document.getElementById('payroll-glance').innerHTML = [
@@ -208,13 +208,13 @@ function renderPayrollTrend(hostId, rows) {
         { label: 'Gross', data: rows.map((row) => Number(row.total_gross || row.total_base || 0)), borderColor: brandColor, backgroundColor: 'rgba(57,119,238,.10)', fill: true },
         { label: 'Deductions', data: rows.map((row) => Number(row.total_deductions || 0)), borderColor: '#ef4444', backgroundColor: 'transparent', fill: false },
         { label: 'Net', data: rows.map((row) => Number(row.total_net || 0)), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.07)', fill: true }
-      ].map((dataset) => ({ ...dataset, borderWidth: 2.5, tension: .35, pointRadius: 3, pointHoverRadius: 5, pointBorderWidth: 2, pointBorderColor: '#fff' }))
+      ].map((dataset) => ({ ...dataset, borderWidth: 2.5, tension: 0, pointStyle: 'rect', pointRadius: 0, pointHoverRadius: 4, pointBorderWidth: 0 }))
     },
     options: {
       responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
       plugins: {
-        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 7, boxHeight: 7, padding: 14, color: '#64748b', font: { size: 11, weight: '600' } } },
-        tooltip: { backgroundColor: '#17243d', padding: 10, cornerRadius: 8, callbacks: { label: (item) => `${item.dataset.label}: ${fmt.currency(item.raw)}` } }
+        legend: { position: 'top', align: 'end', labels: { usePointStyle: false, boxWidth: 18, boxHeight: 3, padding: 14, color: '#64748b', font: { size: 11, weight: '600' } } },
+        tooltip: { backgroundColor: '#17243d', padding: 10, cornerRadius: 2, callbacks: { label: (item) => `${item.dataset.label}: ${fmt.currency(item.raw)}` } }
       },
       scales: {
         x: { grid: { display: false }, border: { display: false }, ticks: { color: '#8190a8', font: { size: 10 } } },
@@ -224,7 +224,7 @@ function renderPayrollTrend(hostId, rows) {
   });
 }
 
-function renderPayrollDoughnut(hostId, labels, values) {
+function renderPayrollBreakdown(hostId, labels, values) {
   const host = document.getElementById(hostId);
   if (!host) return;
   payrollTrendCharts[hostId]?.destroy?.();
@@ -256,31 +256,45 @@ function renderPayrollDoughnut(hostId, labels, values) {
   host.appendChild(canvas);
   const brandColor = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || '#3977ee';
   payrollTrendCharts[hostId] = new Chart(canvas, {
-    type: 'doughnut',
+    type: 'bar',
     data: {
       labels: entries.map((entry) => entry.label),
       datasets: [{
+        label: 'Amount',
         data: entries.map((entry) => entry.value),
         backgroundColor: [brandColor, '#6b9af0', '#91b3f5', '#d9a64d', '#c85d72', '#7a86ad'],
-        borderColor: '#fff',
-        borderWidth: 3,
-        hoverOffset: 4
+        borderColor: 'transparent',
+        borderWidth: 0,
+        borderRadius: 0,
+        borderSkipped: false,
+        barPercentage: .72,
+        categoryPercentage: .74
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '68%',
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 7, boxHeight: 7, padding: 13, color: '#647189', font: { size: 10, weight: '600' } }
-        },
+        legend: { display: false },
         tooltip: {
           backgroundColor: '#172442',
           padding: 10,
-          cornerRadius: 8,
+          cornerRadius: 2,
           callbacks: { label: (item) => `${item.label}: ${fmt.currency(item.raw)}` }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          border: { display: false },
+          grid: { color: '#e9eef6', drawTicks: false },
+          ticks: { color: '#8190a8', font: { size: 10 }, callback: (value) => fmt.currency(value) }
+        },
+        y: {
+          border: { display: false },
+          grid: { display: false },
+          ticks: { color: '#647189', font: { size: 10, weight: '600' } }
         }
       }
     }
@@ -489,19 +503,19 @@ function payrollPrintStyles() {
     @page{size:A4;margin:12mm}
     *{box-sizing:border-box}
     body{margin:0;padding:24px;background:#fff;color:#202a3d;font-family:Inter,Arial,sans-serif}
-    .payslip-detail{max-width:760px;margin:0 auto;padding:30px;border:1px solid #dfe6f2;border-radius:12px;background:#fff}
+    .payslip-detail{max-width:760px;margin:0 auto;padding:30px;border:1px solid #dfe6f2;border-radius:5px;background:#fff}
     .payslip-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:26px;padding-bottom:20px;border-bottom:2px solid #172442}
     .company-logo{display:flex;align-items:center;gap:11px}
-    .company-logo .mark{display:grid;width:42px;height:42px;place-items:center;border-radius:10px;background:#172442;color:#fff;font-weight:800}
+    .company-logo .mark{display:grid;width:42px;height:42px;place-items:center;border-radius:4px;background:#172442;color:#fff;font-weight:800}
     .detail-section{margin-bottom:22px}
     .detail-section h4{margin:0 0 8px;color:#3977ee;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
     .detail-row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #e7edf5;color:#647189;font-size:12px}
     .detail-row span:last-child{color:#202a3d;font-weight:600;text-align:right}
     .detail-row.total{margin-top:3px;border-top:1px solid #c6d4ec;border-bottom:0;color:#202a3d;font-weight:700}
     .positive{color:#227356!important}.negative{color:#b5475d!important}
-    .net-salary-box{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:10px;padding:18px 20px;border:1px solid #bedfd3;border-radius:11px;background:#edf9f4}
+    .net-salary-box{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:10px;padding:18px 20px;border:1px solid #bedfd3;border-radius:4px;background:#edf9f4}
     .net-amount{color:#172442;font-size:26px;font-weight:800;letter-spacing:-.04em}
-    .badge{display:inline-flex;padding:3px 8px;border-radius:999px;background:#e8f0ff;color:#2865d9;font-size:10px;font-weight:700;text-transform:capitalize}
+    .badge{display:inline-flex;padding:3px 8px;border-radius:3px;background:#e8f0ff;color:#2865d9;font-size:10px;font-weight:700;text-transform:capitalize}
     @media print{body{padding:0}.payslip-detail{border:0;padding:0}}
   `;
 }
