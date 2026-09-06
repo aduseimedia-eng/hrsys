@@ -89,9 +89,25 @@ exports.calculate = async (req, res) => {
     if (run.status !== 'draft') { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Only draft payroll runs can be calculated' }); }
 
     const profiles = await client.query(
-      `SELECT e.id AS employee_id, e.salary, pp.pay_frequency
+      `SELECT e.id AS employee_id, e.salary, pp.pay_frequency,
+              COALESCE(comp.basic_salary, e.salary) AS basic_salary,
+              COALESCE(comp.allowances, 0) AS allowances,
+              COALESCE(comp.ssnit_insurable_salary, comp.basic_salary, e.salary) AS ssnit_insurable_salary,
+              COALESCE(comp.other_deductions, 0) AS other_deductions,
+              COALESCE(comp.ssnit_exempt, false) AS ssnit_exempt,
+              COALESCE(comp.paye_exempt, false) AS paye_exempt
        FROM employee_payroll_profiles pp
        JOIN employees e ON e.id=pp.employee_id AND e.company_id=pp.company_id
+       LEFT JOIN LATERAL (
+         SELECT sr.basic_salary, sr.allowances, sr.ssnit_insurable_salary, sr.other_deductions,
+                sr.ssnit_exempt, sr.paye_exempt
+         FROM salary_records sr
+         WHERE sr.company_id=pp.company_id AND sr.employee_id=e.id
+           AND sr.effective_from <= $3
+           AND (sr.effective_to IS NULL OR sr.effective_to >= $3)
+         ORDER BY sr.effective_from DESC, sr.id DESC
+         LIMIT 1
+       ) comp ON true
        WHERE pp.company_id=$1 AND pp.pay_group_id=$2 AND pp.payroll_status='active'
          AND e.is_active=true AND pp.effective_from <= $3
          AND (pp.effective_to IS NULL OR pp.effective_to >= $3)
@@ -105,8 +121,22 @@ exports.calculate = async (req, res) => {
     const ruleVersions = [...new Set(rules.map((rule) => rule.version))].join(',');
     for (const profile of profiles.rows) {
       const result = calculatePayroll({
-        countryCode: run.country_code, basicSalary: profile.salary, rules, fractionDigits
+        countryCode: run.country_code,
+        basicSalary: profile.basic_salary ?? profile.salary,
+        allowances: profile.allowances,
+        ssnitInsurableSalary: profile.ssnit_insurable_salary,
+        otherDeductions: profile.other_deductions,
+        ssnitExempt: profile.ssnit_exempt,
+        payeExempt: profile.paye_exempt,
+        rules,
+        fractionDigits
       });
+      if (result.netPay.isNegative()) {
+        await client.query('ROLLBACK');
+        return res.status(422).json({
+          error: `Deductions exceed gross pay for employee ${profile.employee_id}; update the staff deductions before calculating this run`
+        });
+      }
       const insertResult = await client.query(
         `INSERT INTO payroll_results(payroll_run_id, employee_id, currency_code, gross_pay, taxable_pay, pensionable_pay,
           employee_tax, employee_social_security, employee_pension, employee_other_deductions, employer_tax,
@@ -120,9 +150,11 @@ exports.calculate = async (req, res) => {
       );
       for (const item of result.lineItems) {
         await client.query(
-          `INSERT INTO payroll_line_items(payroll_result_id, type, code, name, amount, party, taxable, pensionable)
-           VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [insertResult.rows[0].id, item.type, item.code, item.name, item.amount.toString(), item.party, item.taxable, item.pensionable]
+          `INSERT INTO payroll_line_items(payroll_result_id, type, code, name, amount, party, taxable, pensionable,
+             statutory_rule_id, statutory_rule_version_id)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [insertResult.rows[0].id, item.type, item.code, item.name, item.amount.toString(), item.party, item.taxable, item.pensionable,
+            item.statutory_rule_id ?? null, item.statutory_rule_version_id ?? null]
         );
       }
     }

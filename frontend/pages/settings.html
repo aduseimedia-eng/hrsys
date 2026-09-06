@@ -6,6 +6,7 @@
     <title>Settings - KenadHR</title>
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/workspace.css" />
+    <link rel="stylesheet" href="../css/settings-payroll.css?v=20260906a" />
     <style>
       .settings-grid { display:grid; grid-template-columns:1fr; gap:14px; max-width:760px; }
       .settings-hub { display:grid; grid-template-columns:220px minmax(0,820px); gap:28px; max-width:1100px; align-items:start; }
@@ -256,7 +257,7 @@
             <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Organisation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#people-organisation" data-panel="people-organisation">People &amp; organisation</a><a href="#department-settings" data-panel="department-settings">Departments</a><a href="#company-calendar" data-panel="company-calendar">Calendar &amp; events</a><a href="#calendar-settings" data-panel="calendar-settings">Company calendar</a><a href="#company-branding" data-panel="company-branding">Company branding</a></div></div>
             <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workforce<svg viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#hr-policies" data-panel="hr-policies">HR policies</a><a href="#attendance-settings" data-panel="attendance-settings">Attendance &amp; overtime</a><a href="#communication" data-panel="communication">Communication</a><a href="#announcement-settings" data-panel="announcement-settings">Announcements</a></div></div>
             <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Workspace<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#app-preferences" data-panel="app-preferences">App preferences</a></div></div>
-            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Payroll<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#payroll-tax-settings" data-panel="payroll-tax-settings">Taxes &amp; statutory rules</a></div></div>
+            <div class="settings-nav-group"><button class="settings-nav-trigger" type="button" aria-expanded="false">Payroll<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="settings-nav-items"><a href="#payroll-tax-settings" data-panel="payroll-tax-settings">Taxes &amp; deductions</a></div></div>
           </nav>
           <div class="settings-content">
             <div class="settings-overview" aria-label="Settings overview">
@@ -542,17 +543,169 @@
             <div class="billing-plans" id="billing-plans"></div>
           </div>
         </article>
-        <section class="settings-hub-section settings-panel" id="payroll-tax-settings">
-          <h2>Payroll taxes &amp; statutory rules</h2><p>Schedule Ghana PAYE and SSNIT rates for future payroll calculations. Finalised runs remain unchanged.</p>
-          <div class="settings-editor-form"><div class="form-group"><label class="form-label">Effective from</label><input id="payroll-tax-effective" class="form-control" type="date"></div><div class="form-group"><label class="form-label">Employee SSNIT rate</label><input id="payroll-ssnit-employee" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Employer SSNIT rate</label><input id="payroll-ssnit-employer" class="form-control" type="number" min="0" step="0.0001"></div><div class="form-group"><label class="form-label">Monthly SSNIT ceiling</label><input id="payroll-ssnit-ceiling" class="form-control" type="number" min="0" step="0.01"></div><div class="settings-editor-actions span-2"><button class="btn btn-primary" onclick="saveSsnitSettings()">Save SSNIT rule</button></div></div>
-          <h3 class="settings-subheading">PAYE brackets</h3><p style="font-size:.8rem;color:var(--text-muted)">Use a JSON list of <code>lower_bound</code>, <code>upper_bound</code> (or null) and <code>rate</code>. For example, 0.05 means 5%.</p><textarea id="payroll-paye-brackets" class="form-control" rows="8" aria-label="PAYE brackets as JSON"></textarea><div class="settings-editor-actions" style="margin-top:12px"><button class="btn btn-primary" onclick="savePayeSettings()">Save PAYE rule</button></div><div id="payroll-tax-current" class="settings-editor-list"></div>
+        <section class="settings-hub-section settings-panel payroll-settings-page" id="payroll-tax-settings" aria-labelledby="payroll-settings-title">
+          <div class="payroll-settings-heading">
+            <div>
+              <span class="payroll-settings-kicker">Payroll configuration</span>
+              <h2 id="payroll-settings-title" tabindex="-1">Taxes &amp; deductions</h2>
+              <p>Set the statutory rules applied to Payroll Runs and schedule each staff member's tax treatment and monthly deductions.</p>
+            </div>
+            <span class="payroll-settings-access">HR administrators</span>
+          </div>
+
+          <div class="payroll-settings-notice" role="note">
+            <strong>Changes are effective-dated.</strong>
+            <span>New settings affect payroll calculated on or after their effective date. Finalised payroll remains unchanged.</span>
+          </div>
+
+          <div id="payroll-settings-alert" class="payroll-settings-alert" role="alert" hidden></div>
+
+          <div class="payroll-rule-grid">
+            <form id="payroll-ssnit-form" class="payroll-rule-card" novalidate>
+              <div class="payroll-rule-card-header">
+                <div>
+                  <span class="payroll-rule-code">GH-SSNIT</span>
+                  <h3>Social security</h3>
+                  <p>Contribution rates calculated from pensionable earnings.</p>
+                </div>
+                <span id="payroll-ssnit-source" class="payroll-rule-source">Loading</span>
+              </div>
+              <div class="payroll-rule-fields">
+                <div class="form-group">
+                  <label class="form-label required" for="payroll-ssnit-effective">Effective from</label>
+                  <input id="payroll-ssnit-effective" class="form-control" type="date" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label required" for="payroll-ssnit-ceiling">Monthly insurable ceiling</label>
+                  <div class="payroll-input-affix"><span>GHS</span><input id="payroll-ssnit-ceiling" class="form-control" type="number" min="0.01" step="0.01" required inputmode="decimal"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label required" for="payroll-ssnit-employee">Employee contribution</label>
+                  <div class="payroll-input-affix payroll-input-affix--end"><input id="payroll-ssnit-employee" class="form-control" type="number" min="0.0001" max="100" step="0.01" required inputmode="decimal"><span>%</span></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label required" for="payroll-ssnit-employer">Employer contribution</label>
+                  <div class="payroll-input-affix payroll-input-affix--end"><input id="payroll-ssnit-employer" class="form-control" type="number" min="0.0001" max="100" step="0.01" required inputmode="decimal"><span>%</span></div>
+                </div>
+                <div class="form-group payroll-field-wide">
+                  <label class="form-label required" for="payroll-ssnit-reason">Reason for change</label>
+                  <textarea id="payroll-ssnit-reason" class="form-control" rows="2" maxlength="300" required placeholder="e.g. Updated statutory rate for the new tax year"></textarea>
+                </div>
+              </div>
+              <div class="payroll-rule-actions">
+                <span id="payroll-ssnit-status" class="payroll-save-status" aria-live="polite"></span>
+                <button id="payroll-ssnit-save" class="btn btn-primary" type="submit">Schedule SSNIT version</button>
+              </div>
+            </form>
+
+            <form id="payroll-paye-form" class="payroll-rule-card" novalidate>
+              <div class="payroll-rule-card-header">
+                <div>
+                  <span class="payroll-rule-code">GH-PAYE</span>
+                  <h3>Income tax brackets</h3>
+                  <p>Progressive monthly PAYE bands applied in ascending order.</p>
+                </div>
+                <span id="payroll-paye-source" class="payroll-rule-source">Loading</span>
+              </div>
+              <div class="payroll-rule-fields payroll-rule-fields--paye">
+                <div class="form-group">
+                  <label class="form-label required" for="payroll-paye-effective">Effective from</label>
+                  <input id="payroll-paye-effective" class="form-control" type="date" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label required" for="payroll-paye-reason">Reason for change</label>
+                  <input id="payroll-paye-reason" class="form-control" type="text" maxlength="300" required placeholder="e.g. New GRA PAYE bands">
+                </div>
+              </div>
+              <div class="payroll-bracket-editor" aria-describedby="payroll-paye-help">
+                <div class="payroll-bracket-title">
+                  <div><strong>Monthly tax bands</strong><span id="payroll-paye-help">Amounts are in GHS. Leave the final “To” amount empty for no upper limit.</span></div>
+                  <button id="payroll-add-bracket" class="btn btn-outline btn-sm" type="button">Add bracket</button>
+                </div>
+                <div class="payroll-bracket-labels" aria-hidden="true"><span>From</span><span>To</span><span>Rate</span><span></span></div>
+                <div id="payroll-paye-brackets" class="payroll-bracket-rows"></div>
+              </div>
+              <div class="payroll-rule-actions">
+                <span id="payroll-paye-status" class="payroll-save-status" aria-live="polite"></span>
+                <button id="payroll-paye-save" class="btn btn-primary" type="submit">Schedule PAYE version</button>
+              </div>
+            </form>
+          </div>
+
+          <section class="payroll-settings-section" aria-labelledby="payroll-rule-history-title">
+            <div class="payroll-settings-section-heading">
+              <div><h3 id="payroll-rule-history-title">Rule history</h3><p>Current, scheduled, and previous statutory versions for this company.</p></div>
+              <button id="payroll-rules-refresh" class="btn btn-outline btn-sm" type="button">Refresh</button>
+            </div>
+            <div id="payroll-rule-history" class="payroll-history" aria-live="polite"><div class="payroll-settings-loading">Loading rule history...</div></div>
+          </section>
+
+          <section class="payroll-settings-section" aria-labelledby="staff-deductions-title">
+            <div class="payroll-settings-section-heading payroll-staff-heading">
+              <div><h3 id="staff-deductions-title">Staff tax treatment &amp; deductions</h3><p>Schedule PAYE or SSNIT exemptions and the employee's recurring monthly deduction.</p></div>
+              <label class="payroll-staff-search"><span class="sr-only">Search staff tax settings</span><input id="payroll-staff-search" class="form-control" type="search" autocomplete="off" placeholder="Search staff"></label>
+            </div>
+            <div class="table-container payroll-staff-table-wrap">
+              <table class="payroll-staff-table">
+                <caption class="sr-only">Staff tax treatment and recurring deductions</caption>
+                <thead><tr><th scope="col">Staff member</th><th scope="col">PAYE</th><th scope="col">SSNIT</th><th scope="col">Monthly deduction</th><th scope="col">Effective from</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                <tbody id="payroll-staff-rows"><tr><td colspan="6"><div class="payroll-settings-loading">Loading staff settings...</div></td></tr></tbody>
+              </table>
+            </div>
+            <p class="payroll-settings-footnote">Benefit deductions and loan repayments remain managed in their dedicated Benefits and Loans pages.</p>
+          </section>
         </section>
           </div>
         </div>
     </main>
     </div>
 
+    <div id="payroll-staff-modal" class="modal-overlay" style="display:none">
+      <div class="modal payroll-staff-modal" role="dialog" aria-modal="true" aria-labelledby="payroll-staff-modal-title">
+        <form id="payroll-staff-form">
+          <div class="modal-header">
+            <div><span class="payroll-rule-code">Staff payroll settings</span><h3 id="payroll-staff-modal-title">Edit tax treatment</h3></div>
+            <button id="payroll-staff-modal-close" class="modal-close" type="button" aria-label="Close staff payroll settings">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="payroll-staff-modal-alert" class="payroll-settings-alert" role="alert" hidden></div>
+            <div id="payroll-staff-summary" class="payroll-staff-summary"></div>
+            <div class="payroll-staff-form-grid">
+              <div class="form-group payroll-field-wide">
+                <label class="form-label required" for="payroll-staff-effective">Effective from</label>
+                <input id="payroll-staff-effective" class="form-control" type="date" required>
+                <p class="form-hint">This creates a new effective-dated compensation record and keeps the previous record in salary history.</p>
+              </div>
+              <label class="payroll-treatment-option" for="payroll-staff-paye">
+                <input id="payroll-staff-paye" type="checkbox">
+                <span><strong>Apply PAYE</strong><small>Calculate income tax for this staff member.</small></span>
+              </label>
+              <label class="payroll-treatment-option" for="payroll-staff-ssnit">
+                <input id="payroll-staff-ssnit" type="checkbox">
+                <span><strong>Apply SSNIT</strong><small>Calculate employee and employer social security.</small></span>
+              </label>
+              <div class="form-group payroll-field-wide">
+                <label class="form-label" for="payroll-staff-other-deduction">Other recurring monthly deduction</label>
+                <div class="payroll-input-affix"><span data-currency-symbol>GHS</span><input id="payroll-staff-other-deduction" class="form-control" type="number" min="0" step="0.01" inputmode="decimal" value="0"></div>
+                <p class="form-hint">Use this for an agreed fixed deduction. Benefits and loan repayments are calculated separately.</p>
+              </div>
+              <div class="form-group payroll-field-wide">
+                <label class="form-label required" for="payroll-staff-reason">Reason for change</label>
+                <textarea id="payroll-staff-reason" class="form-control" rows="2" maxlength="300" required placeholder="e.g. Approved employee deduction request"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <span id="payroll-staff-save-status" class="payroll-save-status" aria-live="polite"></span>
+            <button id="payroll-staff-modal-cancel" class="btn btn-outline" type="button">Cancel</button>
+            <button id="payroll-staff-save" class="btn btn-primary" type="submit">Schedule changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="../js/api.js"></script>
+    <script src="../js/settings-payroll.js?v=20260906a"></script>
     <script>
       const user = requireRole("admin");
       if (!user) throw new Error("redirect");
@@ -636,6 +789,7 @@
         if (panelId === 'attendance-settings') loadSettingsOvertime();
         if (panelId === 'announcement-settings') loadSettingsAnnouncements();
         if (panelId === 'audit-settings') loadSettingsAudit();
+        if (panelId === 'payroll-tax-settings') window.payrollSettingsPage?.load();
       }
 
       function settingsEscape(value) { return escapeUi(String(value ?? '')); }
@@ -1185,24 +1339,6 @@
         }
       }
 
-      async function loadPayrollTaxSettings() {
-        try {
-          const rules = await api.get('/payroll/settings/rules');
-          const ssnit = rules.find(rule => rule.code === 'GH-SSNIT');
-          const paye = rules.find(rule => rule.code === 'GH-PAYE');
-          if (ssnit) { document.getElementById('payroll-ssnit-employee').value = ssnit.employee_rate || ''; document.getElementById('payroll-ssnit-employer').value = ssnit.employer_rate || ''; document.getElementById('payroll-ssnit-ceiling').value = ssnit.maximum_amount || ''; }
-          if (paye) document.getElementById('payroll-paye-brackets').value = JSON.stringify(paye.tax_brackets || [], null, 2);
-          document.getElementById('payroll-tax-effective').value = new Date().toISOString().slice(0, 10);
-          document.getElementById('payroll-tax-current').innerHTML = rules.map(rule => `<div class="settings-editor-row"><div><strong>${escapeUi(rule.name)}</strong><span>Effective ${escapeUi(fmt.date(rule.effective_from))} · ${escapeUi(rule.version)}</span></div></div>`).join('');
-        } catch (error) { document.getElementById('payroll-tax-current').textContent = error.message || 'Could not load payroll tax settings.'; }
-      }
-      async function saveSsnitSettings() {
-        try { await api.post('/payroll/settings/rules/GH-SSNIT', { effective_from: document.getElementById('payroll-tax-effective').value, employee_rate: document.getElementById('payroll-ssnit-employee').value, employer_rate: document.getElementById('payroll-ssnit-employer').value, maximum_amount: document.getElementById('payroll-ssnit-ceiling').value }); toast('SSNIT rule scheduled', 'success'); loadPayrollTaxSettings(); } catch (error) { toast(error.message || 'Could not save SSNIT rule', 'error'); }
-      }
-      async function savePayeSettings() {
-        try { const tax_brackets = JSON.parse(document.getElementById('payroll-paye-brackets').value); await api.post('/payroll/settings/rules/GH-PAYE', { effective_from: document.getElementById('payroll-tax-effective').value, tax_brackets }); toast('PAYE rule scheduled', 'success'); loadPayrollTaxSettings(); } catch (error) { toast(error.message || 'Enter valid PAYE bracket JSON', 'error'); }
-      }
-      document.querySelector('[data-panel="payroll-tax-settings"]')?.addEventListener('click', () => setTimeout(loadPayrollTaxSettings, 0));
       verifyReturnedPayment();
     </script>
   </body>

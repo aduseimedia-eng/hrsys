@@ -3,6 +3,14 @@ const db = require('../config/db');
 const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
 const { currencyFractionDigits, normalizeCurrency } = require('../config/currencies');
 const { notifyEmployee } = require('../services/push.service');
+const {
+  PayrollRuleValidationError,
+  canonicalDate,
+  decorateRuleHistory,
+  nextCompanyRuleVersion,
+  previousDate,
+  validateRuleSettings
+} = require('../services/payroll-rule-settings.service');
 
 // Admin: configuration required before versioned payroll runs are introduced.
 exports.getGlobalSetup = async (req, res) => {
@@ -41,40 +49,184 @@ exports.getGlobalSetup = async (req, res) => {
 };
 
 exports.getRuleSettings = async (req, res) => {
+  let asOf;
+  try {
+    asOf = req.query?.as_of
+      ? canonicalDate(req.query.as_of, { label: 'As of' })
+      : new Date().toISOString().slice(0, 10);
+  } catch (error) {
+    if (error instanceof PayrollRuleValidationError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
+  const countryCode = String(req.query?.country_code || 'GH').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(countryCode)) return res.status(400).json({ error: 'Use a valid two-letter country code' });
   try {
     const { rows } = await db.query(
-      `SELECT sr.code, sr.name, srv.version, srv.effective_from, srv.effective_to, srv.employee_rate, srv.employer_rate, srv.maximum_amount,
-        COALESCE(json_agg(json_build_object('lower_bound',tb.lower_bound,'upper_bound',tb.upper_bound,'rate',tb.rate) ORDER BY tb.lower_bound) FILTER (WHERE tb.id IS NOT NULL),'[]') AS tax_brackets
-       FROM statutory_rules sr JOIN countries c ON c.id=sr.country_id JOIN statutory_rule_versions srv ON srv.statutory_rule_id=sr.id
-       LEFT JOIN tax_brackets tb ON tb.statutory_rule_version_id=srv.id
-       WHERE c.iso_code='GH' AND srv.active=true AND (srv.company_id IS NULL OR srv.company_id=$1)
-       GROUP BY sr.code,sr.name,srv.id ORDER BY (srv.company_id IS NOT NULL) DESC,srv.effective_from DESC`, [req.user.company_id]
+      `SELECT sr.id AS statutory_rule_id, sr.code, sr.name, sr.category, sr.description,
+              srv.id AS statutory_rule_version_id, srv.company_id, srv.version,
+              srv.calculation_type, srv.calculation_basis, srv.employee_rate,
+              srv.employer_rate, srv.fixed_amount, srv.minimum_amount, srv.maximum_amount,
+              srv.currency_code, to_char(srv.effective_from, 'YYYY-MM-DD') AS effective_from,
+              to_char(srv.effective_to, 'YYYY-MM-DD') AS effective_to,
+              srv.priority, srv.active, srv.change_reason, srv.created_by, srv.created_at,
+              concat_ws(' ', creator.first_name, creator.last_name) AS created_by_name,
+              brackets.tax_brackets
+       FROM statutory_rules sr
+       JOIN countries c ON c.id=sr.country_id
+       JOIN statutory_rule_versions srv ON srv.statutory_rule_id=sr.id
+       JOIN LATERAL (
+         SELECT COALESCE(json_agg(json_build_object('id', tb.id, 'lower_bound', tb.lower_bound,
+           'upper_bound', tb.upper_bound, 'rate', tb.rate, 'fixed_amount', tb.fixed_amount)
+           ORDER BY tb.lower_bound), '[]'::json) AS tax_brackets
+         FROM tax_brackets tb
+         WHERE tb.statutory_rule_version_id=srv.id
+       ) brackets ON true
+       LEFT JOIN employees creator ON creator.id=srv.created_by AND creator.company_id=srv.company_id
+       WHERE c.iso_code=$2 AND (srv.company_id IS NULL OR srv.company_id=$1)
+       ORDER BY sr.code, srv.effective_from DESC, srv.id DESC`,
+      [req.user.company_id, countryCode]
     );
-    res.json(rows);
+    res.json(decorateRuleHistory(rows, asOf));
   } catch (error) { res.status(500).json({ error: 'Could not load payroll tax settings' }); }
 };
 
 exports.saveRuleSettings = async (req, res) => {
-  const { code } = req.params;
-  const { effective_from: effectiveFrom, employee_rate: employeeRate, employer_rate: employerRate, maximum_amount: maximumAmount, tax_brackets: brackets } = req.body;
-  if (!['GH-SSNIT', 'GH-PAYE'].includes(code) || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom || '')) return res.status(400).json({ error: 'Provide a supported Ghana rule and effective date' });
-  if (code === 'GH-PAYE' && (!Array.isArray(brackets) || !brackets.length)) return res.status(400).json({ error: 'Provide at least one PAYE tax bracket' });
-  if (code === 'GH-SSNIT' && [employeeRate, employerRate, maximumAmount].some(value => !Number.isFinite(Number(value)) || Number(value) < 0)) return res.status(400).json({ error: 'Provide non-negative SSNIT rates and ceiling' });
-  if (code === 'GH-PAYE' && brackets.some(bracket => !Number.isFinite(Number(bracket.lower_bound)) || !Number.isFinite(Number(bracket.rate)) || Number(bracket.rate) < 0 || (bracket.upper_bound != null && bracket.upper_bound !== '' && !Number.isFinite(Number(bracket.upper_bound))))) return res.status(400).json({ error: 'Each PAYE bracket needs valid bounds and a non-negative rate' });
+  let settings;
+  try {
+    settings = validateRuleSettings(req.params.code, req.body);
+  } catch (error) {
+    if (error instanceof PayrollRuleValidationError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
   let client;
   try {
-    client = await db.getClient(); await client.query('BEGIN');
-    const rule = await client.query(`SELECT sr.id FROM statutory_rules sr JOIN countries c ON c.id=sr.country_id WHERE sr.code=$1 AND c.iso_code='GH'`, [code]);
-    if (!rule.rows.length) throw new Error('Payroll rule not found');
-    const version = `${code}-C${req.user.company_id}-${effectiveFrom}`;
-    const saved = await client.query(
-      `INSERT INTO statutory_rule_versions(statutory_rule_id,company_id,version,calculation_type,calculation_basis,employee_rate,employer_rate,maximum_amount,currency_code,effective_from,priority)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,'GHS',$9,$10) RETURNING id`,
-      [rule.rows[0].id, req.user.company_id, version, code === 'GH-PAYE' ? 'progressive' : 'percentage_with_ceiling', code === 'GH-PAYE' ? 'monthly_income' : 'pensionable_pay', code === 'GH-PAYE' ? null : Number(employeeRate), code === 'GH-PAYE' ? null : Number(employerRate), code === 'GH-PAYE' ? null : Number(maximumAmount), effectiveFrom, code === 'GH-PAYE' ? 20 : 10]
+    client = await db.getClient();
+    await client.query('BEGIN');
+    const rule = await client.query(
+      `SELECT sr.id, sr.code, sr.name, sr.category, c.currency_code
+       FROM statutory_rules sr
+       JOIN countries c ON c.id=sr.country_id
+       WHERE sr.code=$1 AND c.iso_code='GH'`,
+      [settings.code]
     );
-    for (const bracket of brackets || []) await client.query(`INSERT INTO tax_brackets(statutory_rule_version_id,lower_bound,upper_bound,rate) VALUES($1,$2,$3,$4)`, [saved.rows[0].id, Number(bracket.lower_bound || 0), bracket.upper_bound === null || bracket.upper_bound === '' ? null : Number(bracket.upper_bound), Number(bracket.rate || 0)]);
-    await client.query('COMMIT'); res.status(201).json({ id: saved.rows[0].id, version });
-  } catch (error) { if (client) await client.query('ROLLBACK').catch(() => {}); console.error(error); res.status(500).json({ error: 'Could not save payroll tax settings' }); } finally { if (client) client.release(); }
+    if (!rule.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Payroll rule not found' });
+    }
+    const statutoryRule = rule.rows[0];
+    await client.query(
+      'SELECT pg_advisory_xact_lock($1::integer, $2::integer)',
+      [statutoryRule.id, req.user.company_id]
+    );
+    const history = await client.query(
+      `SELECT id, version, active, to_char(effective_from, 'YYYY-MM-DD') AS effective_from,
+              to_char(effective_to, 'YYYY-MM-DD') AS effective_to
+       FROM statutory_rule_versions
+       WHERE statutory_rule_id=$1 AND company_id=$2
+       ORDER BY effective_from, id
+       FOR UPDATE`,
+      [statutoryRule.id, req.user.company_id]
+    );
+    if (history.rows.some((version) => version.active !== false && version.effective_from === settings.effectiveFrom)) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `A ${settings.code} override already starts on ${settings.effectiveFrom}` });
+    }
+
+    const activeHistory = history.rows.filter((version) => version.active !== false);
+    const previous = activeHistory.filter((version) => version.effective_from < settings.effectiveFrom).at(-1);
+    const next = activeHistory.find((version) => version.effective_from > settings.effectiveFrom);
+    let effectiveTo = settings.effectiveTo;
+    if (next && effectiveTo && effectiveTo >= next.effective_from) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `The requested range overlaps the override starting on ${next.effective_from}` });
+    }
+    if (next && !effectiveTo) effectiveTo = previousDate(next.effective_from);
+    if (previous && (!previous.effective_to || previous.effective_to >= settings.effectiveFrom)) {
+      await client.query(
+        `UPDATE statutory_rule_versions
+         SET effective_to=$1, updated_at=NOW()
+         WHERE id=$2 AND company_id=$3`,
+        [previousDate(settings.effectiveFrom), previous.id, req.user.company_id]
+      );
+    }
+
+    const version = nextCompanyRuleVersion(
+      settings.code,
+      req.user.company_id,
+      settings.effectiveFrom,
+      history.rows
+    );
+    const saved = await client.query(
+      `INSERT INTO statutory_rule_versions(
+         statutory_rule_id, company_id, version, calculation_type, calculation_basis,
+         employee_rate, employer_rate, maximum_amount, currency_code,
+         effective_from, effective_to, priority, created_by, change_reason
+       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       RETURNING id, to_char(effective_from, 'YYYY-MM-DD') AS effective_from,
+         to_char(effective_to, 'YYYY-MM-DD') AS effective_to`,
+      [
+        statutoryRule.id,
+        req.user.company_id,
+        version,
+        settings.code === 'GH-PAYE' ? 'progressive' : 'percentage_with_ceiling',
+        settings.code === 'GH-PAYE' ? 'monthly_income' : 'pensionable_pay',
+        settings.employeeRate,
+        settings.employerRate,
+        settings.maximumAmount,
+        statutoryRule.currency_code,
+        settings.effectiveFrom,
+        effectiveTo,
+        settings.code === 'GH-PAYE' ? 20 : 10,
+        req.user.id,
+        settings.changeReason
+      ]
+    );
+    for (const bracket of settings.taxBrackets) {
+      await client.query(
+        `INSERT INTO tax_brackets(statutory_rule_version_id, lower_bound, upper_bound, rate, fixed_amount)
+         VALUES($1,$2,$3,$4,$5)`,
+        [saved.rows[0].id, bracket.lower_bound, bracket.upper_bound, bracket.rate, bracket.fixed_amount]
+      );
+    }
+    await client.query(
+      `INSERT INTO audit_logs(company_id, actor_id, action, entity_type, entity_id, summary)
+       VALUES($1,$2,'create','payroll_rule_version',$3,$4)`,
+      [
+        req.user.company_id,
+        req.user.id,
+        saved.rows[0].id,
+        `${settings.code} override effective ${settings.effectiveFrom}${effectiveTo ? ` to ${effectiveTo}` : ''}: ${settings.changeReason}`
+      ]
+    );
+    await client.query('COMMIT');
+    const today = new Date().toISOString().slice(0, 10);
+    const status = settings.effectiveFrom > today
+      ? 'scheduled'
+      : effectiveTo && effectiveTo < today ? 'expired' : 'current';
+    res.status(201).json({
+      id: saved.rows[0].id,
+      statutory_rule_id: statutoryRule.id,
+      statutory_rule_version_id: saved.rows[0].id,
+      company_id: req.user.company_id,
+      code: statutoryRule.code,
+      category: statutoryRule.category,
+      version,
+      source: 'company',
+      status,
+      effective_from: saved.rows[0].effective_from,
+      effective_to: saved.rows[0].effective_to,
+      change_reason: settings.changeReason
+    });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    if (error.code === '23505') return res.status(409).json({ error: `A ${settings.code} override already exists for that effective date` });
+    if (error.code === '23P01') return res.status(409).json({ error: 'The payroll rule effective range overlaps an existing company override' });
+    if (error.code === '23514' || error instanceof PayrollRuleValidationError) return res.status(400).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Could not save payroll tax settings' });
+  } finally {
+    if (client) client.release();
+  }
 };
 
 // ─── Get my payslips ──────────────────────────────────────────
