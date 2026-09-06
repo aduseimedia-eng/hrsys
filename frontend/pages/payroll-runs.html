@@ -7,11 +7,43 @@
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/workspace.css">
   <style>
+    .payroll-runs-page {
+      --border: #e3e4e7;
+      --border-dark: #cfd1d5;
+    }
+
+    .payroll-runs-page .table-container {
+      border-color: #e3e4e7;
+    }
+
+    .payroll-runs-page .btn-outline {
+      border-color: #cfd1d5;
+    }
+
+    .payroll-runs-page .btn-outline:hover {
+      border-color: #b8bbc1;
+      background: #f7f7f8;
+      color: var(--text-primary);
+    }
+
+    .payroll-runs-page .form-control,
+    .payroll-runs-page .modal {
+      border-color: #e3e4e7;
+    }
+
+    .payroll-runs-page .form-control:focus {
+      border-color: #cfd1d5;
+    }
+
+    .payroll-runs-page .modal-header::after {
+      display: none;
+    }
+
     .run-dialog-note {
       padding: 12px;
-      border: 1px solid var(--navy-100);
+      border: 1px solid #e3e4e7;
       border-radius: 4px;
-      background: var(--navy-50);
+      background: #fafafa;
       color: var(--text-secondary);
       font-size: .84rem;
       line-height: 1.45;
@@ -73,7 +105,7 @@
     }
   </style>
 </head>
-<body>
+<body class="payroll-runs-page">
 <div class="app-shell">
   <aside class="sidebar" id="sidebar"></aside>
   <header class="topbar"><div class="topbar-title">Payroll Runs</div></header>

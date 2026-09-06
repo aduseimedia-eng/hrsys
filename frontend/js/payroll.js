@@ -503,17 +503,17 @@ function payrollPrintStyles() {
     @page{size:A4;margin:12mm}
     *{box-sizing:border-box}
     body{margin:0;padding:24px;background:#fff;color:#202a3d;font-family:Inter,Arial,sans-serif}
-    .payslip-detail{max-width:760px;margin:0 auto;padding:30px;border:1px solid #dfe6f2;border-radius:5px;background:#fff}
-    .payslip-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:26px;padding-bottom:20px;border-bottom:2px solid #172442}
+    .payslip-detail{max-width:760px;margin:0 auto;padding:30px;border:1px solid #e3e4e7;border-radius:5px;background:#fff}
+    .payslip-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:26px;padding-bottom:20px;border-bottom:2px solid #cfd1d5}
     .company-logo{display:flex;align-items:center;gap:11px}
     .company-logo .mark{display:grid;width:42px;height:42px;place-items:center;border-radius:4px;background:#172442;color:#fff;font-weight:800}
     .detail-section{margin-bottom:22px}
     .detail-section h4{margin:0 0 8px;color:#3977ee;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
-    .detail-row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #e7edf5;color:#647189;font-size:12px}
+    .detail-row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #ececef;color:#647189;font-size:12px}
     .detail-row span:last-child{color:#202a3d;font-weight:600;text-align:right}
-    .detail-row.total{margin-top:3px;border-top:1px solid #c6d4ec;border-bottom:0;color:#202a3d;font-weight:700}
+    .detail-row.total{margin-top:3px;border-top:1px solid #cfd1d5;border-bottom:0;color:#202a3d;font-weight:700}
     .positive{color:#227356!important}.negative{color:#b5475d!important}
-    .net-salary-box{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:10px;padding:18px 20px;border:1px solid #bedfd3;border-radius:4px;background:#edf9f4}
+    .net-salary-box{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:10px;padding:18px 20px;border:1px solid #e3e4e7;border-radius:4px;background:#edf9f4}
     .net-amount{color:#172442;font-size:26px;font-weight:800;letter-spacing:-.04em}
     .badge{display:inline-flex;padding:3px 8px;border-radius:3px;background:#e8f0ff;color:#2865d9;font-size:10px;font-weight:700;text-transform:capitalize}
     @media print{body{padding:0}.payslip-detail{border:0;padding:0}}
