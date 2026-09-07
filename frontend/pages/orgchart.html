@@ -408,6 +408,8 @@
       }
 
       // Build recursive tree HTML
+      const orgSafe = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+
       function buildNodeHtml(node) {
         const roleClass =
           node.role === "admin"
@@ -419,11 +421,11 @@
         const childrenHtml = reports
           ? `<ul class="org-children">${node.children.map((child) => buildNodeHtml(child)).join("")}</ul>`
           : "";
-        return `<li><button type="button" class="org-person-card ${roleClass}" onclick="showEmpModal(${JSON.stringify(node).replace(/"/g, "&quot;")})">
-    <div class="org-person-top">${node.photo_url ? `<img src="${assetUrl(node.photo_url)}" class="avatar avatar-md" alt="">` : `<div class="avatar avatar-md">${fmt.initials(node.first_name, node.last_name)}</div>`}
-      <div><div class="node-name">${node.first_name} ${node.last_name}</div><div class="node-title">${node.job_title || node.role}</div></div>
+        return `<li><button type="button" class="org-person-card ${roleClass}" data-org-id="${orgSafe(node.id)}">
+    <div class="org-person-top">${node.photo_url ? `<img src="${orgSafe(assetUrl(node.photo_url))}" class="avatar avatar-md" alt="">` : `<div class="avatar avatar-md">${orgSafe(fmt.initials(node.first_name, node.last_name))}</div>`}
+      <div><div class="node-name">${orgSafe(node.first_name)} ${orgSafe(node.last_name)}</div><div class="node-title">${orgSafe(node.job_title || node.role)}</div></div>
     </div>
-    <div class="node-meta"><span class="node-dept">${node.department_name || "Unassigned"}</span>${reports ? `<span class="node-reports">${reports} report${reports === 1 ? "" : "s"}</span>` : '<span class="node-reports">Individual</span>'}</div>
+    <div class="node-meta"><span class="node-dept">${orgSafe(node.department_name || "Unassigned")}</span>${reports ? `<span class="node-reports">${reports} report${reports === 1 ? "" : "s"}</span>` : '<span class="node-reports">Individual</span>'}</div>
   </button>${childrenHtml}</li>`;
       }
 
@@ -463,6 +465,12 @@
           return;
         }
         container.innerHTML = `<ul class="org-root-list">${visibleRoots.map((node) => buildNodeHtml(node)).join("")}</ul>`;
+        container.querySelectorAll("[data-org-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const node = findOrgNode(orgTree, button.dataset.orgId);
+            if (node) showEmpModal(node);
+          });
+        });
       }
 
       function filterOrgChart() {
@@ -476,7 +484,7 @@
           .filter((person) => (person.children || []).length)
           .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
         managerFilter.innerHTML = `<option value="">All reporting lines</option>${managers
-          .map((manager) => `<option value="${manager.id}">${manager.first_name} ${manager.last_name}${manager.job_title ? ` — ${manager.job_title}` : ""}</option>`)
+          .map((manager) => `<option value="${orgSafe(manager.id)}">${orgSafe(manager.first_name)} ${orgSafe(manager.last_name)}${manager.job_title ? ` — ${orgSafe(manager.job_title)}` : ""}</option>`)
           .join("")}`;
         if (managers.some((manager) => String(manager.id) === selected)) managerFilter.value = selected;
       }
@@ -504,17 +512,17 @@
     <div class="dept-card">
       <div class="dept-header">
         <div>
-          <h3>${d.name}</h3>
-          <div class="emp-count">${d.employee_count} members</div>
+          <h3>${orgSafe(d.name)}</h3>
+          <div class="emp-count">${orgSafe(d.employee_count)} members</div>
         </div>
         ${
           d.manager_name
             ? `
           <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
-            ${initialsAvatar(d.manager_name?.split(" ")[0] || "?", d.manager_name?.split(" ")[1] || "", "sm")}
+            <div class="avatar avatar-sm">${orgSafe(fmt.initials(d.manager_name?.split(" ")[0] || "?", d.manager_name?.split(" ")[1] || ""))}</div>
             <div>
-              <div style="color:#fff;font-size:.82rem;font-weight:500">${d.manager_name}</div>
-              <div style="color:rgba(255,255,255,.4);font-size:.75rem">${d.manager_title || "Manager"}</div>
+              <div style="color:#fff;font-size:.82rem;font-weight:500">${orgSafe(d.manager_name)}</div>
+              <div style="color:rgba(255,255,255,.4);font-size:.75rem">${orgSafe(d.manager_title || "Manager")}</div>
             </div>
           </div>`
             : ""
@@ -525,10 +533,10 @@
           .map(
             (m) => `
           <div class="member-chip">
-            ${initialsAvatar(m.name?.split(" ")[0] || "?", m.name?.split(" ")[1] || "", "sm")}
+            <div class="avatar avatar-sm">${orgSafe(fmt.initials(m.name?.split(" ")[0] || "?", m.name?.split(" ")[1] || ""))}</div>
             <div>
-              <div style="font-weight:500">${m.name}</div>
-              <div style="font-size:.72rem;color:var(--text-muted)">${m.job_title || "—"}</div>
+              <div style="font-weight:500">${orgSafe(m.name)}</div>
+              <div style="font-size:.72rem;color:var(--text-muted)">${orgSafe(m.job_title || "—")}</div>
             </div>
           </div>`,
           )
@@ -545,30 +553,30 @@
           .filter((employee) => employee.id !== node.id)
           .map(
             (employee) =>
-              `<option value="${employee.id}" ${Number(node.manager_id) === Number(employee.id) ? "selected" : ""}>${employee.first_name} ${employee.last_name}</option>`,
+              `<option value="${orgSafe(employee.id)}" ${Number(node.manager_id) === Number(employee.id) ? "selected" : ""}>${orgSafe(employee.first_name)} ${orgSafe(employee.last_name)}</option>`,
           )
           .join("");
         const departmentOptions = orgDepartments
           .map(
             (department) =>
-              `<option value="${department.id}" ${Number(node.department_id) === Number(department.id) ? "selected" : ""}>${department.name}</option>`,
+              `<option value="${orgSafe(department.id)}" ${Number(node.department_id) === Number(department.id) ? "selected" : ""}>${orgSafe(department.name)}</option>`,
           )
           .join("");
         document.getElementById("emp-modal-body").innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
       ${
         node.photo_url
-          ? `<img src="${assetUrl(node.photo_url)}" class="avatar avatar-xl" alt="">`
-          : `<div class="avatar avatar-xl">${fmt.initials(node.first_name, node.last_name)}</div>`
+          ? `<img src="${orgSafe(assetUrl(node.photo_url))}" class="avatar avatar-xl" alt="">`
+          : `<div class="avatar avatar-xl">${orgSafe(fmt.initials(node.first_name, node.last_name))}</div>`
       }
       <div>
-        <h3>${node.first_name} ${node.last_name}</h3>
-        <p>${node.job_title || node.role}</p>
+        <h3>${orgSafe(node.first_name)} ${orgSafe(node.last_name)}</h3>
+        <p>${orgSafe(node.job_title || node.role)}</p>
         ${fmt.statusBadge(node.role)}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
-      ${node.department_name ? `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span class="text-muted">Department</span><span>${node.department_name}</span></div>` : ""}
+      ${node.department_name ? `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span class="text-muted">Department</span><span>${orgSafe(node.department_name)}</span></div>` : ""}
     </div>
     ${
       user.role === "admin"
@@ -596,7 +604,7 @@
     }`;
         document.getElementById("emp-modal-profile-btn").onclick = () => {
           window.location.href = appUrl(
-            `/pages/employee-profile.html?id=${node.id}`,
+            `/pages/employee-profile.html?id=${encodeURIComponent(node.id)}`,
           );
         };
         const footer = document.querySelector("#emp-modal .modal-footer");
