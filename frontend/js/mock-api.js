@@ -6,6 +6,12 @@
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const today = () => new Date().toISOString().slice(0, 10);
   const dateOnly = (date) => new Date(date).toISOString().slice(0, 10);
+  const validDateOnly = (value) => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? value : null;
+  };
   const addDays = (days) => dateOnly(Date.now() + days * MS_DAY);
   const minutesAgo = (minutes) => new Date(Date.now() - minutes * 60000).toISOString();
   const nextId = (items) => items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
@@ -1355,7 +1361,11 @@
       requireRole(user, ['admin']);
       if (!body?.title?.trim()) throw new Error('A review title is required');
       if (!['supervisors', 'department_heads'].includes(body.target_type)) throw new Error('Choose supervisors or department heads');
-      const row = { id: nextId(db.performance_review_cycles), title: body.title.trim(), period: body.period?.trim() || '', target_type: body.target_type, is_anonymous: Boolean(body.is_anonymous), is_open: true, closes_at: body.closes_at || null, created_by_id: user.id, created_at: new Date().toISOString() };
+      const closeDate = body.closes_at || null;
+      if (closeDate && !validDateOnly(closeDate)) throw new Error('Choose a valid close date');
+      if (closeDate && closeDate < today()) throw new Error('Close date cannot be in the past');
+      if (body.title.trim().length > 160 || (body.period || '').trim().length > 40) throw new Error('Review title or period is too long');
+      const row = { id: nextId(db.performance_review_cycles), title: body.title.trim(), period: body.period?.trim() || '', target_type: body.target_type, is_anonymous: body.is_anonymous === true || body.is_anonymous === 'true' || body.is_anonymous === 1 || body.is_anonymous === '1', is_open: true, closes_at: closeDate, created_by_id: user.id, created_at: new Date().toISOString() };
       db.performance_review_cycles.push(row); saveDb(db); return clone(row);
     }
 

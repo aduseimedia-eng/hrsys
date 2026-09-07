@@ -18,6 +18,8 @@ const { calculateMonthlyPayroll } = require('../config/ghana-payroll');
 const { calculatePayroll } = require('../services/payroll-engine');
 const { currencyFractionDigits, roundCurrency } = require('../config/currencies');
 const messagesController = require('../controllers/messages.controller');
+const performanceController = require('../controllers/performance.controller');
+const compensationController = require('../controllers/compensation.controller');
 const rbac = require('../middleware/rbac');
 const originalGetClient = db.getClient;
 
@@ -181,6 +183,139 @@ test('payroll compliance amounts retain the selected currency precision', () => 
   assert.equal(result.ssnitEmployer, 160.494);
   assert.equal(calculateMonthlyPayroll({ basicSalary: 1234.567, fractionDigits: 0 }).ssnitEmployee, 68);
   assert.equal(calculateMonthlyPayroll({ basicSalary: 1234.567, fractionDigits: 4 }).ssnitEmployee, 67.9012);
+});
+
+test('salary statutory exemptions remove only the selected statutory deductions', () => {
+  const res = response();
+  compensationController.preview({ body: { basic_salary: 5000, ssnit_exempt: true, paye_exempt: true } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.ssnitEmployee, 0);
+  assert.equal(res.body.ssnitEmployer, 0);
+  assert.equal(res.body.payeTax, 0);
+  assert.equal(res.body.net, 5000);
+});
+
+test('feedback cycles reject invalid and past close dates before querying', async () => {
+  const calls = mockQueries([]);
+  const invalid = response();
+  await performanceController.createCycle({
+    user: { id: 9, company_id: 4 },
+    body: { title: 'Quarterly upward feedback', target_type: 'supervisors', closes_at: '2026-02-31' }
+  }, invalid);
+  assert.equal(invalid.statusCode, 400);
+  assert.match(invalid.body.error, /valid close date/i);
+
+  const past = response();
+  await performanceController.createCycle({
+    user: { id: 9, company_id: 4 },
+    body: { title: 'Quarterly upward feedback', target_type: 'supervisors', closes_at: '2020-01-01' }
+  }, past);
+  assert.equal(past.statusCode, 400);
+  assert.match(past.body.error, /cannot be in the past/i);
+  assert.equal(calls.length, 0);
+});
+
+test('feedback cycles trim stored labels and parse a false anonymity value strictly', async () => {
+  const futureDate = new Date(Date.now() + (2 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+  const calls = mockQueries([{ rows: [{ id: 7, title: 'Quarterly upward feedback', is_anonymous: false }] }]);
+  const res = response();
+
+  await performanceController.createCycle({
+    user: { id: 9, company_id: 4 },
+    body: {
+      title: '  Quarterly upward feedback  ',
+      period: '  Q4 2026  ',
+      target_type: 'supervisors',
+      closes_at: futureDate,
+      is_anonymous: 'false'
+    }
+  }, res);
+
+  assert.equal(res.statusCode, 201);
+  assert.deepEqual(calls[0].params, [4, 'Quarterly upward feedback', 'Q4 2026', 'supervisors', false, futureDate, 9]);
+});
+
+test('feedback cycle listings count only responses belonging to the cycle company', async () => {
+  const calls = mockQueries([{ rows: [{ id: 7, response_count: 2 }] }]);
+  const res = response();
+
+  await performanceController.listCycles({ user: { company_id: 4 } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body[0].response_count, 2);
+  assert.match(calls[0].text, /r\.cycle_id=c\.id AND r\.company_id=c\.company_id/i);
+  assert.deepEqual(calls[0].params, [4]);
+});
+
+test('open feedback cycles resolve a same-company active supervisor name before submission', async () => {
+  const calls = mockQueries([
+    { rows: [{ id: 7, title: 'Quarterly upward feedback', target_type: 'supervisors', subject_employee_id: null, subject_name: null, subject_job_title: null }] },
+    { rows: [{ manager_id: 12, manager_first_name: 'Ama', manager_last_name: 'Mensah', manager_job_title: 'Engineering Manager', department_head_id: null }] }
+  ]);
+  const res = response();
+
+  await performanceController.getMyFeedbackCycles({ user: { id: 8, company_id: 4 } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.length, 1);
+  assert.equal(res.body[0].subject_employee_id, 12);
+  assert.equal(res.body[0].subject_name, 'Ama Mensah');
+  assert.equal(res.body[0].subject_job_title, 'Engineering Manager');
+  assert.match(calls[0].text, /r\.cycle_id=c\.id AND r\.company_id=c\.company_id AND r\.reviewer_id=\$2/i);
+  assert.match(calls[0].text, /s\.id=r\.subject_employee_id AND s\.company_id=c\.company_id/i);
+  assert.match(calls[1].text, /d\.id=e\.department_id AND d\.company_id=e\.company_id/i);
+  assert.match(calls[1].text, /m\.company_id=e\.company_id AND m\.is_active=true/i);
+});
+
+test('feedback submissions resolve an active subject in the reviewer company', async () => {
+  const calls = mockQueries([
+    { rows: [{ id: 7, target_type: 'supervisors' }] },
+    { rows: [{ subject_employee_id: 12 }] },
+    { rows: [{ id: 30, cycle_id: 7, subject_employee_id: 12, rating: 5, comments: 'Clear direction', submitted_at: '2026-09-03T00:00:00Z' }] }
+  ]);
+  const res = response();
+  await performanceController.submitFeedbackResponse({
+    user: { id: 8, company_id: 4 }, params: { id: '7' }, body: { rating: 5, comments: 'Clear direction' }
+  }, res);
+
+  assert.equal(res.statusCode, 201);
+  assert.equal(res.body.subject_employee_id, 12);
+  assert.match(calls[1].text, /d\.id=e\.department_id AND d\.company_id=e\.company_id/i);
+  assert.match(calls[1].text, /s\.company_id=e\.company_id AND s\.is_active=true/i);
+  assert.deepEqual(calls[2].params, ['7', 4, 8, 12, 5, 'Clear direction']);
+});
+
+test('feedback duplicate submissions return a conflict instead of an internal error', async () => {
+  const duplicate = Object.assign(new Error('duplicate response'), { code: '23505' });
+  mockQueries([
+    { rows: [{ id: 7, target_type: 'supervisors' }] },
+    { rows: [{ subject_employee_id: 12 }] },
+    duplicate
+  ]);
+  const res = response();
+  await performanceController.submitFeedbackResponse({
+    user: { id: 8, company_id: 4 }, params: { id: '7' }, body: { rating: 4 }
+  }, res);
+
+  assert.equal(res.statusCode, 409);
+  assert.match(res.body.error, /already submitted/i);
+});
+
+test('feedback response results join cycles and employees within the response company', async () => {
+  const calls = mockQueries([{ rows: [{ id: 30, subject_employee_id: 12, subject_name: 'Ama Mensah', reviewer_name: null, is_anonymous: true }] }]);
+  const res = response();
+
+  await performanceController.getCycleResponses({
+    user: { company_id: 4 }, params: { id: '7' }
+  }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body[0].subject_name, 'Ama Mensah');
+  assert.match(calls[0].text, /c\.id=r\.cycle_id AND c\.company_id=r\.company_id/i);
+  assert.match(calls[0].text, /s\.id=r\.subject_employee_id AND s\.company_id=r\.company_id/i);
+  assert.match(calls[0].text, /e\.id=r\.reviewer_id AND e\.company_id=r\.company_id/i);
+  assert.deepEqual(calls[0].params, ['7', 4]);
 });
 
 test('login returns a token and never exposes the password hash', async () => {
