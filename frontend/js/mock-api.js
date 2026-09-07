@@ -2,6 +2,21 @@
   const STORAGE_KEY = 'hr_mock_db_v2';
   const PASSWORD = 'Password123!';
   const MS_DAY = 86400000;
+  const DEFAULT_LEAVE_SETTINGS = Object.freeze({
+    annual_entitlement_days: 20,
+    count_weekends: true,
+    count_public_holidays: true,
+    max_consecutive_days: null,
+    minimum_notice_days: 0,
+    updated_at: null
+  });
+  const DEFAULT_OVERTIME_SETTINGS = Object.freeze({
+    hourly_rate: 0,
+    late_clock_in_after: '09:00:00',
+    late_clock_out_after: '17:30:00',
+    updated_at: null
+  });
+  const COMPANY_CALENDAR_CATEGORIES = Object.freeze(['event', 'meeting', 'payday', 'shutdown', 'holiday']);
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const today = () => new Date().toISOString().slice(0, 10);
@@ -17,6 +32,60 @@
   const nextId = (items) => items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
   const monthNow = () => new Date().getMonth() + 1;
   const yearNow = () => new Date().getFullYear();
+
+  function isoDate(year, month, day) {
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  function easterSunday(year) {
+    const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+    const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    return new Date(Date.UTC(year, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1));
+  }
+
+  function addUtcDays(date, amount) {
+    const copy = new Date(date);
+    copy.setUTCDate(copy.getUTCDate() + amount);
+    return isoDate(copy.getUTCFullYear(), copy.getUTCMonth() + 1, copy.getUTCDate());
+  }
+
+  function firstFridayInDecember(year) {
+    const date = new Date(Date.UTC(year, 11, 1));
+    date.setUTCDate(1 + ((5 - date.getUTCDay() + 7) % 7));
+    return isoDate(year, 12, date.getUTCDate());
+  }
+
+  function ghanaPublicHolidays(year) {
+    if (year === 2026) {
+      return [
+        ['New Year’s Day', '2026-01-01'], ['Constitution Day', '2026-01-07'],
+        ['Independence Day', '2026-03-06'], ['Eid-Ul-Fitr', '2026-03-20'],
+        ['Shaqq Day', '2026-03-21'], ['Day in lieu of Shaqq Day', '2026-03-23'],
+        ['Good Friday', '2026-04-03'], ['Easter Monday', '2026-04-06'],
+        ['Labour Day (Workers’ Day)', '2026-05-01'], ['Republic Day', '2026-07-03'],
+        ['Founder’s Day', '2026-09-21'], ['Farmer’s Day', '2026-12-04'],
+        ['Christmas Day', '2026-12-25'], ['Boxing Day holiday', '2026-12-28']
+      ].map(([name, date]) => ({ name, date }));
+    }
+
+    const easter = easterSunday(year);
+    return [
+      ['New Year’s Day', isoDate(year, 1, 1)],
+      ['Constitution Day', isoDate(year, 1, 7)],
+      ['Independence Day', isoDate(year, 3, 6)],
+      ['Good Friday', addUtcDays(easter, -2)],
+      ['Easter Monday', addUtcDays(easter, 1)],
+      ['Labour Day (Workers’ Day)', isoDate(year, 5, 1)],
+      ['Republic Day', isoDate(year, 7, 1)],
+      ['Founder’s Day', isoDate(year, 9, 21)],
+      ['Farmer’s Day', firstFridayInDecember(year)],
+      ['Christmas Day', isoDate(year, 12, 25)],
+      ['Boxing Day', isoDate(year, 12, 26)]
+    ].map(([name, date]) => ({ name, date }));
+  }
 
   function safeUser(employee) {
     const { password, password_hash, is_active, ...user } = employee;
@@ -142,6 +211,9 @@
         { id: 6, employee_id: 3, work_date: addDays(-1), clock_in: minutesAgo(1900), clock_out: minutesAgo(1420), status: 'present', notes: null },
         { id: 7, employee_id: 3, work_date: addDays(-2), clock_in: minutesAgo(3340), clock_out: minutesAgo(2860), status: 'present', notes: null }
       ],
+      leave_settings: { ...DEFAULT_LEAVE_SETTINGS },
+      overtime_settings: { ...DEFAULT_OVERTIME_SETTINGS },
+      company_calendar_events: [],
       leave_requests: [
         {
           id: 1, employee_id: 3, approved_by: 1, leave_type: 'annual',
@@ -293,6 +365,11 @@
       if (!Array.isArray(db.team_messages)) db.team_messages = seedDb().team_messages;
       if (!Array.isArray(db.performance_review_cycles)) db.performance_review_cycles = [];
       if (!Array.isArray(db.performance_review_responses)) db.performance_review_responses = [];
+      if (!db.leave_settings || typeof db.leave_settings !== 'object') db.leave_settings = { ...DEFAULT_LEAVE_SETTINGS };
+      else db.leave_settings = { ...DEFAULT_LEAVE_SETTINGS, ...db.leave_settings };
+      if (!db.overtime_settings || typeof db.overtime_settings !== 'object') db.overtime_settings = { ...DEFAULT_OVERTIME_SETTINGS };
+      else db.overtime_settings = { ...DEFAULT_OVERTIME_SETTINGS, ...db.overtime_settings };
+      if (!Array.isArray(db.company_calendar_events)) db.company_calendar_events = [];
       const departmentNames = (db.departments || []).map((dept) => dept.name).join('|');
       if (!departmentNames.includes('HR/ Admin') || !departmentNames.includes('Member Management')) {
         const oldDepartmentById = Object.fromEntries((db.departments || []).map((dept) => [dept.id, dept.name]));
@@ -389,8 +466,89 @@
     return dept ? dept.name : null;
   }
 
-  function leaveDays(startDate, endDate) {
-    return Math.ceil((new Date(endDate) - new Date(startDate)) / MS_DAY) + 1;
+  function companyId(user) {
+    const id = Number(user?.company_id);
+    return Number.isInteger(id) && id > 0 ? id : 1;
+  }
+
+  function belongsToCompany(event, user) {
+    return Number(event.company_id || 1) === companyId(user);
+  }
+
+  function companyCalendarInput(body) {
+    const title = String(body?.title || '').trim();
+    const startDate = validDateOnly(String(body?.start_date || ''));
+    const endDate = validDateOnly(String(body?.end_date || body?.start_date || ''));
+    const category = String(body?.category || 'event');
+    if (!title || !startDate || !endDate) throw new Error('Title and valid event dates are required');
+    if (endDate < startDate) throw new Error('End date cannot be before start date');
+    if (!COMPANY_CALENDAR_CATEGORIES.includes(category)) throw new Error('Choose a valid event category');
+    return {
+      title,
+      description: String(body?.description || '').trim() || null,
+      category,
+      start_date: startDate,
+      end_date: endDate
+    };
+  }
+
+  function leaveSettings(db) {
+    const stored = db.leave_settings || {};
+    return {
+      annual_entitlement_days: Number(stored.annual_entitlement_days ?? DEFAULT_LEAVE_SETTINGS.annual_entitlement_days),
+      count_weekends: stored.count_weekends ?? DEFAULT_LEAVE_SETTINGS.count_weekends,
+      count_public_holidays: stored.count_public_holidays ?? DEFAULT_LEAVE_SETTINGS.count_public_holidays,
+      max_consecutive_days: stored.max_consecutive_days == null ? null : Number(stored.max_consecutive_days),
+      minimum_notice_days: Number(stored.minimum_notice_days ?? DEFAULT_LEAVE_SETTINGS.minimum_notice_days),
+      updated_at: stored.updated_at || null
+    };
+  }
+
+  function isCompanyHoliday(db, day, calendarCompanyId = 1) {
+    return (db.company_calendar_events || []).some((event) => (
+      Number(event.company_id || 1) === Number(calendarCompanyId)
+      && event.category === 'holiday'
+      && day >= event.start_date
+      && day <= event.end_date
+    ));
+  }
+
+  function leaveDays(db, startDate, endDate, settings = leaveSettings(db), calendarCompanyId = 1) {
+    let count = 0;
+    const cursor = new Date(`${startDate}T00:00:00.000Z`);
+    const last = new Date(`${endDate}T00:00:00.000Z`);
+    while (cursor <= last) {
+      const day = cursor.toISOString().slice(0, 10);
+      const weekend = [0, 6].includes(cursor.getUTCDay());
+      if ((settings.count_weekends || !weekend)
+        && (settings.count_public_holidays || !isCompanyHoliday(db, day, calendarCompanyId))) count += 1;
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return count;
+  }
+
+  function annualLeaveDays(db, employeeId, year, statuses, settings = leaveSettings(db)) {
+    const employeeCompanyId = companyId(db.employees.find((employee) => employee.id === Number(employeeId)));
+    return db.leave_requests
+      .filter((leave) => (
+        leave.employee_id === employeeId
+        && leave.leave_type === 'annual'
+        && Number(String(leave.start_date).slice(0, 4)) === year
+        && statuses.includes(leave.status)
+      ))
+      .reduce((sum, leave) => sum + leaveDays(db, leave.start_date, leave.end_date, settings, employeeCompanyId), 0);
+  }
+
+  function strictBoolean(value) {
+    if (value === true || value === 1 || value === '1' || value === 'true') return true;
+    if (value === false || value === 0 || value === '0' || value === 'false') return false;
+    return null;
+  }
+
+  function normalizedTime(value) {
+    const match = String(value || '').trim().match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match || Number(match[1]) > 23 || Number(match[2]) > 59 || Number(match[3] || 0) > 59) return null;
+    return `${match[1]}:${match[2]}:${match[3] || '00'}`;
   }
 
   function enrichEmployee(db, emp) {
@@ -519,21 +677,13 @@
   }
 
   function leaveRows(db, rows) {
-    const annualEntitlement = 20;
+    const settings = leaveSettings(db);
+    const annualEntitlement = settings.annual_entitlement_days;
     const currentYear = new Date().getFullYear();
     return rows.map((r) => {
       const emp = db.employees.find((e) => e.id === r.employee_id) || {};
-      const annualRows = db.leave_requests.filter((leave) => (
-        leave.employee_id === r.employee_id &&
-        leave.leave_type === 'annual' &&
-        new Date(leave.start_date).getFullYear() === currentYear
-      ));
-      const annualUsedDays = annualRows
-        .filter((leave) => leave.status === 'approved')
-        .reduce((sum, leave) => sum + leaveDays(leave.start_date, leave.end_date), 0);
-      const annualPendingDays = annualRows
-        .filter((leave) => leave.status === 'pending')
-        .reduce((sum, leave) => sum + leaveDays(leave.start_date, leave.end_date), 0);
+      const annualUsedDays = annualLeaveDays(db, r.employee_id, currentYear, ['approved'], settings);
+      const annualPendingDays = annualLeaveDays(db, r.employee_id, currentYear, ['pending'], settings);
       return {
         ...clone(r),
         employee_name: emp.id ? `${emp.first_name} ${emp.last_name}` : '',
@@ -942,6 +1092,29 @@
         .map(clone);
     }
 
+    if (method === 'GET' && route === '/attendance/overtime/settings') {
+      return { ...DEFAULT_OVERTIME_SETTINGS, ...(db.overtime_settings || {}) };
+    }
+
+    if (method === 'PUT' && route === '/attendance/overtime/settings') {
+      requireRole(user, ['admin']);
+      const hourlyRate = Number(body?.hourly_rate);
+      if (!Number.isFinite(hourlyRate) || hourlyRate < 0) throw new Error('Enter a valid non-negative hourly overtime rate');
+      const current = { ...DEFAULT_OVERTIME_SETTINGS, ...(db.overtime_settings || {}) };
+      const lateClockIn = body?.late_clock_in_after == null ? current.late_clock_in_after : normalizedTime(body.late_clock_in_after);
+      const lateClockOut = body?.late_clock_out_after == null ? current.late_clock_out_after : normalizedTime(body.late_clock_out_after);
+      if (!lateClockIn) throw new Error('Enter a valid late clock-in cutoff time');
+      if (!lateClockOut) throw new Error('Enter a valid overtime cutoff time');
+      db.overtime_settings = {
+        hourly_rate: hourlyRate,
+        late_clock_in_after: lateClockIn,
+        late_clock_out_after: lateClockOut,
+        updated_at: new Date().toISOString()
+      };
+      saveDb(db);
+      return clone(db.overtime_settings);
+    }
+
     if (method === 'GET' && route === '/attendance/report') {
       requireRole(user, ['admin', 'manager']);
       return attendanceReport(db, url);
@@ -959,13 +1132,151 @@
       };
     }
 
+    if (method === 'GET' && route === '/leave/public-holidays') {
+      const year = Number(url.searchParams.get('year') || yearNow());
+      if (!Number.isInteger(year) || year < 2020 || year > 2100) throw new Error('Enter a valid year');
+      return { country: 'Ghana', year, holidays: ghanaPublicHolidays(year) };
+    }
+
+    if (method === 'GET' && route === '/company-calendar') {
+      const year = yearNow();
+      const from = String(url.searchParams.get('from') || `${year}-01-01`);
+      const to = String(url.searchParams.get('to') || `${year}-12-31`);
+      if (!validDateOnly(from) || !validDateOnly(to)) throw new Error('Could not load company calendar');
+      return db.company_calendar_events
+        .filter((event) => belongsToCompany(event, user))
+        .filter((event) => event.start_date <= to && event.end_date >= from)
+        .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.title.localeCompare(b.title))
+        .map((event) => ({ ...clone(event), created_by_name: employeeName(db, event.created_by) }));
+    }
+
+    if (method === 'POST' && route === '/company-calendar') {
+      requireRole(user, ['admin', 'manager']);
+      const input = companyCalendarInput(body);
+      const now = new Date().toISOString();
+      const row = {
+        id: nextId(db.company_calendar_events),
+        company_id: companyId(user),
+        ...input,
+        created_by: user.id,
+        created_at: now,
+        updated_at: now
+      };
+      db.company_calendar_events.push(row);
+      saveDb(db);
+      return clone(row);
+    }
+
+    const companyCalendarMatch = route.match(/^\/company-calendar\/(\d+)$/);
+    if (companyCalendarMatch && method === 'PATCH') {
+      requireRole(user, ['admin', 'manager']);
+      const input = companyCalendarInput(body);
+      const row = db.company_calendar_events.find((event) => (
+        Number(event.id) === Number(companyCalendarMatch[1]) && belongsToCompany(event, user)
+      ));
+      if (!row) throw new Error('Company event not found');
+      Object.assign(row, input, { updated_at: new Date().toISOString() });
+      saveDb(db);
+      return clone(row);
+    }
+
+    if (companyCalendarMatch && method === 'DELETE') {
+      requireRole(user, ['admin', 'manager']);
+      const index = db.company_calendar_events.findIndex((event) => (
+        Number(event.id) === Number(companyCalendarMatch[1]) && belongsToCompany(event, user)
+      ));
+      if (index < 0) throw new Error('Company event not found');
+      const [removed] = db.company_calendar_events.splice(index, 1);
+      saveDb(db);
+      return { id: removed.id };
+    }
+
+    if (method === 'GET' && route === '/leave/settings') {
+      requireRole(user, ['admin']);
+      return leaveSettings(db);
+    }
+
+    if (method === 'PUT' && route === '/leave/settings') {
+      requireRole(user, ['admin']);
+      const annualEntitlement = Number(body?.annual_entitlement_days);
+      const countWeekends = strictBoolean(body?.count_weekends);
+      const countPublicHolidays = strictBoolean(body?.count_public_holidays);
+      const minimumNoticeDays = Number(body?.minimum_notice_days);
+      const rawMaximum = body?.max_consecutive_days;
+      const maximumConsecutiveDays = rawMaximum === null || rawMaximum === undefined || rawMaximum === ''
+        ? null
+        : Number(rawMaximum);
+      if (!Number.isInteger(annualEntitlement) || annualEntitlement < 1 || annualEntitlement > 365) {
+        throw new Error('Annual entitlement must be between 1 and 365 days');
+      }
+      if (countWeekends === null || countPublicHolidays === null) {
+        throw new Error('Weekend and public-holiday rules must be true or false');
+      }
+      if (!Number.isInteger(minimumNoticeDays) || minimumNoticeDays < 0 || minimumNoticeDays > 365) {
+        throw new Error('Minimum notice must be between 0 and 365 days');
+      }
+      if (maximumConsecutiveDays !== null
+        && (!Number.isInteger(maximumConsecutiveDays) || maximumConsecutiveDays < 1 || maximumConsecutiveDays > annualEntitlement)) {
+        throw new Error('Maximum leave per request must be blank or between 1 and the annual entitlement');
+      }
+      db.leave_settings = {
+        annual_entitlement_days: annualEntitlement,
+        count_weekends: countWeekends,
+        count_public_holidays: countPublicHolidays,
+        max_consecutive_days: maximumConsecutiveDays,
+        minimum_notice_days: minimumNoticeDays,
+        updated_at: new Date().toISOString()
+      };
+      saveDb(db);
+      return leaveSettings(db);
+    }
+
+    if (method === 'GET' && route === '/leave/balance') {
+      const requestedYear = Number(url.searchParams.get('year') || yearNow());
+      const year = Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= 2100
+        ? requestedYear
+        : yearNow();
+      const settings = leaveSettings(db);
+      const used = annualLeaveDays(db, user.id, year, ['approved'], settings);
+      const pending = annualLeaveDays(db, user.id, year, ['pending'], settings);
+      return {
+        year,
+        entitlement: settings.annual_entitlement_days,
+        used,
+        pending,
+        available: Math.max(0, settings.annual_entitlement_days - used - pending),
+        count_weekends: settings.count_weekends,
+        count_public_holidays: settings.count_public_holidays
+      };
+    }
+
     if (method === 'POST' && route === '/leave') {
-      if (!body?.leave_type || !body?.start_date || !body?.end_date) throw new Error('Type, start date and end date are required');
-      if (body.end_date < body.start_date) throw new Error('End date cannot be before start date');
+      const startDate = validDateOnly(body?.start_date);
+      const endDate = validDateOnly(body?.end_date);
+      if (!body?.leave_type || !startDate || !endDate) throw new Error('Type, start date and end date are required');
+      if (endDate < startDate) throw new Error('End date cannot be before start date');
+      if (body.leave_type === 'annual') {
+        const settings = leaveSettings(db);
+        const year = Number(startDate.slice(0, 4));
+        if (year !== Number(endDate.slice(0, 4))) throw new Error('Annual leave requests must fall within one calendar year');
+        const noticeDays = Math.floor((Date.parse(`${startDate}T00:00:00.000Z`) - Date.parse(`${today()}T00:00:00.000Z`)) / MS_DAY);
+        if (settings.minimum_notice_days > 0 && noticeDays < settings.minimum_notice_days) {
+          throw new Error(`Annual leave requires at least ${settings.minimum_notice_days} day(s) notice.`);
+        }
+        const requestedDays = leaveDays(db, startDate, endDate, settings, companyId(user));
+        if (requestedDays < 1) throw new Error('The selected dates do not contain a chargeable annual leave day');
+        if (settings.max_consecutive_days !== null && requestedDays > settings.max_consecutive_days) {
+          throw new Error(`Annual leave is limited to ${settings.max_consecutive_days} chargeable day(s) per request.`);
+        }
+        const reservedDays = annualLeaveDays(db, user.id, year, ['pending', 'approved'], settings);
+        if (reservedDays + requestedDays > settings.annual_entitlement_days) {
+          throw new Error(`This request exceeds your annual leave balance. ${Math.max(0, settings.annual_entitlement_days - reservedDays)} day(s) remain.`);
+        }
+      }
       const overlap = db.leave_requests.some((l) => (
         l.employee_id === user.id &&
         ['pending', 'approved'].includes(l.status) &&
-        !(l.end_date < body.start_date || l.start_date > body.end_date)
+        !(l.end_date < startDate || l.start_date > endDate)
       ));
       if (overlap) throw new Error('Overlapping leave request exists');
       const row = {
@@ -973,8 +1284,8 @@
         employee_id: user.id,
         approved_by: null,
         leave_type: body.leave_type,
-        start_date: body.start_date,
-        end_date: body.end_date,
+        start_date: startDate,
+        end_date: endDate,
         reason: body.reason || '',
         status: 'pending',
         approved_at: null,
@@ -1043,6 +1354,19 @@
       if (leaveEmployee?.role === 'admin' && user.role !== 'manager') {
         throw new Error('HR leave requests must be approved by the CEO/manager');
       }
+      let settings;
+      if (body.status === 'approved' && row.leave_type === 'annual') {
+        settings = leaveSettings(db);
+        const year = Number(String(row.start_date).slice(0, 4));
+        const requestedDays = leaveDays(db, row.start_date, row.end_date, settings, companyId(leaveEmployee));
+        if (settings.max_consecutive_days !== null && requestedDays > settings.max_consecutive_days) {
+          throw new Error(`Cannot approve this request: annual leave is limited to ${settings.max_consecutive_days} chargeable day(s) per request.`);
+        }
+        const approvedDays = annualLeaveDays(db, row.employee_id, year, ['approved'], settings);
+        if (approvedDays + requestedDays > settings.annual_entitlement_days) {
+          throw new Error(`Cannot approve this request: only ${Math.max(0, settings.annual_entitlement_days - approvedDays)} annual leave day(s) remain.`);
+        }
+      }
       row.status = body.status;
       row.approved_by = user.id;
       row.approved_at = new Date().toISOString();
@@ -1050,6 +1374,8 @@
         for (let d = new Date(row.start_date); d <= new Date(row.end_date); d.setDate(d.getDate() + 1)) {
           if ([0, 6].includes(d.getDay())) continue;
           const workDate = dateOnly(d);
+          if (row.leave_type === 'annual' && settings && !settings.count_public_holidays
+            && isCompanyHoliday(db, workDate, companyId(leaveEmployee))) continue;
           const existing = db.attendance.find((a) => a.employee_id === row.employee_id && a.work_date === workDate);
           if (existing) existing.status = 'on-leave';
           else db.attendance.push({ id: nextId(db.attendance), employee_id: row.employee_id, work_date: workDate, clock_in: null, clock_out: null, status: 'on-leave', notes: null });

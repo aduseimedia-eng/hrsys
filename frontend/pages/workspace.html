@@ -531,7 +531,7 @@
           <time class="workspace-attendance__elapsed" id="workspace-attendance-elapsed" aria-live="off">Not started</time>
         </span>
       </button>
-      <a class="workspace-utility workspace-settings" id="workspace-settings" href="#settings" aria-label="Settings" title="Settings">
+      <a class="workspace-utility workspace-settings" id="workspace-settings" href="#settings" aria-label="Company settings" title="Company settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.04.04a2 2 0 1 1-2.83 2.83l-.04-.04A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.08A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.04.04a2 2 0 1 1-2.83-2.83l.04-.04A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.08A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.04-.04a2 2 0 1 1 2.83-2.83l.04.04A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.08A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.04-.04a2 2 0 1 1 2.83 2.83l-.04.04A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-1.52.6z"/></svg>
       </a>
       <button class="icon-btn" id="notif-btn" title="Notifications" aria-label="Notifications">
@@ -547,9 +547,9 @@
         <svg class="workspace-account__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       </button>
       <div class="workspace-account-menu" id="workspace-account-menu" role="menu" hidden>
-        <a href="#settings" role="menuitem">My profile &amp; account</a>
-        <a href="#settings" role="menuitem">Company settings</a>
-        <a href="#settings" role="menuitem">Change password</a>
+        <a href="#account-settings" role="menuitem">My profile &amp; account</a>
+        <a href="#settings" role="menuitem" id="workspace-company-settings-link" hidden>Company settings</a>
+        <a href="#account-settings?section=password" role="menuitem">Change password</a>
         <button type="button" role="menuitem" id="workspace-sign-out">Sign out</button>
       </div>
     </div>
@@ -637,7 +637,8 @@ const WORKSPACE_PAGES = {
   employees: { title: 'Employees', nav: 'people' },
   departments: { title: 'Departments', nav: 'people' },
   orgchart: { title: 'Organization Chart', nav: 'people' },
-  settings: { title: 'Settings', nav: 'settings' },
+  'account-settings': { title: 'My Settings', nav: 'account' },
+  settings: { title: 'Company Settings', nav: 'settings', roles: ['admin'] },
   'employee-profile': { title: 'Employee Profile', nav: 'people' }
 };
 const WORKSPACE_MODULES = Object.freeze({
@@ -650,7 +651,8 @@ const WORKSPACE_MODULES = Object.freeze({
   finance: { label: 'Pay & Benefits', href: '#finance' },
   records: { label: 'People & Records', href: '#records' },
   administration: { label: 'Administration', href: '#administration' },
-  settings: { label: 'Settings', href: '#settings' }
+  account: { label: 'My settings', href: '#account-settings' },
+  settings: { label: 'Company settings', href: '#settings' }
 });
 const WORKSPACE_SECTIONS = Object.freeze({
   performance: 'Performance & Development',
@@ -734,7 +736,7 @@ const WORKSPACE_MODULE_MENUS = Object.freeze({
       { route: 'audit', label: 'Audit history', roles: ['admin'] },
       { route: 'notification-settings', label: 'Notifications', roles: ['admin'] },
       { route: 'integrations', label: 'Integrations', roles: ['admin'] },
-      { route: 'settings', label: 'Settings', roles: ['admin'] }
+      { route: 'settings', label: 'Company settings', roles: ['admin'] }
     ]
   }
 });
@@ -875,7 +877,8 @@ function parseWorkspaceRoute() {
     .replace(/\.html$/i, '') || WORKSPACE_DEFAULT;
   const query = questionIndex >= 0 ? route.slice(questionIndex) : '';
 
-  if (!Object.prototype.hasOwnProperty.call(WORKSPACE_PAGES, page)) {
+  const pageMeta = WORKSPACE_PAGES[page];
+  if (!pageMeta || (pageMeta.roles && !pageMeta.roles.includes(workspaceUser.role))) {
     return { page: WORKSPACE_DEFAULT, query: '' };
   }
 
@@ -900,6 +903,7 @@ function setupWorkspaceIdentity() {
   document.getElementById('workspace-user-status').textContent = roleLabel;
   document.querySelector('.workspace-account')?.setAttribute('aria-label', `Signed in as ${name}`);
   document.getElementById('workspace-settings').hidden = workspaceUser.role !== 'admin';
+  document.getElementById('workspace-company-settings-link').hidden = workspaceUser.role !== 'admin';
   const accountButton = document.getElementById('workspace-account-menu-button');
   const accountMenu = document.getElementById('workspace-account-menu');
   const closeAccountMenu = () => { accountMenu.hidden = true; accountButton.setAttribute('aria-expanded', 'false'); };

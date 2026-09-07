@@ -1,61 +1,263 @@
 // controllers/leave.controller.js
 const db = require('../config/db');
 const { notifyEmployee } = require('../services/push.service');
-const ANNUAL_LEAVE_ENTITLEMENT = 20;
 
-async function annualLeaveDays(companyId, employeeId, year, statuses) {
-  const { rows } = await db.query(
-    `SELECT COALESCE(SUM(end_date - start_date + 1), 0)::int AS days
-     FROM leave_requests
-     WHERE company_id=$1 AND employee_id=$2 AND leave_type='annual'
-       AND status = ANY($3::varchar[]) AND EXTRACT(YEAR FROM start_date)=$4`,
-    [companyId, employeeId, statuses, year]
+const DEFAULT_LEAVE_POLICY = Object.freeze({
+  annual_entitlement_days: 20,
+  count_weekends: true,
+  count_public_holidays: true,
+  max_consecutive_days: null,
+  minimum_notice_days: 0,
+  updated_at: null
+});
+
+function normalizeLeavePolicy(row = {}) {
+  return {
+    annual_entitlement_days: Number(row.annual_entitlement_days ?? DEFAULT_LEAVE_POLICY.annual_entitlement_days),
+    count_weekends: row.count_weekends ?? DEFAULT_LEAVE_POLICY.count_weekends,
+    count_public_holidays: row.count_public_holidays ?? DEFAULT_LEAVE_POLICY.count_public_holidays,
+    max_consecutive_days: row.max_consecutive_days == null ? null : Number(row.max_consecutive_days),
+    minimum_notice_days: Number(row.minimum_notice_days ?? DEFAULT_LEAVE_POLICY.minimum_notice_days),
+    updated_at: row.updated_at || null
+  };
+}
+
+async function leavePolicy(companyId, executor = db) {
+  const { rows } = await executor.query(
+    `SELECT annual_entitlement_days, count_weekends, count_public_holidays,
+            max_consecutive_days, minimum_notice_days, updated_at
+     FROM company_leave_settings WHERE company_id=$1`,
+    [companyId]
+  );
+  return normalizeLeavePolicy(rows[0]);
+}
+
+function strictBoolean(value) {
+  if (value === true || value === 1 || value === '1' || value === 'true') return true;
+  if (value === false || value === 0 || value === '0' || value === 'false') return false;
+  return null;
+}
+
+function dateOnly(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value ? null : value;
+}
+
+function storedDateOnly(value) {
+  if (typeof value === 'string') return dateOnly(value);
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) return null;
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function daysFromToday(date) {
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  return Math.floor((Date.parse(`${date}T00:00:00.000Z`) - todayUtc) / 86400000);
+}
+
+async function leaveDaysBetween(companyId, startDate, endDate, policy, executor = db) {
+  const { rows } = await executor.query(
+    `SELECT COUNT(*)::int AS days
+     FROM generate_series($2::date, $3::date, '1 day'::interval) AS days(leave_day)
+     WHERE ($4::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+       AND ($5::boolean OR NOT EXISTS (
+         SELECT 1 FROM company_calendar_events holiday
+         WHERE holiday.company_id=$1 AND holiday.category='holiday'
+           AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
+       ))`,
+    [companyId, startDate, endDate, policy.count_weekends, policy.count_public_holidays]
   );
   return Number(rows[0]?.days || 0);
 }
 
+async function annualLeaveDays(companyId, employeeId, year, statuses, policy, executor = db) {
+  const { rows } = await executor.query(
+    `SELECT COUNT(*)::int AS days
+     FROM leave_requests request
+     CROSS JOIN LATERAL generate_series(request.start_date, request.end_date, '1 day'::interval) AS days(leave_day)
+     WHERE request.company_id=$1 AND request.employee_id=$2 AND request.leave_type='annual'
+       AND request.status = ANY($3::varchar[]) AND EXTRACT(YEAR FROM leave_day)=$4
+       AND ($5::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+       AND ($6::boolean OR NOT EXISTS (
+         SELECT 1 FROM company_calendar_events holiday
+         WHERE holiday.company_id=request.company_id AND holiday.category='holiday'
+           AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
+       ))`,
+    [companyId, employeeId, statuses, year, policy.count_weekends, policy.count_public_holidays]
+  );
+  return Number(rows[0]?.days || 0);
+}
+
+async function annualLeaveBalance(companyId, employeeId, year, policy, executor = db) {
+  const { rows } = await executor.query(
+    `SELECT
+       (COUNT(*) FILTER (WHERE request.status='approved'))::int AS used,
+       (COUNT(*) FILTER (WHERE request.status='pending'))::int AS pending
+     FROM leave_requests request
+     CROSS JOIN LATERAL generate_series(request.start_date, request.end_date, '1 day'::interval) AS days(leave_day)
+     WHERE request.company_id=$1 AND request.employee_id=$2 AND request.leave_type='annual'
+       AND request.status IN ('approved','pending') AND EXTRACT(YEAR FROM leave_day)=$3
+       AND ($4::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+       AND ($5::boolean OR NOT EXISTS (
+         SELECT 1 FROM company_calendar_events holiday
+         WHERE holiday.company_id=request.company_id AND holiday.category='holiday'
+           AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
+       ))`,
+    [companyId, employeeId, year, policy.count_weekends, policy.count_public_holidays]
+  );
+  return {
+    used: Number(rows[0]?.used || 0),
+    pending: Number(rows[0]?.pending || 0)
+  };
+}
+
+exports.getSettings = async (req, res) => {
+  try {
+    res.json(await leavePolicy(req.user.company_id));
+  } catch (error) {
+    res.status(500).json({ error: 'Could not fetch leave settings' });
+  }
+};
+
+exports.updateSettings = async (req, res) => {
+  const body = req.body || {};
+  const annualEntitlement = Number(body.annual_entitlement_days);
+  const countWeekends = strictBoolean(body.count_weekends);
+  const countPublicHolidays = strictBoolean(body.count_public_holidays);
+  const minimumNoticeDays = Number(body.minimum_notice_days);
+  const rawMaximum = body.max_consecutive_days;
+  const maximumConsecutiveDays = rawMaximum === null || rawMaximum === undefined || rawMaximum === ''
+    ? null
+    : Number(rawMaximum);
+
+  if (!Number.isInteger(annualEntitlement) || annualEntitlement < 1 || annualEntitlement > 365) {
+    return res.status(400).json({ error: 'Annual entitlement must be between 1 and 365 days' });
+  }
+  if (countWeekends === null || countPublicHolidays === null) {
+    return res.status(400).json({ error: 'Weekend and public-holiday rules must be true or false' });
+  }
+  if (!Number.isInteger(minimumNoticeDays) || minimumNoticeDays < 0 || minimumNoticeDays > 365) {
+    return res.status(400).json({ error: 'Minimum notice must be between 0 and 365 days' });
+  }
+  if (maximumConsecutiveDays !== null
+    && (!Number.isInteger(maximumConsecutiveDays) || maximumConsecutiveDays < 1 || maximumConsecutiveDays > annualEntitlement)) {
+    return res.status(400).json({ error: 'Maximum leave per request must be blank or between 1 and the annual entitlement' });
+  }
+
+  let client;
+  try {
+    client = await db.getClient();
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `INSERT INTO company_leave_settings (
+         company_id, annual_entitlement_days, count_weekends, count_public_holidays,
+         max_consecutive_days, minimum_notice_days, updated_by, updated_at
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
+       ON CONFLICT (company_id) DO UPDATE SET
+         annual_entitlement_days=EXCLUDED.annual_entitlement_days,
+         count_weekends=EXCLUDED.count_weekends,
+         count_public_holidays=EXCLUDED.count_public_holidays,
+         max_consecutive_days=EXCLUDED.max_consecutive_days,
+         minimum_notice_days=EXCLUDED.minimum_notice_days,
+         updated_by=EXCLUDED.updated_by,
+         updated_at=NOW()
+       RETURNING annual_entitlement_days, count_weekends, count_public_holidays,
+         max_consecutive_days, minimum_notice_days, updated_at`,
+      [req.user.company_id, annualEntitlement, countWeekends, countPublicHolidays,
+        maximumConsecutiveDays, minimumNoticeDays, req.user.id]
+    );
+    await client.query(
+      `INSERT INTO audit_logs(company_id, actor_id, action, entity_type, entity_id, summary)
+       VALUES($1,$2,'update','leave_settings',$1,$3)`,
+      [req.user.company_id, req.user.id,
+        `Annual leave: ${annualEntitlement} days; maximum per request ${maximumConsecutiveDays ?? 'none'}; minimum notice ${minimumNoticeDays} days; weekends ${countWeekends ? 'counted' : 'excluded'}; public holidays ${countPublicHolidays ? 'counted' : 'excluded'}`]
+    );
+    await client.query('COMMIT');
+    res.json(normalizeLeavePolicy(rows[0]));
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    console.error(error);
+    res.status(500).json({ error: 'Could not save leave settings' });
+  } finally {
+    if (client) client.release();
+  }
+};
+
 // ─── Request leave ────────────────────────────────────────────
 exports.request = async (req, res) => {
+  const body = req.body || {};
+  const { leave_type, start_date, end_date, reason } = body;
+  const startDate = dateOnly(start_date);
+  const endDate = dateOnly(end_date);
+  if (!leave_type || !startDate || !endDate) {
+    return res.status(400).json({ error: 'Type, start date and end date are required' });
+  }
+  if (endDate < startDate) {
+    return res.status(400).json({ error: 'End date cannot be before start date' });
+  }
+  if (leave_type === 'annual' && startDate.slice(0, 4) !== endDate.slice(0, 4)) {
+    return res.status(400).json({ error: 'Annual leave requests must fall within one calendar year' });
+  }
+
+  let client;
+  let createdLeave;
+  let recipients = [];
   try {
-    const { leave_type, start_date, end_date, reason } = req.body;
-    if (!leave_type || !start_date || !end_date) {
-      return res.status(400).json({ error: 'Type, start date and end date are required' });
-    }
-    if (new Date(end_date) < new Date(start_date)) {
-      return res.status(400).json({ error: 'End date cannot be before start date' });
-    }
+    client = await db.getClient();
+    await client.query('BEGIN');
+    // Requests and approvals for one employee share this lock. That makes the
+    // overlap and entitlement checks deterministic under concurrent traffic.
+    await client.query('SELECT pg_advisory_xact_lock($1::int, $2::int)', [req.user.company_id, req.user.id]);
 
     // Annual leave is a yearly entitlement. Requests may not span years and
     // pending requests reserve the days until HR makes a decision.
     if (leave_type === 'annual') {
-      const year = new Date(`${start_date}T00:00:00`).getFullYear();
-      const endYear = new Date(`${end_date}T00:00:00`).getFullYear();
-      if (year !== endYear) return res.status(400).json({ error: 'Annual leave requests must fall within one calendar year' });
-      const requestedDays = Math.floor((new Date(`${end_date}T00:00:00`) - new Date(`${start_date}T00:00:00`)) / 86400000) + 1;
-      const reservedDays = await annualLeaveDays(req.user.company_id, req.user.id, year, ['pending', 'approved']);
-      if (reservedDays + requestedDays > ANNUAL_LEAVE_ENTITLEMENT) {
-        return res.status(409).json({ error: `This request exceeds your annual leave balance. ${Math.max(0, ANNUAL_LEAVE_ENTITLEMENT - reservedDays)} day(s) remain.` });
+      const policy = await leavePolicy(req.user.company_id, client);
+      const year = Number(startDate.slice(0, 4));
+      if (policy.minimum_notice_days > 0 && daysFromToday(startDate) < policy.minimum_notice_days) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: `Annual leave requires at least ${policy.minimum_notice_days} day(s) notice.` });
+      }
+      const requestedDays = await leaveDaysBetween(req.user.company_id, startDate, endDate, policy, client);
+      if (requestedDays < 1) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'The selected dates do not contain a chargeable annual leave day' });
+      }
+      if (policy.max_consecutive_days !== null && requestedDays > policy.max_consecutive_days) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: `Annual leave is limited to ${policy.max_consecutive_days} chargeable day(s) per request.` });
+      }
+      const reservedDays = await annualLeaveDays(req.user.company_id, req.user.id, year, ['pending', 'approved'], policy, client);
+      if (reservedDays + requestedDays > policy.annual_entitlement_days) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: `This request exceeds your annual leave balance. ${Math.max(0, policy.annual_entitlement_days - reservedDays)} day(s) remain.` });
       }
     }
 
-    // Check for overlapping approved leave
-    const overlap = await db.query(
+    const overlap = await client.query(
       `SELECT id FROM leave_requests
        WHERE company_id=$1 AND employee_id=$2 AND status IN ('pending','approved')
          AND NOT (end_date < $3 OR start_date > $4)`,
-      [req.user.company_id, req.user.id, start_date, end_date]
+      [req.user.company_id, req.user.id, startDate, endDate]
     );
-    if (overlap.rows.length) return res.status(409).json({ error: 'Overlapping leave request exists' });
+    if (overlap.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Overlapping leave request exists' });
+    }
 
-    const { rows } = await db.query(
+    const { rows } = await client.query(
       `INSERT INTO leave_requests (company_id, employee_id, leave_type, start_date, end_date, reason)
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [req.user.company_id, req.user.id, leave_type, start_date, end_date, reason]
+      [req.user.company_id, req.user.id, leave_type, startDate, endDate, reason]
     );
 
     // HR/Admin leave requests are routed to managers, who serve as the CEO approval queue.
     const recipientRoles = req.user.role === 'admin' ? ['manager'] : ['admin', 'manager'];
-    const admins = await db.query(
+    const admins = await client.query(
       `SELECT id FROM employees
        WHERE company_id=$1
          AND role = ANY($2::varchar[])
@@ -63,16 +265,26 @@ exports.request = async (req, res) => {
          AND is_active=true`,
       [req.user.company_id, recipientRoles, req.user.id]
     );
-    const empName = `${req.user.first_name} ${req.user.last_name}`;
-    for (const admin of admins.rows) {
-      await notifyEmployee({ companyId: req.user.company_id, employeeId: admin.id, type: 'leave_request', message: `${empName} has requested ${leave_type} leave from ${start_date} to ${end_date}.`, link: '/pages/workspace.html#leave' });
-    }
-
-    res.status(201).json(rows[0]);
+    createdLeave = rows[0];
+    recipients = admins.rows;
+    await client.query('COMMIT');
   } catch (err) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
     console.error(err);
-    res.status(500).json({ error: 'Could not submit leave request' });
+    return res.status(500).json({ error: 'Could not submit leave request' });
+  } finally {
+    if (client) client.release();
   }
+
+  const empName = `${req.user.first_name} ${req.user.last_name}`;
+  for (const recipient of recipients) {
+    try {
+      await notifyEmployee({ companyId: req.user.company_id, employeeId: recipient.id, type: 'leave_request', message: `${empName} has requested ${leave_type} leave from ${startDate} to ${endDate}.`, link: '/pages/workspace.html#leave' });
+    } catch (error) {
+      console.error('Could not notify leave approver:', error);
+    }
+  }
+  return res.status(201).json(createdLeave);
 };
 
 // ─── My leave history ─────────────────────────────────────────
@@ -104,16 +316,21 @@ exports.getMyBalance = async (req, res) => {
     const year = Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= 2100
       ? requestedYear
       : new Date().getFullYear();
-    const [used, pending] = await Promise.all([
-      annualLeaveDays(req.user.company_id, req.user.id, year, ['approved']),
-      annualLeaveDays(req.user.company_id, req.user.id, year, ['pending'])
-    ]);
+    const policy = await leavePolicy(req.user.company_id);
+    const { used, pending } = await annualLeaveBalance(
+      req.user.company_id,
+      req.user.id,
+      year,
+      policy
+    );
     res.json({
       year,
-      entitlement: ANNUAL_LEAVE_ENTITLEMENT,
+      entitlement: policy.annual_entitlement_days,
       used,
       pending,
-      available: Math.max(0, ANNUAL_LEAVE_ENTITLEMENT - used)
+      available: Math.max(0, policy.annual_entitlement_days - used - pending),
+      count_weekends: policy.count_weekends,
+      count_public_holidays: policy.count_public_holidays
     });
   } catch (err) {
     res.status(500).json({ error: 'Could not calculate leave balance' });
@@ -136,31 +353,43 @@ exports.getAll = async (req, res) => {
       where += ` AND e.role <> 'admin'`;
     }
 
+    const policy = await leavePolicy(req.user.company_id);
+    const entitlementParam = params.length + 1;
+    const countWeekendsParam = params.length + 2;
+    const countPublicHolidaysParam = params.length + 3;
+
     const { rows } = await db.query(
       `SELECT lr.*, CONCAT(e.first_name,' ',e.last_name) AS employee_name,
               e.photo_url, d.name AS department_name,
               CONCAT(a.first_name,' ',a.last_name) AS approver_name,
-              $${params.length + 1}::int AS annual_entitlement,
+              $${entitlementParam}::int AS annual_entitlement,
               COALESCE(lb.annual_used_days, 0)::int AS annual_used_days,
               COALESCE(lb.annual_pending_days, 0)::int AS annual_pending_days,
-              GREATEST($${params.length + 1}::int - COALESCE(lb.annual_used_days, 0)::int, 0) AS annual_remaining_days
+              GREATEST($${entitlementParam}::int - COALESCE(lb.annual_used_days, 0)::int, 0) AS annual_remaining_days
        FROM leave_requests lr
-       JOIN employees e        ON e.id = lr.employee_id
-       LEFT JOIN departments d ON d.id = e.department_id
-       LEFT JOIN employees a   ON a.id = lr.approved_by
+       JOIN employees e        ON e.id = lr.employee_id AND e.company_id=lr.company_id
+       LEFT JOIN departments d ON d.id = e.department_id AND d.company_id=e.company_id
+       LEFT JOIN employees a   ON a.id = lr.approved_by AND a.company_id=lr.company_id
        LEFT JOIN LATERAL (
          SELECT
-           SUM((approved.end_date - approved.start_date + 1)) FILTER (WHERE approved.status = 'approved') AS annual_used_days,
-           SUM((approved.end_date - approved.start_date + 1)) FILTER (WHERE approved.status = 'pending') AS annual_pending_days
+           COUNT(*) FILTER (WHERE approved.status = 'approved') AS annual_used_days,
+           COUNT(*) FILTER (WHERE approved.status = 'pending') AS annual_pending_days
          FROM leave_requests approved
+         CROSS JOIN LATERAL generate_series(approved.start_date, approved.end_date, '1 day'::interval) AS days(leave_day)
          WHERE approved.company_id = lr.company_id
            AND approved.employee_id = lr.employee_id
            AND approved.leave_type = 'annual'
-           AND EXTRACT(YEAR FROM approved.start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+           AND EXTRACT(YEAR FROM leave_day) = EXTRACT(YEAR FROM CURRENT_DATE)
+           AND ($${countWeekendsParam}::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+           AND ($${countPublicHolidaysParam}::boolean OR NOT EXISTS (
+             SELECT 1 FROM company_calendar_events holiday
+             WHERE holiday.company_id=approved.company_id AND holiday.category='holiday'
+               AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
+           ))
        ) lb ON TRUE
        ${where}
        ORDER BY lr.created_at DESC`,
-      [...params, ANNUAL_LEAVE_ENTITLEMENT]
+      [...params, policy.annual_entitlement_days, policy.count_weekends, policy.count_public_holidays]
     );
     res.json(rows);
   } catch (err) {
@@ -170,72 +399,111 @@ exports.getAll = async (req, res) => {
 
 // ─── Approve or reject ────────────────────────────────────────
 exports.updateStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body || {};
+
+  if (!['approved','rejected'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be approved or rejected' });
+  }
+
+  let client;
+  let updatedLeave;
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!['approved','rejected'].includes(status)) {
-      return res.status(400).json({ error: 'Status must be approved or rejected' });
-    }
-
-    const leaveRes = await db.query(
+    client = await db.getClient();
+    await client.query('BEGIN');
+    const leaveRes = await client.query(
       `SELECT lr.*, e.role AS employee_role
        FROM leave_requests lr
-       JOIN employees e ON e.id = lr.employee_id
-       WHERE lr.id=$1 AND lr.company_id=$2`,
+       JOIN employees e ON e.id = lr.employee_id AND e.company_id=lr.company_id
+       WHERE lr.id=$1 AND lr.company_id=$2
+       FOR UPDATE OF lr`,
       [id, req.user.company_id]
     );
-    if (!leaveRes.rows.length) return res.status(404).json({ error: 'Leave request not found' });
+    if (!leaveRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Leave request not found' });
+    }
     const leave = leaveRes.rows[0];
+    await client.query('SELECT pg_advisory_xact_lock($1::int, $2::int)', [req.user.company_id, leave.employee_id]);
 
     if (leave.status !== 'pending') {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Leave request already processed' });
     }
     if (leave.employee_id === req.user.id) {
+      await client.query('ROLLBACK');
       return res.status(403).json({ error: 'You cannot approve your own leave request' });
     }
     if (leave.employee_role === 'admin' && req.user.role !== 'manager') {
+      await client.query('ROLLBACK');
       return res.status(403).json({ error: 'HR leave requests must be approved by the CEO/manager' });
     }
 
     // Recheck the entitlement at approval time so HR cannot approve annual
     // leave beyond the employee's yearly allowance.
+    let policy;
     if (status === 'approved' && leave.leave_type === 'annual') {
-      const year = new Date(leave.start_date).getFullYear();
-      const requestedDays = Math.floor((new Date(leave.end_date) - new Date(leave.start_date)) / 86400000) + 1;
-      const approvedDays = await annualLeaveDays(req.user.company_id, leave.employee_id, year, ['approved']);
-      if (approvedDays + requestedDays > ANNUAL_LEAVE_ENTITLEMENT) {
-        return res.status(409).json({ error: `Cannot approve this request: only ${Math.max(0, ANNUAL_LEAVE_ENTITLEMENT - approvedDays)} annual leave day(s) remain.` });
+      policy = await leavePolicy(req.user.company_id, client);
+      const startDate = storedDateOnly(leave.start_date);
+      const endDate = storedDateOnly(leave.end_date);
+      if (!startDate || !endDate) throw new Error('Leave request contains an invalid stored date');
+      const year = Number(startDate.slice(0, 4));
+      const requestedDays = await leaveDaysBetween(req.user.company_id, startDate, endDate, policy, client);
+      if (policy.max_consecutive_days !== null && requestedDays > policy.max_consecutive_days) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: `Cannot approve this request: annual leave is limited to ${policy.max_consecutive_days} chargeable day(s) per request.` });
+      }
+      const approvedDays = await annualLeaveDays(req.user.company_id, leave.employee_id, year, ['approved'], policy, client);
+      if (approvedDays + requestedDays > policy.annual_entitlement_days) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: `Cannot approve this request: only ${Math.max(0, policy.annual_entitlement_days - approvedDays)} annual leave day(s) remain.` });
       }
     }
 
-    const { rows } = await db.query(
+    const { rows } = await client.query(
       `UPDATE leave_requests SET status=$1, approved_by=$2, approved_at=NOW()
-       WHERE id=$3 AND company_id=$4 RETURNING *`,
+       WHERE id=$3 AND company_id=$4 AND status='pending' RETURNING *`,
       [status, req.user.id, id, req.user.company_id]
     );
+    if (!rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Leave request was already processed' });
+    }
 
     // If approved, mark attendance as on-leave for those days
     if (status === 'approved') {
-      await db.query(
+      await client.query(
         `INSERT INTO attendance (company_id, employee_id, work_date, status)
-         SELECT $1, $2, d::date, 'on-leave'
-         FROM generate_series($3::date, $4::date, '1 day'::interval) d
-         WHERE EXTRACT(DOW FROM d) NOT IN (0,6)
+         SELECT $1, $2, leave_day::date, 'on-leave'
+         FROM generate_series($3::date, $4::date, '1 day'::interval) AS days(leave_day)
+         WHERE EXTRACT(DOW FROM leave_day) NOT IN (0,6)
+           AND ($5::boolean OR NOT EXISTS (
+             SELECT 1 FROM company_calendar_events holiday
+             WHERE holiday.company_id=$1 AND holiday.category='holiday'
+               AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
+           ))
          ON CONFLICT (employee_id, work_date) DO UPDATE SET status='on-leave'`,
-        [req.user.company_id, leave.employee_id, leave.start_date, leave.end_date]
+        [req.user.company_id, leave.employee_id, leave.start_date, leave.end_date,
+          leave.leave_type !== 'annual' || (policy?.count_public_holidays ?? true)]
       );
-
     }
 
-    // Notify employee of the decision.
-    await notifyEmployee({ companyId: req.user.company_id, employeeId: leave.employee_id, type: `leave_${status}`, message: `Your ${leave.leave_type} leave request has been ${status}.` });
-
-    res.json(rows[0]);
+    updatedLeave = rows[0];
+    await client.query('COMMIT');
   } catch (err) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
     console.error(err);
-    res.status(500).json({ error: 'Could not update leave status' });
+    return res.status(500).json({ error: 'Could not update leave status' });
+  } finally {
+    if (client) client.release();
   }
+
+  try {
+    await notifyEmployee({ companyId: req.user.company_id, employeeId: updatedLeave.employee_id, type: `leave_${status}`, message: `Your ${updatedLeave.leave_type} leave request has been ${status}.` });
+  } catch (error) {
+    console.error('Could not notify employee about leave decision:', error);
+  }
+  return res.json(updatedLeave);
 };
 
 // ─── Leave calendar (all approved) ───────────────────────────

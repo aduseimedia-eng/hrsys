@@ -9,6 +9,8 @@ router.get ('/mine',         auth, ctrl.getMyLeaves);
 router.get ('/balance',      auth, ctrl.getMyBalance);
 router.get ('/calendar',     auth, ctrl.getCalendar);
 router.get ('/public-holidays', auth, require('../controllers/holiday.controller').getPublicHolidays);
+router.get ('/settings',     auth, rbac('admin'), ctrl.getSettings);
+router.put ('/settings',     auth, rbac('admin'), ctrl.updateSettings);
 router.get ('/',             auth, rbac('admin','manager'), ctrl.getAll);
 router.patch('/:id/status',  auth, rbac('admin','manager'), ctrl.updateStatus);
 

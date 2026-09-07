@@ -801,7 +801,7 @@ window.addEventListener('storage', (event) => {
 // ─── Avatar helper ──────────────────────────────────────────
 function avatarEl(employee, size = 'md') {
   if (employee.photo_url) {
-    return `<img src="${assetUrl(employee.photo_url)}"
+    return `<img src="${escapeAvatarText(assetUrl(employee.photo_url))}"
                  alt="${escapeAvatarText(employee.first_name)}"
                  class="avatar avatar-${size}"
                  data-first-name="${escapeAvatarText(employee.first_name)}"
@@ -812,7 +812,7 @@ function avatarEl(employee, size = 'md') {
 }
 
 function initialsAvatar(firstName, lastName, size = 'md') {
-  return `<div class="avatar avatar-${size}">${fmt.initials(firstName, lastName)}</div>`;
+  return `<div class="avatar avatar-${size}">${escapeAvatarText(fmt.initials(firstName, lastName))}</div>`;
 }
 
 function assetUrl(url) {
@@ -910,7 +910,7 @@ function buildSidebar(activePage, options = {}) {
     { page: 'probation',   icon: clockIcon(),      label: 'Probation Tracker', roles: ['admin','manager','employee'] },
     { page: 'contracts',   icon: docIcon(),        label: 'Contract Expiry', roles: ['admin','manager','employee'] },
     { page: 'orgchart',    icon: orgIcon(),        label: 'Org Chart',    roles: ['admin','manager','employee'] },
-    { page: 'settings',    icon: settingsIcon(),   label: 'Settings',     roles: ['admin','employee'] },
+    { page: 'account-settings', icon: settingsIcon(), label: 'My settings', roles: ['admin','manager','employee'], standalone: true },
   ];
   const managementNavItems = [
     { page: 'dashboard', icon: gridIcon(), label: 'Dashboard', roles: ['admin', 'manager'] },
@@ -948,13 +948,14 @@ function buildSidebar(activePage, options = {}) {
     { subsection: 'Operations Registers' },
     { page: 'operations', icon: gridIcon(), label: 'Exit & Clearance', roles: ['admin', 'manager'] },
     { page: 'financials', icon: walletIcon(), label: 'Expenses', roles: ['admin', 'manager'] },
-    { section: 'Administration', icon: briefcaseIcon(), roles: ['admin', 'manager'] },
+    { page: 'account-settings', icon: settingsIcon(), label: 'My settings', roles: ['admin', 'manager'], standalone: true },
+    { section: 'Administration', icon: briefcaseIcon(), roles: ['admin'] },
     { page: 'users-access', icon: usersIcon(), label: 'Users & Access', roles: ['admin'] },
     { page: 'roles-permissions', icon: settingsIcon(), label: 'Roles & Permissions', roles: ['admin'] },
     { page: 'audit', icon: docIcon(), label: 'Audit History', roles: ['admin'] },
     { page: 'notification-settings', icon: chatIcon(), label: 'Notifications', roles: ['admin'] },
     { page: 'integrations', icon: gridIcon(), label: 'Integrations', roles: ['admin'] },
-    { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'], standalone: true },
+    { page: 'settings', icon: settingsIcon(), label: 'Company settings', roles: ['admin'], standalone: true },
   ];
   const workspaceNavItems = [
     { page: 'dashboard', icon: gridIcon(), label: 'Dashboard', roles: ['admin', 'manager'] },
@@ -1001,13 +1002,14 @@ function buildSidebar(activePage, options = {}) {
     { page: 'disciplinary', icon: docIcon(), label: 'Disciplinary cases', roles: ['admin', 'manager'] },
     { subsection: 'Operations Registers' },
     { page: 'operations', icon: gridIcon(), label: 'Exit & Clearance', roles: ['admin', 'manager'] },
-    { section: 'Administration', icon: settingsIcon(), roles: ['admin', 'manager'] },
+    { page: 'account-settings', icon: settingsIcon(), label: 'My settings', roles: ['admin', 'manager'], standalone: true },
+    { section: 'Administration', icon: settingsIcon(), roles: ['admin'] },
     { page: 'users-access', icon: usersIcon(), label: 'Users & Access', roles: ['admin'] },
     { page: 'roles-permissions', icon: settingsIcon(), label: 'Roles & Permissions', roles: ['admin'] },
     { page: 'audit', icon: docIcon(), label: 'Audit history', roles: ['admin'] },
     { page: 'notification-settings', icon: chatIcon(), label: 'Notifications', roles: ['admin'] },
     { page: 'integrations', icon: gridIcon(), label: 'Integrations', roles: ['admin'] },
-    { page: 'settings', icon: settingsIcon(), label: 'Settings', roles: ['admin'] },
+    { page: 'settings', icon: settingsIcon(), label: 'Company settings', roles: ['admin'] },
   ];
   const navItems = isWorkspaceStatic
     ? (user.role === 'employee' ? employeeNavItems.filter(item => item.page) : workspaceNavItems)
@@ -1048,13 +1050,15 @@ function buildSidebar(activePage, options = {}) {
     const staffRoutes = {
       dashboard: 'overview', announcements: 'announcements', profile: 'profile', attendance: 'attendance',
       todos: 'todos', tickets: 'tickets', leave: 'leave', payroll: 'payroll',
-      documents: 'documents', performance: 'performance', orgchart: 'orgchart', settings: 'settings'
+      documents: 'documents', performance: 'performance', orgchart: 'orgchart'
     };
     const isStandaloneHrSettings = user.role !== 'employee' && item.page === 'settings' && !isAdminWorkspace();
     const href = isStandaloneHrSettings
       ? appUrl('/pages/settings.html')
       : user.role === 'employee'
-      ? (item.page === 'internal-jobs'
+      ? (item.page === 'account-settings'
+        ? appUrl('/pages/account-settings.html')
+        : item.page === 'internal-jobs'
         ? appUrl('/pages/internal-jobs.html')
         : item.page === 'messages'
         ? appUrl('/pages/messages.html')
@@ -1184,14 +1188,15 @@ function setupQuickAccess(navItems, user, isManager) {
   const staffRoutes = {
     dashboard: 'overview', announcements: 'announcements', profile: 'profile', attendance: 'attendance',
     todos: 'todos', tickets: 'tickets', leave: 'leave', payroll: 'payroll', documents: 'documents',
-    performance: 'performance', orgchart: 'orgchart', settings: 'settings'
+    performance: 'performance', orgchart: 'orgchart'
   };
   const destinations = navItems
     .filter(item => item.page && item.roles.includes(user.role) && (item.roles.includes(user.role) || (item.roles.includes('manager') && isManager)))
     .map(item => ({
       label: item.label,
       href: user.role === 'employee'
-        ? (item.page === 'internal-jobs' ? appUrl('/pages/internal-jobs.html')
+        ? (item.page === 'account-settings' ? appUrl('/pages/account-settings.html')
+          : item.page === 'internal-jobs' ? appUrl('/pages/internal-jobs.html')
           : item.page === 'messages' ? appUrl('/pages/messages.html')
           : item.page === 'calendar' ? appUrl('/pages/calendar.html')
             : item.page === 'benefits' ? appUrl('/pages/benefits.html')

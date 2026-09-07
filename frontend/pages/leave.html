@@ -232,6 +232,77 @@ function typeLabel(value) {
   return String(value || '').replace(/[_-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+const LEAVE_DAY_MS = 86400000;
+
+function leaveDateOnly(value) {
+  const match = String(value || '').match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : '';
+}
+
+function calendarLeaveDays(startDate, endDate) {
+  const start = leaveDateOnly(startDate);
+  const end = leaveDateOnly(endDate);
+  if (!start || !end || end < start) return 0;
+  return Math.floor((Date.parse(`${end}T00:00:00.000Z`) - Date.parse(`${start}T00:00:00.000Z`)) / LEAVE_DAY_MS) + 1;
+}
+
+function leaveDayPolicy(balance = {}) {
+  return {
+    count_weekends: balance.count_weekends !== false,
+    count_public_holidays: balance.count_public_holidays !== false
+  };
+}
+
+function chargeableLeaveDays(startDate, endDate, leaveType, policy, companyEvents = []) {
+  const start = leaveDateOnly(startDate);
+  const end = leaveDateOnly(endDate);
+  const duration = calendarLeaveDays(start, end);
+  if (!duration || leaveType !== 'annual') return duration;
+
+  const holidayRanges = policy.count_public_holidays ? [] : companyEvents
+    .filter((event) => event.category === 'holiday')
+    .map((event) => [leaveDateOnly(event.start_date), leaveDateOnly(event.end_date)])
+    .filter(([holidayStart, holidayEnd]) => holidayStart && holidayEnd);
+
+  let total = 0;
+  const startMs = Date.parse(`${start}T00:00:00.000Z`);
+  for (let offset = 0; offset < duration; offset++) {
+    const currentMs = startMs + (offset * LEAVE_DAY_MS);
+    const current = new Date(currentMs);
+    const date = current.toISOString().slice(0, 10);
+    if (!policy.count_weekends && [0, 6].includes(current.getUTCDay())) continue;
+    if (!policy.count_public_holidays
+      && holidayRanges.some(([holidayStart, holidayEnd]) => date >= holidayStart && date <= holidayEnd)) continue;
+    total++;
+  }
+  return total;
+}
+
+function leaveRowsDateRange(rows) {
+  const dates = rows.flatMap((row) => [leaveDateOnly(row.start_date), leaveDateOnly(row.end_date)]).filter(Boolean);
+  if (!dates.length) return null;
+  dates.sort();
+  return { from: dates[0], to: dates[dates.length - 1] };
+}
+
+async function loadLeaveDayContext(rows, year = new Date().getFullYear()) {
+  const balance = await api.get(`/leave/balance?year=${year}`);
+  const policy = leaveDayPolicy(balance);
+  const range = leaveRowsDateRange(rows.filter((row) => row.leave_type === 'annual'));
+  const companyEvents = !policy.count_public_holidays && range
+    ? await api.get(`/company-calendar?from=${range.from}&to=${range.to}`)
+    : [];
+  return { balance, policy, companyEvents };
+}
+
+function availableAnnualLeave(row) {
+  const entitlement = Number(row.annual_entitlement ?? 20);
+  const used = Number(row.annual_used_days ?? 0);
+  const pending = Number(row.annual_pending_days ?? 0);
+  const approvedRemaining = Number(row.annual_remaining_days ?? Math.max(0, entitlement - used));
+  return Math.max(0, approvedRemaining - pending);
+}
+
 function switchTab(tab) {
   ['my','all'].forEach(t => {
     document.getElementById(`tab-${t}`).style.display = t === tab ? '' : 'none';
@@ -249,8 +320,9 @@ async function loadMyLeaves() {
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>No leave requests yet</p></div></td></tr>`;
     return;
   }
+  const { policy, companyEvents } = await loadLeaveDayContext(rows);
   tbody.innerHTML = rows.map(r => {
-    const days = Math.ceil((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1;
+    const days = chargeableLeaveDays(r.start_date, r.end_date, r.leave_type, policy, companyEvents);
     return `<tr>
       <td><span class="badge badge-info">${r.leave_type}</span></td>
       <td>${fmt.date(r.start_date)}</td>
@@ -271,19 +343,21 @@ async function loadAllLeaves() {
   if (selectedEmployeeId) params.set('employee_id', selectedEmployeeId);
   const qs = params.size ? `?${params.toString()}` : '';
   const rows = await api.get(`/leave${qs}`);
-  hrLeaveRows = rows;
   const tbody = document.getElementById('all-leave-tbody');
   if (!rows.length) {
+    hrLeaveRows = [];
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><p>No requests found</p></div></td></tr>`;
     return;
   }
-  tbody.innerHTML = rows.map(r => {
-    const days = Math.ceil((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1;
-    const remaining = Number(r.annual_remaining_days ?? 20);
-    const remainingAfterRequest = r.leave_type === 'annual' && r.status !== 'rejected'
-      ? Math.max(0, remaining - (r.status === 'approved' ? 0 : days))
-      : remaining;
-    const balanceClass = remainingAfterRequest <= 0 ? 'empty' : remainingAfterRequest <= 5 ? 'low' : '';
+  const { policy, companyEvents } = await loadLeaveDayContext(rows);
+  hrLeaveRows = rows.map((row) => ({
+    ...row,
+    chargeable_days: chargeableLeaveDays(row.start_date, row.end_date, row.leave_type, policy, companyEvents)
+  }));
+  tbody.innerHTML = hrLeaveRows.map(r => {
+    const days = r.chargeable_days;
+    const available = availableAnnualLeave(r);
+    const balanceClass = available <= 0 ? 'empty' : available <= 5 ? 'low' : '';
     const actions = r.status === 'pending' ? `
       <button class="btn btn-success btn-sm" onclick="updateLeave(${r.id},'approved')">Approve</button>
       <button class="btn btn-danger btn-sm" onclick="updateLeave(${r.id},'rejected')">Reject</button>
@@ -294,7 +368,7 @@ async function loadAllLeaves() {
       <td>${fmt.date(r.start_date)}</td>
       <td>${fmt.date(r.end_date)}</td>
       <td>${days}</td>
-      <td><button class="leave-balance-pill ${balanceClass}" type="button" onclick="showLeaveBalance(${r.id})">${remainingAfterRequest} left</button></td>
+      <td><button class="leave-balance-pill ${balanceClass}" type="button" onclick="showLeaveBalance(${r.id})">${available} left</button></td>
       <td>${fmt.statusBadge(r.status)}</td>
       <td style="display:flex;gap:6px">${actions}</td>
     </tr>`;
@@ -305,14 +379,11 @@ function showLeaveBalance(id) {
   const row = hrLeaveRows.find((leave) => Number(leave.id) === Number(id));
   if (!row) return;
 
-  const days = Math.ceil((new Date(row.end_date) - new Date(row.start_date)) / 86400000) + 1;
+  const days = Number(row.chargeable_days ?? calendarLeaveDays(row.start_date, row.end_date));
   const entitlement = Number(row.annual_entitlement ?? 20);
   const used = Number(row.annual_used_days ?? 0);
   const pending = Number(row.annual_pending_days ?? 0);
-  const remaining = Number(row.annual_remaining_days ?? Math.max(0, entitlement - used));
-  const remainingAfterRequest = row.leave_type === 'annual' && row.status !== 'rejected'
-    ? Math.max(0, remaining - (row.status === 'approved' ? 0 : days))
-    : remaining;
+  const available = availableAnnualLeave(row);
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -333,11 +404,11 @@ function showLeaveBalance(id) {
           <div class="leave-balance-card"><span>Entitlement</span><strong>${entitlement}</strong></div>
           <div class="leave-balance-card"><span>Used</span><strong>${used}</strong></div>
           <div class="leave-balance-card"><span>Pending</span><strong>${pending}</strong></div>
-          <div class="leave-balance-card"><span>Left</span><strong>${remainingAfterRequest}</strong></div>
+          <div class="leave-balance-card"><span>Available</span><strong>${available}</strong></div>
         </div>
         <div class="leave-request-detail">
           <strong style="color:var(--text-primary)">Current request</strong><br>
-          ${escapeHtml(typeLabel(row.leave_type))} leave, ${days} day${days === 1 ? '' : 's'} from ${fmt.date(row.start_date)} to ${fmt.date(row.end_date)}.
+          ${escapeHtml(typeLabel(row.leave_type))} leave, ${days} ${row.leave_type === 'annual' ? 'chargeable' : 'calendar'} day${days === 1 ? '' : 's'} from ${fmt.date(row.start_date)} to ${fmt.date(row.end_date)}.
           ${row.reason ? `<br><span>Reason: ${escapeHtml(row.reason)}</span>` : ''}
         </div>
       </div>
@@ -473,18 +544,79 @@ function showRequestModal() {
   document.getElementById('req-start').value = today;
   document.getElementById('req-end').value = today;
   document.getElementById('req-modal').style.display = 'flex';
+  updateRequestPreview();
 }
 
-// Days preview
-['req-start','req-end'].forEach(id => {
-  document.getElementById(id).addEventListener('change', () => {
-    const s = document.getElementById('req-start').value;
-    const e = document.getElementById('req-end').value;
-    if (s && e) {
-      const days = Math.ceil((new Date(e) - new Date(s)) / 86400000) + 1;
-      document.getElementById('req-days-preview').textContent = days > 0 ? `Duration: ${days} day(s)` : 'End date must be after start date';
+let requestPreviewVersion = 0;
+
+function leavePolicySummary(policy) {
+  const exclusions = [];
+  if (!policy.count_weekends) exclusions.push('weekends');
+  if (!policy.count_public_holidays) exclusions.push('company holidays');
+  if (!exclusions.length) return 'All calendar days count.';
+  const summary = exclusions.join(' and ');
+  return `${summary.charAt(0).toUpperCase()}${summary.slice(1)} excluded.`;
+}
+
+async function updateRequestPreview() {
+  const preview = document.getElementById('req-days-preview');
+  const startDate = document.getElementById('req-start').value;
+  const endDate = document.getElementById('req-end').value;
+  const leaveType = document.getElementById('req-type').value;
+  const version = ++requestPreviewVersion;
+
+  if (!startDate || !endDate) {
+    preview.textContent = '';
+    return;
+  }
+
+  const calendarDays = calendarLeaveDays(startDate, endDate);
+  if (!calendarDays) {
+    preview.textContent = 'End date must be on or after the start date.';
+    return;
+  }
+  if (leaveType !== 'annual') {
+    preview.textContent = `Calendar duration: ${calendarDays} day${calendarDays === 1 ? '' : 's'}.`;
+    return;
+  }
+  if (startDate.slice(0, 4) !== endDate.slice(0, 4)) {
+    preview.textContent = 'Annual leave must fall within one calendar year.';
+    return;
+  }
+
+  preview.textContent = 'Calculating chargeable leave days...';
+  try {
+    const year = Number(startDate.slice(0, 4));
+    const { balance, policy, companyEvents } = await loadLeaveDayContext([
+      { start_date: startDate, end_date: endDate, leave_type: 'annual' }
+    ], year);
+    if (version !== requestPreviewVersion) return;
+
+    const chargeableDays = chargeableLeaveDays(startDate, endDate, leaveType, policy, companyEvents);
+    const entitlement = Number(balance.entitlement ?? 0);
+    const used = Number(balance.used ?? 0);
+    const pending = Number(balance.pending ?? 0);
+    const available = Math.max(0, entitlement - used - pending);
+    const policySummary = leavePolicySummary(policy);
+
+    if (!chargeableDays) {
+      preview.textContent = `No chargeable annual leave days in this range. ${policySummary}`;
+      return;
     }
-  });
+
+    const balanceDifference = available - chargeableDays;
+    const balanceSummary = balanceDifference >= 0
+      ? `${balanceDifference} day${balanceDifference === 1 ? '' : 's'} left after this request.`
+      : `This exceeds your available balance by ${Math.abs(balanceDifference)} day${balanceDifference === -1 ? '' : 's'}.`;
+    preview.textContent = `Chargeable annual leave: ${chargeableDays} day${chargeableDays === 1 ? '' : 's'}. ${available} day${available === 1 ? '' : 's'} available before this request; ${balanceSummary} ${policySummary}`;
+  } catch (error) {
+    if (version !== requestPreviewVersion) return;
+    preview.textContent = error.message || 'Could not calculate chargeable leave days.';
+  }
+}
+
+['req-type', 'req-start', 'req-end'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', updateRequestPreview);
 });
 
 async function submitRequest() {
@@ -497,7 +629,7 @@ async function submitRequest() {
     });
     document.getElementById('req-modal').style.display = 'none';
     toast('Leave request submitted!', 'success');
-    loadMyLeaves();
+    await loadMyLeaves();
   } catch(e) { toast(e.message, 'error'); }
 }
 

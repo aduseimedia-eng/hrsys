@@ -776,11 +776,19 @@ test('HR payroll updates keep tax and other deductions as separate inputs', asyn
 });
 
 test('leave approval rejects self-approval before modifying data', async () => {
-  const calls = mockQueries([{ rows: [{ id: 15, employee_id: 7, employee_role: 'employee', status: 'pending', company_id: 1 }] }]);
+  const { client, transactionCalls } = mockTransaction([
+    { rows: [] },
+    { rows: [{ id: 15, employee_id: 7, employee_role: 'employee', status: 'pending', company_id: 1 }] },
+    { rows: [] },
+    { rows: [] }
+  ]);
   const res = response();
   await leaveController.updateStatus({ params: { id: '15' }, body: { status: 'approved' }, user: { id: 7, company_id: 1, role: 'manager' } }, res);
   assert.equal(res.statusCode, 403);
-  assert.equal(calls.length, 1);
+  assert.match(transactionCalls[1].text, /FOR UPDATE OF lr/i);
+  assert.match(transactionCalls[2].text, /pg_advisory_xact_lock/i);
+  assert.equal(transactionCalls[3].text, 'ROLLBACK');
+  assert.equal(client.released, true);
 });
 
 test('clock-in creates a present attendance record', async () => {
