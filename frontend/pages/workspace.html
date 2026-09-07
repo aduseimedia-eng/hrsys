@@ -638,7 +638,7 @@ const WORKSPACE_PAGES = {
   departments: { title: 'Departments', nav: 'people' },
   orgchart: { title: 'Organization Chart', nav: 'people' },
   'account-settings': { title: 'My Settings', nav: 'account' },
-  settings: { title: 'Company Settings', nav: 'settings', roles: ['admin'] },
+  settings: { title: 'Company Settings', nav: 'settings', roles: ['admin'], containedScroll: true },
   'employee-profile': { title: 'Employee Profile', nav: 'people' }
 };
 const WORKSPACE_MODULES = Object.freeze({
@@ -755,7 +755,15 @@ const workspaceAttendanceControl = document.getElementById('workspace-attendance
 const workspaceAttendanceIcon = document.getElementById('workspace-attendance-icon');
 const workspaceAttendanceLabel = document.getElementById('workspace-attendance-label');
 const workspaceAttendanceElapsed = document.getElementById('workspace-attendance-elapsed');
-const workspaceMinimumFrameHeight = () => Math.max(1, Math.ceil(window.innerHeight - Math.max(0, workspaceFrame.getBoundingClientRect().top)));
+const workspaceMinimumFrameHeight = () => {
+  const frameDocumentTop = workspaceFrame.getBoundingClientRect().top + window.scrollY;
+  return Math.max(1, Math.ceil(window.innerHeight - Math.max(0, frameDocumentTop)));
+};
+function configureWorkspaceFrameScroll(pageMeta) {
+  const contained = Boolean(pageMeta?.containedScroll);
+  workspaceFrame.dataset.scrollMode = contained ? 'contained' : 'content';
+  if (contained) workspaceFrame.style.height = `${workspaceMinimumFrameHeight()}px`;
+}
 const RECRUITMENT_TAB_ROUTES = Object.freeze({
   hiring: 'dashboard',
   recruitment: 'dashboard',
@@ -832,7 +840,10 @@ window.addEventListener('message', (event) => {
   if (event.origin !== window.location.origin || event.source !== workspaceFrame.contentWindow) return;
   const data = event.data || {};
   if (data.type === 'hrconnect:page-height' && Number.isFinite(data.height)) {
-    const nextHeight = Math.max(workspaceMinimumFrameHeight(), Math.ceil(data.height));
+    const minimumHeight = workspaceMinimumFrameHeight();
+    const nextHeight = workspaceFrame.dataset.scrollMode === 'contained'
+      ? minimumHeight
+      : Math.max(minimumHeight, Math.ceil(data.height));
     if (Math.abs(workspaceFrame.getBoundingClientRect().height - nextHeight) > 1) {
       workspaceFrame.style.height = `${nextHeight}px`;
     }
@@ -853,7 +864,10 @@ window.addEventListener('message', (event) => {
 
 window.addEventListener('resize', () => {
   const minimumHeight = workspaceMinimumFrameHeight();
-  if (workspaceFrame.getBoundingClientRect().height < minimumHeight) workspaceFrame.style.height = `${minimumHeight}px`;
+  if (workspaceFrame.dataset.scrollMode === 'contained'
+    || workspaceFrame.getBoundingClientRect().height < minimumHeight) {
+    workspaceFrame.style.height = `${minimumHeight}px`;
+  }
 });
 
 workspaceFrame.addEventListener('load', () => {
@@ -1120,15 +1134,17 @@ function loadWorkspaceRoute() {
   const route = parseWorkspaceRoute();
   const pageMeta = WORKSPACE_PAGES[route.page];
   const src = pageMeta.src ? appUrl(pageMeta.src) : appUrl(`/pages/${route.page}.html${route.query}`);
+  const routeChanged = workspaceFrame.dataset.src !== src;
 
   updateWorkspaceChrome(route, pageMeta);
   updateWorkspaceSidebar(route.page);
   loadNotifCount();
+  if (routeChanged) resetWorkspaceScroll();
+  configureWorkspaceFrameScroll(pageMeta);
 
-  if (workspaceFrame.dataset.src !== src) {
+  if (routeChanged) {
     // Every module begins at its own page header instead of inheriting the
     // vertical position from the page the user just left.
-    resetWorkspaceScroll();
     workspaceLoading.classList.remove('hidden');
     workspaceFrame.classList.add('hidden');
     workspaceFrame.dataset.src = src;
@@ -1150,6 +1166,7 @@ function syncRouteFromFrame() {
     const pageMeta = WORKSPACE_PAGES[page];
     updateWorkspaceChrome({ page, query: frameUrl.search }, pageMeta);
     updateWorkspaceSidebar(pageMeta.nav);
+    configureWorkspaceFrameScroll(pageMeta);
     loadNotifCount();
     syncingFromFrame = false;
   } catch (err) {

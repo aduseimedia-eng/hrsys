@@ -17,8 +17,31 @@
   max-width: 1180px;
 }
 
+/* Settings is a split workspace: the page frame stays viewport-bound and the
+   detail pane owns scrolling. This also works when the page is embedded in the
+   auto-sizing workspace iframe, where position: sticky cannot follow the
+   parent window's scroll position. */
+body:not(.embedded-page) .main-content {
+  display: flex;
+  height: calc(100vh - var(--topbar-h));
+  height: calc(100dvh - var(--topbar-h));
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.embedded-page .main-content {
+  display: flex;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  flex-direction: column;
+  overflow: hidden !important;
+}
+
 body .settings-page-row {
   display: grid;
+  flex: 0 0 auto;
   grid-template-columns: 240px minmax(0, 1fr);
   gap: 24px;
   align-items: center;
@@ -76,11 +99,13 @@ body .settings-company-context strong {
 
 body .settings-hub {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 24px;
   align-items: start;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -88,12 +113,14 @@ body .settings-hub {
 
 /* Left navigation */
 body .settings-hub > .settings-section-nav {
-  position: sticky;
-  top: 16px;
+  position: static;
+  align-self: stretch;
+  height: 100%;
   min-height: 0;
-  max-height: calc(100vh - 32px);
+  max-height: none;
   padding: 12px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--settings-border);
   border-radius: 7px;
   background: var(--settings-surface);
@@ -250,8 +277,13 @@ body .settings-hub .settings-nav-group.is-filtered {
 /* Main settings surface */
 body .settings-hub > .settings-content {
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--settings-border);
   border-radius: 7px;
   background: var(--settings-surface);
@@ -845,6 +877,10 @@ body .settings-content > .settings-panel:not(.payroll-settings-page) .form-contr
     gap: 12px;
   }
 
+  body .settings-hub {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
   body .settings-page-row {
     margin-bottom: 14px;
   }
@@ -852,7 +888,9 @@ body .settings-content > .settings-panel:not(.payroll-settings-page) .form-contr
   body .settings-hub > .settings-section-nav {
     position: static;
     top: auto;
-    max-height: none;
+    height: auto;
+    max-height: min(36vh, 300px);
+    max-height: min(36dvh, 300px);
     margin: 0;
   }
 

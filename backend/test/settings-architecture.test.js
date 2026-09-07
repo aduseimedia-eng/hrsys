@@ -70,3 +70,19 @@ test('company settings uses the restrained rectangular visual system', () => {
   assert.doesNotMatch(css, /border-radius:\s*(?:50%|999(?:px|rem)?)/i);
   assert.match(css, /--settings-border:\s*#e1e4e8/);
 });
+
+test('company settings keeps navigation outside the scrollable detail pane', () => {
+  const page = read('frontend/pages/settings.html');
+  const css = read('frontend/css/settings.css');
+  const workspace = read('frontend/pages/workspace.html');
+
+  assert.match(page, /<nav class="settings-section-nav"[\s\S]*?<\/nav>\s*<div class="settings-content">/);
+  assert.match(css, /body:not\(\.embedded-page\) \.main-content\s*\{[^}]*height:\s*calc\(100dvh - var\(--topbar-h\)\)[^}]*overflow:\s*hidden/);
+  assert.match(css, /body\.embedded-page \.main-content\s*\{[^}]*height:\s*100dvh !important[^}]*overflow:\s*hidden !important/);
+  assert.match(css, /body \.settings-hub\s*\{[^}]*grid-template-rows:\s*minmax\(0, 1fr\)[^}]*overflow:\s*hidden/);
+  assert.match(css, /body \.settings-hub > \.settings-section-nav\s*\{[^}]*position:\s*static[^}]*overflow-y:\s*auto[^}]*overscroll-behavior:\s*contain/);
+  assert.match(css, /body \.settings-hub > \.settings-content\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto[^}]*overscroll-behavior:\s*contain/);
+  assert.match(css, /@media \(max-width: 820px\)[\s\S]*?body \.settings-hub\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)/);
+  assert.match(workspace, /settings:\s*\{[^}]*containedScroll:\s*true/);
+  assert.match(workspace, /workspaceFrame\.dataset\.scrollMode === 'contained'[\s\S]*?\? minimumHeight/);
+});

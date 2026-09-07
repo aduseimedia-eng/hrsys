@@ -211,7 +211,7 @@
         .settings-editor-row { align-items:flex-start; flex-direction:column; }
       }
     </style>
-    <link rel="stylesheet" href="../css/settings.css?v=20260908a" />
+    <link rel="stylesheet" href="../css/settings.css?v=20260908b" />
   </head>
   <body>
     <div class="app-shell">
@@ -640,7 +640,8 @@
         panel.classList.add('is-active');
         loadEmbeddedSettingsPanel(panelId);
         if (updateHash && window.location.hash !== `#${panelId}`) window.history.replaceState(null, '', `#${panelId}`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.querySelector('.settings-content')?.scrollTo({ top: 0, behavior: 'auto' });
+        window.scrollTo({ top: 0, behavior: 'auto' });
       }
       function setSettingsNavGroup(group, open) {
         if (!group) return;
