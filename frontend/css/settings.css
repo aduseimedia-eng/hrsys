@@ -610,6 +610,85 @@ body .settings-content #time-leave-settings .settings-input-suffix > span {
   font-weight: 700;
 }
 
+body .settings-content #time-leave-settings .settings-working-days {
+  margin: 0;
+  padding: 17px 16px;
+  border: 0;
+}
+
+body .settings-content #time-leave-settings .settings-working-days legend {
+  padding: 0;
+  color: var(--settings-text);
+  font-size: 0.77rem;
+  font-weight: 700;
+}
+
+body .settings-content #time-leave-settings .settings-working-days > .form-hint {
+  margin: 4px 0 12px;
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(72px, 1fr));
+  gap: 8px;
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid label {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--settings-border);
+  border-radius: 4px;
+  background: var(--settings-surface);
+  color: var(--settings-text-secondary);
+  cursor: pointer;
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid label:hover {
+  border-color: var(--settings-border-strong);
+  background: var(--settings-surface-subtle);
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid label:has(input:checked) {
+  border-color: var(--navy-600);
+  background: var(--navy-50);
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin: 0;
+  border-radius: 2px;
+  accent-color: var(--navy-700);
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid strong,
+body .settings-content #time-leave-settings .settings-working-day-grid small {
+  display: block;
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid strong {
+  color: var(--settings-text);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+body .settings-content #time-leave-settings .settings-working-day-grid small {
+  margin-top: 1px;
+  color: var(--settings-text-muted);
+  font-size: 0.65rem;
+}
+
+body .settings-content #time-leave-settings .settings-field-error {
+  min-height: 17px;
+  margin: 7px 0 0;
+  color: #b42318;
+  font-size: 0.7rem;
+}
+
 body .settings-content #time-leave-settings .settings-check-list {
   margin: 0 16px 17px;
   padding: 0;
@@ -800,6 +879,10 @@ body .settings-content > .settings-panel:not(.payroll-settings-page) .form-contr
   body .settings-content > .settings-panel:not(.payroll-settings-page) .form-grid,
   body .settings-content #time-leave-settings .settings-policy-grid {
     grid-template-columns: 1fr;
+  }
+
+  body .settings-content #time-leave-settings .settings-working-day-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   body .settings-content > .settings-panel:not(.payroll-settings-page) .span-2 {

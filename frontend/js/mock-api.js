@@ -2,6 +2,7 @@
   const STORAGE_KEY = 'hr_mock_db_v2';
   const PASSWORD = 'Password123!';
   const MS_DAY = 86400000;
+  const DEFAULT_WORKING_DAYS = Object.freeze([1, 2, 3, 4, 5]);
   const DEFAULT_LEAVE_SETTINGS = Object.freeze({
     annual_entitlement_days: 20,
     count_weekends: true,
@@ -211,6 +212,7 @@
         { id: 6, employee_id: 3, work_date: addDays(-1), clock_in: minutesAgo(1900), clock_out: minutesAgo(1420), status: 'present', notes: null },
         { id: 7, employee_id: 3, work_date: addDays(-2), clock_in: minutesAgo(3340), clock_out: minutesAgo(2860), status: 'present', notes: null }
       ],
+      default_schedule: null,
       leave_settings: { ...DEFAULT_LEAVE_SETTINGS },
       overtime_settings: { ...DEFAULT_OVERTIME_SETTINGS },
       company_calendar_events: [],
@@ -365,6 +367,15 @@
       if (!Array.isArray(db.team_messages)) db.team_messages = seedDb().team_messages;
       if (!Array.isArray(db.performance_review_cycles)) db.performance_review_cycles = [];
       if (!Array.isArray(db.performance_review_responses)) db.performance_review_responses = [];
+      if (!db.default_schedule || typeof db.default_schedule !== 'object') db.default_schedule = null;
+      else {
+        const normalizedDays = normalizeWorkingDays(
+          db.default_schedule.working_days ?? db.default_schedule.weekdays,
+          { fallback: true }
+        );
+        db.default_schedule.weekdays = normalizedDays;
+        db.default_schedule.working_days = [...normalizedDays];
+      }
       if (!db.leave_settings || typeof db.leave_settings !== 'object') db.leave_settings = { ...DEFAULT_LEAVE_SETTINGS };
       else db.leave_settings = { ...DEFAULT_LEAVE_SETTINGS, ...db.leave_settings };
       if (!db.overtime_settings || typeof db.overtime_settings !== 'object') db.overtime_settings = { ...DEFAULT_OVERTIME_SETTINGS };
@@ -475,6 +486,39 @@
     return Number(event.company_id || 1) === companyId(user);
   }
 
+  function normalizeWorkingDays(value, { fallback = false } = {}) {
+    if (!Array.isArray(value) || value.length === 0) {
+      return fallback ? [...DEFAULT_WORKING_DAYS] : null;
+    }
+    if (value.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) return null;
+    return [...new Set(value)].sort((a, b) => a - b);
+  }
+
+  function workingDays(db) {
+    return normalizeWorkingDays(
+      db.default_schedule?.working_days ?? db.default_schedule?.weekdays,
+      { fallback: true }
+    );
+  }
+
+  function defaultSchedule(db) {
+    const stored = db.default_schedule && typeof db.default_schedule === 'object'
+      ? db.default_schedule
+      : null;
+    const days = workingDays(db);
+    return {
+      id: stored?.id ?? null,
+      name: stored?.name || 'Standard workweek',
+      start_time: stored?.start_time || '09:00:00',
+      end_time: stored?.end_time || '17:30:00',
+      break_minutes: Number(stored?.break_minutes || 0),
+      weekdays: [...days],
+      working_days: [...days],
+      is_default: true,
+      source: stored ? 'default_schedule' : 'fallback'
+    };
+  }
+
   function companyCalendarInput(body) {
     const title = String(body?.title || '').trim();
     const startDate = validDateOnly(String(body?.start_date || ''));
@@ -494,10 +538,19 @@
 
   function leaveSettings(db) {
     const stored = db.leave_settings || {};
+    const configuredCountNonWorkingDays = Object.prototype.hasOwnProperty.call(stored, 'count_non_working_days')
+      ? stored.count_non_working_days
+      : stored.count_weekends;
+    const parsedCountNonWorkingDays = strictBoolean(configuredCountNonWorkingDays);
+    const countNonWorkingDays = parsedCountNonWorkingDays === null
+      ? DEFAULT_LEAVE_SETTINGS.count_weekends
+      : parsedCountNonWorkingDays;
     return {
       annual_entitlement_days: Number(stored.annual_entitlement_days ?? DEFAULT_LEAVE_SETTINGS.annual_entitlement_days),
-      count_weekends: stored.count_weekends ?? DEFAULT_LEAVE_SETTINGS.count_weekends,
+      count_non_working_days: countNonWorkingDays,
+      count_weekends: countNonWorkingDays,
       count_public_holidays: stored.count_public_holidays ?? DEFAULT_LEAVE_SETTINGS.count_public_holidays,
+      working_days: workingDays(db),
       max_consecutive_days: stored.max_consecutive_days == null ? null : Number(stored.max_consecutive_days),
       minimum_notice_days: Number(stored.minimum_notice_days ?? DEFAULT_LEAVE_SETTINGS.minimum_notice_days),
       updated_at: stored.updated_at || null
@@ -519,8 +572,8 @@
     const last = new Date(`${endDate}T00:00:00.000Z`);
     while (cursor <= last) {
       const day = cursor.toISOString().slice(0, 10);
-      const weekend = [0, 6].includes(cursor.getUTCDay());
-      if ((settings.count_weekends || !weekend)
+      const scheduledWorkday = settings.working_days.includes(cursor.getUTCDay());
+      if ((settings.count_non_working_days || scheduledWorkday)
         && (settings.count_public_holidays || !isCompanyHoliday(db, day, calendarCompanyId))) count += 1;
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
@@ -1191,6 +1244,30 @@
       return { id: removed.id };
     }
 
+    if (method === 'GET' && route === '/schedules/default') {
+      return defaultSchedule(db);
+    }
+
+    if (method === 'PUT' && route === '/schedules/default') {
+      requireRole(user, ['admin']);
+      const days = normalizeWorkingDays(body?.working_days ?? body?.weekdays);
+      if (!days) throw new Error('Select at least one valid working day');
+      const current = defaultSchedule(db);
+      db.default_schedule = {
+        id: current.id ?? 1,
+        name: current.name,
+        start_time: current.start_time,
+        end_time: current.end_time,
+        break_minutes: current.break_minutes,
+        weekdays: [...days],
+        working_days: [...days],
+        is_default: true,
+        updated_at: new Date().toISOString()
+      };
+      saveDb(db);
+      return defaultSchedule(db);
+    }
+
     if (method === 'GET' && route === '/leave/settings') {
       requireRole(user, ['admin']);
       return leaveSettings(db);
@@ -1199,7 +1276,14 @@
     if (method === 'PUT' && route === '/leave/settings') {
       requireRole(user, ['admin']);
       const annualEntitlement = Number(body?.annual_entitlement_days);
-      const countWeekends = strictBoolean(body?.count_weekends);
+      const hasCountNonWorkingDays = Object.prototype.hasOwnProperty.call(body || {}, 'count_non_working_days');
+      const hasLegacyCountWeekends = Object.prototype.hasOwnProperty.call(body || {}, 'count_weekends');
+      const countNonWorkingDays = strictBoolean(
+        hasCountNonWorkingDays ? body.count_non_working_days : body?.count_weekends
+      );
+      const legacyCountWeekends = hasLegacyCountWeekends
+        ? strictBoolean(body.count_weekends)
+        : countNonWorkingDays;
       const countPublicHolidays = strictBoolean(body?.count_public_holidays);
       const minimumNoticeDays = Number(body?.minimum_notice_days);
       const rawMaximum = body?.max_consecutive_days;
@@ -1209,8 +1293,11 @@
       if (!Number.isInteger(annualEntitlement) || annualEntitlement < 1 || annualEntitlement > 365) {
         throw new Error('Annual entitlement must be between 1 and 365 days');
       }
-      if (countWeekends === null || countPublicHolidays === null) {
-        throw new Error('Weekend and public-holiday rules must be true or false');
+      if (countNonWorkingDays === null || legacyCountWeekends === null || countPublicHolidays === null) {
+        throw new Error('Non-working-day and public-holiday rules must be true or false');
+      }
+      if (hasCountNonWorkingDays && hasLegacyCountWeekends && countNonWorkingDays !== legacyCountWeekends) {
+        throw new Error('Conflicting non-working-day rules were supplied');
       }
       if (!Number.isInteger(minimumNoticeDays) || minimumNoticeDays < 0 || minimumNoticeDays > 365) {
         throw new Error('Minimum notice must be between 0 and 365 days');
@@ -1221,7 +1308,8 @@
       }
       db.leave_settings = {
         annual_entitlement_days: annualEntitlement,
-        count_weekends: countWeekends,
+        count_non_working_days: countNonWorkingDays,
+        count_weekends: countNonWorkingDays,
         count_public_holidays: countPublicHolidays,
         max_consecutive_days: maximumConsecutiveDays,
         minimum_notice_days: minimumNoticeDays,
@@ -1245,8 +1333,10 @@
         used,
         pending,
         available: Math.max(0, settings.annual_entitlement_days - used - pending),
+        count_non_working_days: settings.count_non_working_days,
         count_weekends: settings.count_weekends,
-        count_public_holidays: settings.count_public_holidays
+        count_public_holidays: settings.count_public_holidays,
+        working_days: [...settings.working_days]
       };
     }
 
@@ -1354,9 +1444,8 @@
       if (leaveEmployee?.role === 'admin' && user.role !== 'manager') {
         throw new Error('HR leave requests must be approved by the CEO/manager');
       }
-      let settings;
+      let settings = body.status === 'approved' ? leaveSettings(db) : null;
       if (body.status === 'approved' && row.leave_type === 'annual') {
-        settings = leaveSettings(db);
         const year = Number(String(row.start_date).slice(0, 4));
         const requestedDays = leaveDays(db, row.start_date, row.end_date, settings, companyId(leaveEmployee));
         if (settings.max_consecutive_days !== null && requestedDays > settings.max_consecutive_days) {
@@ -1371,10 +1460,11 @@
       row.approved_by = user.id;
       row.approved_at = new Date().toISOString();
       if (row.status === 'approved') {
-        for (let d = new Date(row.start_date); d <= new Date(row.end_date); d.setDate(d.getDate() + 1)) {
-          if ([0, 6].includes(d.getDay())) continue;
-          const workDate = dateOnly(d);
-          if (row.leave_type === 'annual' && settings && !settings.count_public_holidays
+        const lastLeaveDate = new Date(`${row.end_date}T00:00:00.000Z`);
+        for (let d = new Date(`${row.start_date}T00:00:00.000Z`); d <= lastLeaveDate; d.setUTCDate(d.getUTCDate() + 1)) {
+          if (!settings.working_days.includes(d.getUTCDay())) continue;
+          const workDate = d.toISOString().slice(0, 10);
+          if (row.leave_type === 'annual' && !settings.count_public_holidays
             && isCompanyHoliday(db, workDate, companyId(leaveEmployee))) continue;
           const existing = db.attendance.find((a) => a.employee_id === row.employee_id && a.work_date === workDate);
           if (existing) existing.status = 'on-leave';

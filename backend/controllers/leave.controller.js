@@ -1,6 +1,11 @@
 // controllers/leave.controller.js
 const db = require('../config/db');
 const { notifyEmployee } = require('../services/push.service');
+const {
+  DEFAULT_WORKING_DAYS,
+  normalizeWorkingDays,
+  resolveCompanyWorkingDays
+} = require('../services/work-schedule.service');
 
 const DEFAULT_LEAVE_POLICY = Object.freeze({
   annual_entitlement_days: 20,
@@ -11,11 +16,17 @@ const DEFAULT_LEAVE_POLICY = Object.freeze({
   updated_at: null
 });
 
-function normalizeLeavePolicy(row = {}) {
+function normalizeLeavePolicy(row = {}, workingDays = DEFAULT_WORKING_DAYS) {
+  const countNonWorkingDays = row.count_non_working_days
+    ?? row.count_weekends
+    ?? DEFAULT_LEAVE_POLICY.count_weekends;
   return {
     annual_entitlement_days: Number(row.annual_entitlement_days ?? DEFAULT_LEAVE_POLICY.annual_entitlement_days),
-    count_weekends: row.count_weekends ?? DEFAULT_LEAVE_POLICY.count_weekends,
+    count_non_working_days: countNonWorkingDays,
+    // Retained for clients deployed before configurable company working days.
+    count_weekends: countNonWorkingDays,
     count_public_holidays: row.count_public_holidays ?? DEFAULT_LEAVE_POLICY.count_public_holidays,
+    working_days: normalizeWorkingDays(workingDays, { fallback: true }),
     max_consecutive_days: row.max_consecutive_days == null ? null : Number(row.max_consecutive_days),
     minimum_notice_days: Number(row.minimum_notice_days ?? DEFAULT_LEAVE_POLICY.minimum_notice_days),
     updated_at: row.updated_at || null
@@ -29,7 +40,8 @@ async function leavePolicy(companyId, executor = db) {
      FROM company_leave_settings WHERE company_id=$1`,
     [companyId]
   );
-  return normalizeLeavePolicy(rows[0]);
+  const schedule = await resolveCompanyWorkingDays(companyId, executor);
+  return normalizeLeavePolicy(rows[0], schedule.working_days);
 }
 
 function strictBoolean(value) {
@@ -63,13 +75,14 @@ async function leaveDaysBetween(companyId, startDate, endDate, policy, executor 
   const { rows } = await executor.query(
     `SELECT COUNT(*)::int AS days
      FROM generate_series($2::date, $3::date, '1 day'::interval) AS days(leave_day)
-     WHERE ($4::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+     WHERE ($4::boolean OR EXTRACT(DOW FROM leave_day)::int = ANY($6::smallint[]))
        AND ($5::boolean OR NOT EXISTS (
          SELECT 1 FROM company_calendar_events holiday
          WHERE holiday.company_id=$1 AND holiday.category='holiday'
            AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
        ))`,
-    [companyId, startDate, endDate, policy.count_weekends, policy.count_public_holidays]
+    [companyId, startDate, endDate, policy.count_non_working_days,
+      policy.count_public_holidays, policy.working_days]
   );
   return Number(rows[0]?.days || 0);
 }
@@ -81,13 +94,14 @@ async function annualLeaveDays(companyId, employeeId, year, statuses, policy, ex
      CROSS JOIN LATERAL generate_series(request.start_date, request.end_date, '1 day'::interval) AS days(leave_day)
      WHERE request.company_id=$1 AND request.employee_id=$2 AND request.leave_type='annual'
        AND request.status = ANY($3::varchar[]) AND EXTRACT(YEAR FROM leave_day)=$4
-       AND ($5::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+       AND ($5::boolean OR EXTRACT(DOW FROM leave_day)::int = ANY($7::smallint[]))
        AND ($6::boolean OR NOT EXISTS (
          SELECT 1 FROM company_calendar_events holiday
          WHERE holiday.company_id=request.company_id AND holiday.category='holiday'
            AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
        ))`,
-    [companyId, employeeId, statuses, year, policy.count_weekends, policy.count_public_holidays]
+    [companyId, employeeId, statuses, year, policy.count_non_working_days,
+      policy.count_public_holidays, policy.working_days]
   );
   return Number(rows[0]?.days || 0);
 }
@@ -101,13 +115,14 @@ async function annualLeaveBalance(companyId, employeeId, year, policy, executor 
      CROSS JOIN LATERAL generate_series(request.start_date, request.end_date, '1 day'::interval) AS days(leave_day)
      WHERE request.company_id=$1 AND request.employee_id=$2 AND request.leave_type='annual'
        AND request.status IN ('approved','pending') AND EXTRACT(YEAR FROM leave_day)=$3
-       AND ($4::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+       AND ($4::boolean OR EXTRACT(DOW FROM leave_day)::int = ANY($6::smallint[]))
        AND ($5::boolean OR NOT EXISTS (
          SELECT 1 FROM company_calendar_events holiday
          WHERE holiday.company_id=request.company_id AND holiday.category='holiday'
            AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
        ))`,
-    [companyId, employeeId, year, policy.count_weekends, policy.count_public_holidays]
+    [companyId, employeeId, year, policy.count_non_working_days,
+      policy.count_public_holidays, policy.working_days]
   );
   return {
     used: Number(rows[0]?.used || 0),
@@ -126,7 +141,12 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   const body = req.body || {};
   const annualEntitlement = Number(body.annual_entitlement_days);
-  const countWeekends = strictBoolean(body.count_weekends);
+  const hasCountNonWorkingDays = Object.prototype.hasOwnProperty.call(body, 'count_non_working_days');
+  const hasLegacyCountWeekends = Object.prototype.hasOwnProperty.call(body, 'count_weekends');
+  const countNonWorkingDays = strictBoolean(hasCountNonWorkingDays
+    ? body.count_non_working_days
+    : body.count_weekends);
+  const legacyCountWeekends = hasLegacyCountWeekends ? strictBoolean(body.count_weekends) : countNonWorkingDays;
   const countPublicHolidays = strictBoolean(body.count_public_holidays);
   const minimumNoticeDays = Number(body.minimum_notice_days);
   const rawMaximum = body.max_consecutive_days;
@@ -137,8 +157,11 @@ exports.updateSettings = async (req, res) => {
   if (!Number.isInteger(annualEntitlement) || annualEntitlement < 1 || annualEntitlement > 365) {
     return res.status(400).json({ error: 'Annual entitlement must be between 1 and 365 days' });
   }
-  if (countWeekends === null || countPublicHolidays === null) {
-    return res.status(400).json({ error: 'Weekend and public-holiday rules must be true or false' });
+  if (countNonWorkingDays === null || legacyCountWeekends === null || countPublicHolidays === null) {
+    return res.status(400).json({ error: 'Non-working-day and public-holiday rules must be true or false' });
+  }
+  if (hasCountNonWorkingDays && hasLegacyCountWeekends && countNonWorkingDays !== legacyCountWeekends) {
+    return res.status(400).json({ error: 'Conflicting non-working-day rules were supplied' });
   }
   if (!Number.isInteger(minimumNoticeDays) || minimumNoticeDays < 0 || minimumNoticeDays > 365) {
     return res.status(400).json({ error: 'Minimum notice must be between 0 and 365 days' });
@@ -167,17 +190,18 @@ exports.updateSettings = async (req, res) => {
          updated_at=NOW()
        RETURNING annual_entitlement_days, count_weekends, count_public_holidays,
          max_consecutive_days, minimum_notice_days, updated_at`,
-      [req.user.company_id, annualEntitlement, countWeekends, countPublicHolidays,
+      [req.user.company_id, annualEntitlement, countNonWorkingDays, countPublicHolidays,
         maximumConsecutiveDays, minimumNoticeDays, req.user.id]
     );
+    const schedule = await resolveCompanyWorkingDays(req.user.company_id, client);
     await client.query(
       `INSERT INTO audit_logs(company_id, actor_id, action, entity_type, entity_id, summary)
        VALUES($1,$2,'update','leave_settings',$1,$3)`,
       [req.user.company_id, req.user.id,
-        `Annual leave: ${annualEntitlement} days; maximum per request ${maximumConsecutiveDays ?? 'none'}; minimum notice ${minimumNoticeDays} days; weekends ${countWeekends ? 'counted' : 'excluded'}; public holidays ${countPublicHolidays ? 'counted' : 'excluded'}`]
+        `Annual leave: ${annualEntitlement} days; maximum per request ${maximumConsecutiveDays ?? 'none'}; minimum notice ${minimumNoticeDays} days; non-working days ${countNonWorkingDays ? 'counted' : 'excluded'}; public holidays ${countPublicHolidays ? 'counted' : 'excluded'}`]
     );
     await client.query('COMMIT');
-    res.json(normalizeLeavePolicy(rows[0]));
+    res.json(normalizeLeavePolicy(rows[0], schedule.working_days));
   } catch (error) {
     if (client) await client.query('ROLLBACK').catch(() => {});
     console.error(error);
@@ -329,8 +353,10 @@ exports.getMyBalance = async (req, res) => {
       used,
       pending,
       available: Math.max(0, policy.annual_entitlement_days - used - pending),
+      count_non_working_days: policy.count_non_working_days,
       count_weekends: policy.count_weekends,
-      count_public_holidays: policy.count_public_holidays
+      count_public_holidays: policy.count_public_holidays,
+      working_days: policy.working_days
     });
   } catch (err) {
     res.status(500).json({ error: 'Could not calculate leave balance' });
@@ -355,8 +381,9 @@ exports.getAll = async (req, res) => {
 
     const policy = await leavePolicy(req.user.company_id);
     const entitlementParam = params.length + 1;
-    const countWeekendsParam = params.length + 2;
+    const countNonWorkingDaysParam = params.length + 2;
     const countPublicHolidaysParam = params.length + 3;
+    const workingDaysParam = params.length + 4;
 
     const { rows } = await db.query(
       `SELECT lr.*, CONCAT(e.first_name,' ',e.last_name) AS employee_name,
@@ -380,7 +407,7 @@ exports.getAll = async (req, res) => {
            AND approved.employee_id = lr.employee_id
            AND approved.leave_type = 'annual'
            AND EXTRACT(YEAR FROM leave_day) = EXTRACT(YEAR FROM CURRENT_DATE)
-           AND ($${countWeekendsParam}::boolean OR EXTRACT(DOW FROM leave_day) NOT IN (0,6))
+           AND ($${countNonWorkingDaysParam}::boolean OR EXTRACT(DOW FROM leave_day)::int = ANY($${workingDaysParam}::smallint[]))
            AND ($${countPublicHolidaysParam}::boolean OR NOT EXISTS (
              SELECT 1 FROM company_calendar_events holiday
              WHERE holiday.company_id=approved.company_id AND holiday.category='holiday'
@@ -389,7 +416,8 @@ exports.getAll = async (req, res) => {
        ) lb ON TRUE
        ${where}
        ORDER BY lr.created_at DESC`,
-      [...params, policy.annual_entitlement_days, policy.count_weekends, policy.count_public_holidays]
+      [...params, policy.annual_entitlement_days, policy.count_non_working_days,
+        policy.count_public_holidays, policy.working_days]
     );
     res.json(rows);
   } catch (err) {
@@ -442,8 +470,8 @@ exports.updateStatus = async (req, res) => {
     // Recheck the entitlement at approval time so HR cannot approve annual
     // leave beyond the employee's yearly allowance.
     let policy;
+    if (status === 'approved') policy = await leavePolicy(req.user.company_id, client);
     if (status === 'approved' && leave.leave_type === 'annual') {
-      policy = await leavePolicy(req.user.company_id, client);
       const startDate = storedDateOnly(leave.start_date);
       const endDate = storedDateOnly(leave.end_date);
       if (!startDate || !endDate) throw new Error('Leave request contains an invalid stored date');
@@ -476,14 +504,15 @@ exports.updateStatus = async (req, res) => {
         `INSERT INTO attendance (company_id, employee_id, work_date, status)
          SELECT $1, $2, leave_day::date, 'on-leave'
          FROM generate_series($3::date, $4::date, '1 day'::interval) AS days(leave_day)
-         WHERE EXTRACT(DOW FROM leave_day) NOT IN (0,6)
-           AND ($5::boolean OR NOT EXISTS (
+         WHERE EXTRACT(DOW FROM leave_day)::int = ANY($5::smallint[])
+           AND ($6::boolean OR NOT EXISTS (
              SELECT 1 FROM company_calendar_events holiday
              WHERE holiday.company_id=$1 AND holiday.category='holiday'
                AND leave_day::date BETWEEN holiday.start_date AND holiday.end_date
            ))
          ON CONFLICT (employee_id, work_date) DO UPDATE SET status='on-leave'`,
         [req.user.company_id, leave.employee_id, leave.start_date, leave.end_date,
+          policy.working_days,
           leave.leave_type !== 'annual' || (policy?.count_public_holidays ?? true)]
       );
     }

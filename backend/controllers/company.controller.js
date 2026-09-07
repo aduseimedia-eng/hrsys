@@ -38,12 +38,14 @@ exports.updateSettings = async (req, res) => {
     if (rawCurrency !== undefined && !currency) {
       return res.status(400).json({ error: 'Select a valid ISO currency' });
     }
-    const workWeek = value('work_week', 32) || 'Monday-Friday';
+    const workWeek = req.body.work_week === undefined
+      ? null
+      : (value('work_week', 32) || 'Monday-Friday');
     const locale = value('locale', 35) || 'en-GB';
     const dateFormat = value('date_format', 24) || 'DD/MM/YYYY';
     const weekStart = value('week_start', 12) || 'Monday';
     const { rows } = await db.query(
-      `UPDATE companies SET legal_name=$1, email=$2, phone=$3, address=$4, city=$5, country=$6, timezone=$7, currency=COALESCE($8,currency), work_week=$9, locale=$10, date_format=$11, week_start=$12, updated_at=NOW()
+      `UPDATE companies SET legal_name=$1, email=$2, phone=$3, address=$4, city=$5, country=$6, timezone=$7, currency=COALESCE($8,currency), work_week=COALESCE($9,work_week), locale=$10, date_format=$11, week_start=$12, updated_at=NOW()
        WHERE id=$13 RETURNING ${profileColumns}`,
       [value('legal_name'), value('email'), value('phone', 40), value('address', 1000), value('city', 120), value('country', 120), timezone, currency, workWeek, locale, dateFormat, weekStart, req.user.company_id],
     );

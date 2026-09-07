@@ -633,7 +633,10 @@ CREATE TABLE work_schedules (
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   break_minutes INT NOT NULL DEFAULT 0 CHECK (break_minutes >= 0 AND break_minutes <= 720),
-  weekdays SMALLINT[] NOT NULL DEFAULT ARRAY[1,2,3,4,5],
+  weekdays SMALLINT[] NOT NULL DEFAULT ARRAY[1,2,3,4,5]
+    CONSTRAINT work_schedules_weekdays_valid
+    CHECK (array_ndims(weekdays) = 1 AND cardinality(weekdays) BETWEEN 1 AND 7
+      AND weekdays <@ ARRAY[0,1,2,3,4,5,6]::SMALLINT[]),
   is_default BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -690,6 +693,7 @@ CREATE INDEX idx_it_tickets_company    ON it_tickets(company_id, status, created
 CREATE INDEX idx_billing_payments_company ON billing_payments(company_id, created_at DESC);
 CREATE INDEX idx_company_calendar_events_dates ON company_calendar_events(company_id, start_date, end_date);
 CREATE INDEX idx_work_schedules_company ON work_schedules(company_id);
+CREATE UNIQUE INDEX idx_work_schedules_one_default ON work_schedules(company_id) WHERE is_default;
 CREATE INDEX idx_schedule_assignments_employee ON employee_schedule_assignments(company_id, employee_id, starts_on);
 
 CREATE OR REPLACE FUNCTION set_updated_at()

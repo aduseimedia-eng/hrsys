@@ -45,7 +45,7 @@ function staffPreviewHelpers(balance, companyEvents = []) {
   return { ...context.helpers, calls };
 }
 
-test('annual leave day helper follows weekend and company-holiday policy', () => {
+test('annual leave day helper follows company working-day and holiday policy', () => {
   const { chargeableLeaveDays } = leavePreviewHelpers();
   const companyEvents = [
     { category: 'holiday', start_date: '2024-06-17', end_date: '2024-06-17' },
@@ -54,20 +54,24 @@ test('annual leave day helper follows weekend and company-holiday policy', () =>
 
   assert.equal(chargeableLeaveDays(
     '2024-06-14', '2024-06-17', 'annual',
-    { count_weekends: false, count_public_holidays: false }, companyEvents
+    { working_days: [1, 5], count_non_working_days: false, count_public_holidays: false }, companyEvents
   ), 1);
   assert.equal(chargeableLeaveDays(
     '2024-06-14', '2024-06-17', 'annual',
-    { count_weekends: false, count_public_holidays: true }, companyEvents
+    { working_days: [1, 5], count_non_working_days: false, count_public_holidays: true }, companyEvents
   ), 2);
   assert.equal(chargeableLeaveDays(
     '2024-06-14', '2024-06-17', 'annual',
-    { count_weekends: true, count_public_holidays: true }, companyEvents
+    { working_days: [1, 5], count_non_working_days: true, count_public_holidays: true }, companyEvents
   ), 4);
   assert.equal(chargeableLeaveDays(
     '2024-06-14', '2024-06-17', 'sick',
-    { count_weekends: false, count_public_holidays: false }, companyEvents
+    { working_days: [1, 5], count_non_working_days: false, count_public_holidays: false }, companyEvents
   ), 4);
+  assert.equal(chargeableLeaveDays(
+    '2024-06-16', '2024-06-16', 'annual',
+    { working_days: [0], count_non_working_days: false, count_public_holidays: true }, companyEvents
+  ), 1, 'Sunday uses PostgreSQL/JavaScript day 0');
 });
 
 test('HR available leave deducts policy-aware pending reservations', () => {
@@ -82,7 +86,9 @@ test('HR available leave deducts policy-aware pending reservations', () => {
 
 test('request preview uses the employee-safe policy contract and company holidays', () => {
   assert.match(leavePage, /api\.get\(`\/leave\/balance\?year=\$\{year\}`\)/);
-  assert.match(leavePage, /balance\.count_weekends !== false/);
+  assert.match(leavePage, /balance\.working_days/);
+  assert.match(leavePage, /balance\.count_non_working_days \?\? balance\.count_weekends/);
+  assert.match(leavePage, /policy\.working_days\.includes\(current\.getUTCDay\(\)\)/);
   assert.match(leavePage, /balance\.count_public_holidays !== false/);
   assert.match(leavePage, /api\.get\(`\/company-calendar\?from=\$\{range\.from\}&to=\$\{range\.to\}`\)/);
   assert.match(leavePage, /event\.category === 'holiday'/);
@@ -93,7 +99,7 @@ test('request preview uses the employee-safe policy contract and company holiday
 
 test('staff portal caches company holidays and applies both annual day-count rules', async () => {
   const helpers = staffPreviewHelpers(
-    { count_weekends: false, count_public_holidays: false },
+    { working_days: [1, 5], count_non_working_days: false, count_public_holidays: false },
     [
       { category: 'holiday', start_date: '2024-06-17', end_date: '2024-06-17' },
       { category: 'meeting', start_date: '2024-06-14', end_date: '2024-06-14' }
@@ -110,6 +116,12 @@ test('staff portal caches company holidays and applies both annual day-count rul
   assert.equal(helpers.leaveDays({
     leave_type: 'sick', start_date: '2024-06-14', end_date: '2024-06-17'
   }), 4);
+  const sundaySchedule = staffPreviewHelpers({
+    working_days: [0], count_non_working_days: false, count_public_holidays: true
+  });
+  assert.equal(sundaySchedule.leaveDays({
+    leave_type: 'annual', start_date: '2024-06-16', end_date: '2024-06-16'
+  }), 1);
 });
 
 test('staff portal availability fallback reserves pending annual leave', () => {
@@ -124,8 +136,11 @@ test('staff portal availability fallback reserves pending annual leave', () => {
 });
 
 test('staff request preview, history, and next leave share the policy-aware counter', () => {
-  assert.match(staffPortal, /count_weekends: balance\?\.count_weekends !== false/);
+  assert.match(staffPortal, /working_days: normaliseStaffWorkingDays\(balance\?\.working_days\)/);
+  assert.match(staffPortal, /balance\?\.count_non_working_days \?\? balance\?\.count_weekends/);
   assert.match(staffPortal, /count_public_holidays: balance\?\.count_public_holidays !== false/);
+  assert.match(staffPortal, /policy\.working_days\.includes\(current\.getUTCDay\(\)\)/);
+  assert.match(staffPortal, /policy\.working_days\.join\(','\)/);
   assert.match(staffPortal, /api\.get\(`\/company-calendar\?from=\$\{year\}-01-01&to=\$\{year\}-12-31`\)/);
   assert.match(staffPortal, /api\.get\(`\/leave\/balance\?year=\$\{year\}`\)/);
   assert.match(staffPortal, /staffAnnualAvailableDays\(undefined, undefined, undefined, yearBalance\)/);

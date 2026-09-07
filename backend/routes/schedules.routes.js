@@ -2,6 +2,8 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const rbac = require('../middleware/rbac');
 const ctrl = require('../controllers/schedules.controller');
+router.get('/default', auth, ctrl.getDefault);
+router.put('/default', auth, rbac('admin'), ctrl.updateDefault);
 router.get('/', auth, rbac('admin', 'manager'), ctrl.list);
 router.post('/', auth, rbac('admin', 'manager'), ctrl.create);
 router.post('/assignments', auth, rbac('admin', 'manager'), ctrl.assign);

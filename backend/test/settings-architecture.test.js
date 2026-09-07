@@ -14,8 +14,21 @@ test('company settings separates policy configuration from operational records',
   assert.match(page, /id="payroll-tax-settings"/);
   assert.match(page, /api\.get\('\/leave\/settings'\)/);
   assert.match(page, /api\.put\('\/leave\/settings', payload\)/);
+  assert.match(page, /api\.get\('\/schedules\/default'\)/);
+  assert.match(page, /api\.put\('\/schedules\/default', \{ working_days: workingDays \}\)/);
   assert.match(page, /api\.get\('\/attendance\/overtime\/settings'\)/);
   assert.match(page, /api\.put\('\/attendance\/overtime\/settings',/);
+  assert.match(page, /id="working-days-form"/);
+  assert.match(page, /<fieldset class="settings-working-days"[^>]*disabled>/);
+  assert.match(page, /id="working-days-submit"[^>]*disabled/);
+  assert.match(page, /if \(workingDaysLoadPromise\) return workingDaysLoadPromise/);
+  assert.match(page, /id="leave-count-non-working-days"/);
+  assert.match(page, /count_non_working_days:/);
+  assert.doesNotMatch(page, /id="company-work-week"|id="leave-count-weekends"/);
+
+  const workingDayInputs = [...page.matchAll(/name="company-working-day" value="([0-6])"/g)];
+  assert.equal(workingDayInputs.length, 7, 'all seven company working days must be selectable');
+  assert.deepEqual(workingDayInputs.map((match) => Number(match[1])), [1, 2, 3, 4, 5, 6, 0]);
 
   for (const route of [
     'departments', 'orgchart', 'recruitment-settings', 'benefits', 'pensions',

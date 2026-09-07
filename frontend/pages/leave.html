@@ -233,6 +233,8 @@ function typeLabel(value) {
 }
 
 const LEAVE_DAY_MS = 86400000;
+const DEFAULT_LEAVE_WORKING_DAYS = Object.freeze([1, 2, 3, 4, 5]);
+const LEAVE_WEEKDAY_NAMES = Object.freeze(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
 
 function leaveDateOnly(value) {
   const match = String(value || '').match(/^(\d{4}-\d{2}-\d{2})/);
@@ -247,8 +249,13 @@ function calendarLeaveDays(startDate, endDate) {
 }
 
 function leaveDayPolicy(balance = {}) {
+  const selectedWorkingDays = new Set(Array.isArray(balance.working_days)
+    ? balance.working_days.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+    : []);
+  const configuredWorkingDays = [1, 2, 3, 4, 5, 6, 0].filter((day) => selectedWorkingDays.has(day));
   return {
-    count_weekends: balance.count_weekends !== false,
+    working_days: configuredWorkingDays.length ? configuredWorkingDays : [...DEFAULT_LEAVE_WORKING_DAYS],
+    count_non_working_days: (balance.count_non_working_days ?? balance.count_weekends) !== false,
     count_public_holidays: balance.count_public_holidays !== false
   };
 }
@@ -270,7 +277,7 @@ function chargeableLeaveDays(startDate, endDate, leaveType, policy, companyEvent
     const currentMs = startMs + (offset * LEAVE_DAY_MS);
     const current = new Date(currentMs);
     const date = current.toISOString().slice(0, 10);
-    if (!policy.count_weekends && [0, 6].includes(current.getUTCDay())) continue;
+    if (!policy.count_non_working_days && !policy.working_days.includes(current.getUTCDay())) continue;
     if (!policy.count_public_holidays
       && holidayRanges.some(([holidayStart, holidayEnd]) => date >= holidayStart && date <= holidayEnd)) continue;
     total++;
@@ -550,12 +557,15 @@ function showRequestModal() {
 let requestPreviewVersion = 0;
 
 function leavePolicySummary(policy) {
-  const exclusions = [];
-  if (!policy.count_weekends) exclusions.push('weekends');
-  if (!policy.count_public_holidays) exclusions.push('company holidays');
-  if (!exclusions.length) return 'All calendar days count.';
-  const summary = exclusions.join(' and ');
-  return `${summary.charAt(0).toUpperCase()}${summary.slice(1)} excluded.`;
+  const parts = [];
+  if (policy.count_non_working_days) {
+    parts.push('Non-working days count');
+  } else {
+    const names = policy.working_days.map((day) => LEAVE_WEEKDAY_NAMES[day]).filter(Boolean);
+    parts.push(`Only company working days count: ${names.join(', ')}`);
+  }
+  parts.push(policy.count_public_holidays ? 'Company holidays count' : 'Company holidays are excluded');
+  return `${parts.join('. ')}.`;
 }
 
 async function updateRequestPreview() {

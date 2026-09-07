@@ -211,7 +211,7 @@
         .settings-editor-row { align-items:flex-start; flex-direction:column; }
       }
     </style>
-    <link rel="stylesheet" href="../css/settings.css?v=20260907a" />
+    <link rel="stylesheet" href="../css/settings.css?v=20260908a" />
   </head>
   <body>
     <div class="app-shell">
@@ -292,7 +292,6 @@
               <div class="form-group"><label class="form-label" for="company-city">City</label><input id="company-city" class="form-control" maxlength="120" placeholder="Accra"></div>
               <div class="form-group"><label class="form-label" for="company-country">Country or region</label><input id="company-country" class="form-control" maxlength="120" placeholder="e.g. Ghana, United Kingdom, Canada"></div>
               <div class="form-group"><label class="form-label" for="company-timezone">Timezone</label><select id="company-timezone" class="form-control form-select"><option value="Africa/Accra">Africa/Accra (GMT)</option><option value="Africa/Lagos">Africa/Lagos (WAT)</option><option value="Europe/London">Europe/London</option></select></div>
-              <div class="form-group"><label class="form-label" for="company-work-week">Work week</label><select id="company-work-week" class="form-control form-select"><option value="Monday-Friday">Monday–Friday</option><option value="Monday-Saturday">Monday–Saturday</option><option value="Sunday-Thursday">Sunday–Thursday</option></select></div>
               <div class="form-group"><label class="form-label" for="company-locale">Display language &amp; region</label><select id="company-locale" class="form-control form-select"><option value="en-GB">English (United Kingdom)</option><option value="en-US">English (United States)</option><option value="en-CA">English (Canada)</option><option value="fr-FR">Français (France)</option><option value="es-ES">Español (España)</option><option value="pt-BR">Português (Brasil)</option></select></div>
               <div class="form-group"><label class="form-label" for="company-date-format">Date format</label><select id="company-date-format" class="form-control form-select"><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="MM/DD/YYYY">MM/DD/YYYY</option><option value="YYYY-MM-DD">YYYY-MM-DD</option></select></div>
               <div class="form-group"><label class="form-label" for="company-week-start">Week starts on</label><select id="company-week-start" class="form-control form-select"><option value="Monday">Monday</option><option value="Sunday">Sunday</option><option value="Saturday">Saturday</option></select></div>
@@ -374,9 +373,30 @@
 
         <section class="settings-hub-section settings-panel" id="time-leave-settings" aria-labelledby="time-leave-title">
           <div class="settings-panel-heading">
-            <div><h2 id="time-leave-title">Time &amp; leave</h2><p>Define how leave days are counted and when attendance becomes late or overtime.</p></div>
+            <div><h2 id="time-leave-title">Time &amp; leave</h2><p>Define the company work week, how leave days are counted, and when attendance becomes late or overtime.</p></div>
             <span class="settings-scope-label">Company policy</span>
           </div>
+
+          <form class="settings-policy-form" id="working-days-form">
+            <div class="settings-form-section-heading">
+              <div><h3>Company working days</h3><p>Select the days staff are normally expected to work each week.</p></div>
+            </div>
+            <fieldset class="settings-working-days" aria-describedby="working-days-hint working-days-error" aria-required="true" disabled>
+              <legend>Regular work week</legend>
+              <p id="working-days-hint" class="form-hint">This schedule controls leave-day calculations and which approved leave dates become on-leave attendance records.</p>
+              <div class="settings-working-day-grid">
+                <label><input type="checkbox" name="company-working-day" value="1" checked><span><strong>Mon</strong><small>Monday</small></span></label>
+                <label><input type="checkbox" name="company-working-day" value="2" checked><span><strong>Tue</strong><small>Tuesday</small></span></label>
+                <label><input type="checkbox" name="company-working-day" value="3" checked><span><strong>Wed</strong><small>Wednesday</small></span></label>
+                <label><input type="checkbox" name="company-working-day" value="4" checked><span><strong>Thu</strong><small>Thursday</small></span></label>
+                <label><input type="checkbox" name="company-working-day" value="5" checked><span><strong>Fri</strong><small>Friday</small></span></label>
+                <label><input type="checkbox" name="company-working-day" value="6"><span><strong>Sat</strong><small>Saturday</small></span></label>
+                <label><input type="checkbox" name="company-working-day" value="0"><span><strong>Sun</strong><small>Sunday</small></span></label>
+              </div>
+              <p id="working-days-error" class="settings-field-error" role="alert"></p>
+            </fieldset>
+            <div class="settings-form-actions"><span id="working-days-status" class="settings-save-status" aria-live="polite">Loading working days...</span><button id="working-days-submit" class="btn btn-primary" type="submit" disabled>Save working days</button></div>
+          </form>
 
           <form class="settings-policy-form" id="leave-policy-form">
             <div class="settings-form-section-heading">
@@ -389,7 +409,7 @@
             </div>
             <fieldset class="settings-check-list">
               <legend>Leave-day calculation</legend>
-              <label><input id="leave-count-weekends" type="checkbox"><span><strong>Count weekends</strong><small>Saturday and Sunday consume leave entitlement when included in a request.</small></span></label>
+              <label><input id="leave-count-non-working-days" type="checkbox"><span><strong>Count non-working days</strong><small>Days outside the company working schedule consume leave entitlement when included in a request.</small></span></label>
               <label><input id="leave-count-public-holidays" type="checkbox"><span><strong>Count public holidays</strong><small>Company calendar holidays consume leave entitlement when included in a request.</small></span></label>
             </fieldset>
             <div class="settings-form-actions"><span id="leave-policy-status" class="settings-save-status" aria-live="polite"></span><button class="btn btn-primary" type="submit">Save leave policy</button></div>
@@ -592,9 +612,20 @@
       buildSidebar("settings");
       loadNotifCount();
       let profile = user;
+      const DEFAULT_WORKING_DAYS = Object.freeze([1, 2, 3, 4, 5]);
+      let workingDaysLoaded = false;
+      let workingDaysLoadPromise = null;
+      let workingDaysDirty = false;
       expandCompanyOptions('company-timezone', ['UTC', 'Africa/Accra', 'Africa/Lagos', 'Africa/Nairobi', 'America/New_York', 'America/Los_Angeles', 'America/Toronto', 'Europe/London', 'Europe/Paris', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Australia/Sydney']);
       loadBranding();
       loadCompanyProfile();
+      document.getElementById('working-days-form').addEventListener('submit', saveWorkingDays);
+      document.querySelectorAll('input[name="company-working-day"]').forEach((input) => {
+        input.addEventListener('change', () => {
+          workingDaysDirty = true;
+          if (selectedWorkingDays().length) document.getElementById('working-days-error').textContent = '';
+        });
+      });
       document.getElementById('leave-policy-form').addEventListener('submit', saveLeavePolicy);
       document.getElementById('settings-overtime-form').addEventListener('submit', saveSettingsOvertime);
       document.getElementById('leave-annual-entitlement').addEventListener('input', syncLeavePolicyLimits);
@@ -649,8 +680,89 @@
       if (checkoutPlan) loadBilling().then(() => startCheckout(checkoutPlan));
 
       function loadEmbeddedSettingsPanel(panelId) {
-        if (panelId === 'time-leave-settings') Promise.allSettled([loadLeavePolicy(), loadSettingsOvertime()]);
+        if (panelId === 'time-leave-settings') Promise.allSettled([loadWorkingDays(), loadLeavePolicy(), loadSettingsOvertime()]);
         if (panelId === 'payroll-tax-settings') window.payrollSettingsPage?.load();
+      }
+
+      function normaliseWorkingDays(value) {
+        if (!Array.isArray(value)) return [...DEFAULT_WORKING_DAYS];
+        const days = [...new Set(value.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))];
+        return days.length ? days : [...DEFAULT_WORKING_DAYS];
+      }
+
+      function selectedWorkingDays() {
+        return [...document.querySelectorAll('input[name="company-working-day"]:checked')]
+          .map((input) => Number(input.value));
+      }
+
+      function setWorkingDays(days) {
+        const selected = new Set(normaliseWorkingDays(days));
+        document.querySelectorAll('input[name="company-working-day"]').forEach((input) => {
+          input.checked = selected.has(Number(input.value));
+        });
+      }
+
+      function setWorkingDaysInteractive(interactive) {
+        const form = document.getElementById('working-days-form');
+        form.querySelector('fieldset').disabled = !interactive;
+        document.getElementById('working-days-submit').disabled = !interactive;
+        form.setAttribute('aria-busy', String(!interactive));
+      }
+
+      function loadWorkingDays() {
+        if (workingDaysLoaded || workingDaysDirty) return Promise.resolve();
+        if (workingDaysLoadPromise) return workingDaysLoadPromise;
+
+        setWorkingDaysInteractive(false);
+        setSettingsStatus('working-days-status', 'Loading working days...');
+        workingDaysLoadPromise = (async () => {
+          try {
+            const schedule = await api.get('/schedules/default');
+            setWorkingDays(schedule.working_days);
+            document.getElementById('working-days-error').textContent = '';
+            setSettingsStatus('working-days-status', '');
+            workingDaysLoaded = true;
+            workingDaysDirty = false;
+          } catch (error) {
+            setWorkingDays(DEFAULT_WORKING_DAYS);
+            setSettingsStatus('working-days-status', error.message || 'Could not load working days', true);
+            toast(error.message || 'Could not load working days', 'error');
+          } finally {
+            workingDaysLoadPromise = null;
+            setWorkingDaysInteractive(true);
+          }
+        })();
+        return workingDaysLoadPromise;
+      }
+
+      async function saveWorkingDays(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const workingDays = selectedWorkingDays();
+        const errorNode = document.getElementById('working-days-error');
+        if (!workingDays.length) {
+          errorNode.textContent = 'Select at least one company working day.';
+          document.querySelector('input[name="company-working-day"]')?.focus();
+          return;
+        }
+        errorNode.textContent = '';
+        setWorkingDaysInteractive(false);
+        setSettingsFormBusy(form, true, 'Saving...');
+        setSettingsStatus('working-days-status', 'Saving changes...');
+        try {
+          const schedule = await api.put('/schedules/default', { working_days: workingDays });
+          setWorkingDays(schedule.working_days || workingDays);
+          workingDaysLoaded = true;
+          workingDaysDirty = false;
+          setSettingsStatus('working-days-status', 'Working days saved.');
+          toast('Company working days saved', 'success');
+        } catch (error) {
+          setSettingsStatus('working-days-status', error.message || 'Could not save working days', true);
+          toast(error.message || 'Could not save working days', 'error');
+        } finally {
+          setSettingsFormBusy(form, false);
+          setWorkingDaysInteractive(true);
+        }
       }
 
       async function loadSettingsOvertime() {
@@ -692,7 +804,7 @@
           document.getElementById('leave-annual-entitlement').value = Number(policy.annual_entitlement_days ?? 20);
           document.getElementById('leave-max-consecutive').value = policy.max_consecutive_days ?? '';
           document.getElementById('leave-minimum-notice').value = Number(policy.minimum_notice_days ?? 0);
-          document.getElementById('leave-count-weekends').checked = policy.count_weekends !== false;
+          document.getElementById('leave-count-non-working-days').checked = (policy.count_non_working_days ?? policy.count_weekends) !== false;
           document.getElementById('leave-count-public-holidays').checked = policy.count_public_holidays !== false;
           syncLeavePolicyLimits();
           setSettingsStatus('leave-policy-status', '');
@@ -710,7 +822,7 @@
           annual_entitlement_days: Number(document.getElementById('leave-annual-entitlement').value),
           max_consecutive_days: maxConsecutive ? Number(maxConsecutive) : null,
           minimum_notice_days: Number(document.getElementById('leave-minimum-notice').value),
-          count_weekends: document.getElementById('leave-count-weekends').checked,
+          count_non_working_days: document.getElementById('leave-count-non-working-days').checked,
           count_public_holidays: document.getElementById('leave-count-public-holidays').checked,
         };
         setSettingsFormBusy(form, true, 'Saving...');
@@ -758,7 +870,6 @@
           document.getElementById('company-address').value = company.address || '';
           setCompanySelect('company-timezone', company.timezone || 'Africa/Accra');
           populateCurrencyOptions(company.currency || 'USD');
-          setCompanySelect('company-work-week', company.work_week || 'Monday-Friday');
           setCompanySelect('company-locale', company.locale || 'en-GB');
           setCompanySelect('company-date-format', company.date_format || 'DD/MM/YYYY');
           setCompanySelect('company-week-start', company.week_start || 'Monday');
@@ -849,7 +960,6 @@
           country: document.getElementById('company-country').value,
           address: document.getElementById('company-address').value,
           timezone: document.getElementById('company-timezone').value,
-          work_week: document.getElementById('company-work-week').value,
           locale: document.getElementById('company-locale').value,
           date_format: document.getElementById('company-date-format').value,
           week_start: document.getElementById('company-week-start').value

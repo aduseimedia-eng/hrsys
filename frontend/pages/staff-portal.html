@@ -3940,12 +3940,7 @@
           ? `${difference} day${difference === 1 ? '' : 's'} left after this request.`
           : `This exceeds your available balance by ${Math.abs(difference)} day${difference === -1 ? '' : 's'}.`;
         const policy = staffLeavePolicy(yearBalance);
-        const exclusions = [];
-        if (!policy.count_weekends) exclusions.push('weekends');
-        if (!policy.count_public_holidays) exclusions.push('company holidays');
-        const policySummary = exclusions.length
-          ? `${exclusions.join(' and ').replace(/^./, (letter) => letter.toUpperCase())} excluded.`
-          : 'All calendar days count.';
+        const policySummary = staffLeavePolicySummary(policy);
 
         if (!days) {
           preview.textContent = `No chargeable annual leave days in this range. ${policySummary}`;
@@ -4018,16 +4013,33 @@
       return Math.floor((Date.parse(`${end}T00:00:00.000Z`) - Date.parse(`${start}T00:00:00.000Z`)) / MS_DAY) + 1;
     }
 
+    function normaliseStaffWorkingDays(value) {
+      if (!Array.isArray(value)) return [1, 2, 3, 4, 5];
+      const selected = new Set(value.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6));
+      const days = [1, 2, 3, 4, 5, 6, 0].filter((day) => selected.has(day));
+      return days.length ? days : [1, 2, 3, 4, 5];
+    }
+
     function staffLeavePolicy(balance = portalState.leaveBalance) {
       return {
-        count_weekends: balance?.count_weekends !== false,
+        working_days: normaliseStaffWorkingDays(balance?.working_days),
+        count_non_working_days: (balance?.count_non_working_days ?? balance?.count_weekends) !== false,
         count_public_holidays: balance?.count_public_holidays !== false,
       };
     }
 
+    function staffLeavePolicySummary(policy) {
+      const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const parts = policy.count_non_working_days
+        ? ['Non-working days count']
+        : [`Only company working days count: ${policy.working_days.map((day) => names[day]).filter(Boolean).join(', ')}`];
+      parts.push(policy.count_public_holidays ? 'Company holidays count' : 'Company holidays are excluded');
+      return `${parts.join('. ')}.`;
+    }
+
     function syncStaffLeavePolicyCache(balance = portalState.leaveBalance) {
       const policy = staffLeavePolicy(balance);
-      const key = `${policy.count_weekends}:${policy.count_public_holidays}`;
+      const key = `${policy.working_days.join(',')}:${policy.count_non_working_days}:${policy.count_public_holidays}`;
       if (leaveHolidayPolicyKey !== key) {
         leaveHolidayDatesByYear.clear();
         leaveHolidayLoadsByYear.clear();
@@ -4091,7 +4103,7 @@
       for (let offset = 0; offset < duration; offset++) {
         const current = new Date(startMs + (offset * MS_DAY));
         const date = current.toISOString().slice(0, 10);
-        if (!policy.count_weekends && [0, 6].includes(current.getUTCDay())) continue;
+        if (!policy.count_non_working_days && !policy.working_days.includes(current.getUTCDay())) continue;
         if (!policy.count_public_holidays && leaveHolidayDatesByYear.get(current.getUTCFullYear())?.has(date)) continue;
         total++;
       }
